@@ -5,17 +5,18 @@ namespace PotionSystem
 {
     /// <summary>
     /// ถังขยะ (Drop Zone): รีไซเคิลยา
-    /// - ยาตามสูตร: คืนวัตถุดิบต้นทางแบบสุ่ม 1-2 ชิ้น (จาก 3 ชิ้นของ Blueprint) เข้า SourceInventory
-    /// - ยาเสีย (ไม่มี Blueprint ที่ให้ผลลัพธ์นี้): ไม่คืนอะไร
+    /// - ทุกขวด (รวม Death potion): คืนวัตถุดิบที่ใช้ปรุงจริงแบบสุ่ม 1-2 ชิ้น (หรือทั้งหมดถ้าเปิด refundAll) เข้า SourceInventory
     /// </summary>
     [RequireComponent(typeof(BoxCollider2D))]
     public class TrashBin2D : MonoBehaviour
     {
         [SerializeField] private PotionRecipeBook recipeBook;
         [SerializeField] private SourceInventory sourceInventory;
+        [Tooltip("เปิด = คืนวัตถุดิบที่ใช้จริงทั้งหมด / ปิด = คืนสุ่ม 1-2 ชิ้นจากที่ใช้จริง")]
+        [SerializeField] private bool refundAll = false;
 
         /// <returns>true ถ้าลบยาออกจาก ResultSlot สำเร็จ</returns>
-        public bool Recycle(ResultSlot slot, int index, PotionData potion)
+        public bool Recycle(ResultSlot slot, int index, PotionInstance potion)
         {
             if (slot == null || potion == null) return false;
 
@@ -30,18 +31,11 @@ namespace PotionSystem
 
             if (!slot.TryTake(index, out _)) return false;
 
-            var blueprint = FindBlueprint(potion);
-            if (blueprint == null)
-            {
-                Debug.Log($"[Trash] ทิ้ง {potion.DisplayName} (ยาเสีย) ไม่ได้อะไรคืน");
-                return true;
-            }
-
             var pool = new List<RawMaterialData>();
-            foreach (var m in blueprint.UseMaterials)
+            foreach (var m in potion.UsedMaterials) // วัตถุดิบที่ใช้จริงตอนปรุง
                 if (m != null) pool.Add(m);
 
-            int count = Mathf.Min(Random.Range(1, 3), pool.Count); // 1 หรือ 2
+            int count = refundAll ? pool.Count : Mathf.Min(Random.Range(1, 3), pool.Count); // 1 หรือ 2
             for (int i = 0; i < count; i++)
             {
                 int pick = Random.Range(0, pool.Count);
@@ -51,14 +45,6 @@ namespace PotionSystem
                 Debug.Log($"[Trash] คืน {m.DisplayName} x1");
             }
             return true;
-        }
-
-        private PotionBlueprint FindBlueprint(PotionData potion)
-        {
-            if (recipeBook == null) return null;
-            foreach (var bp in recipeBook.Blueprints)
-                if (bp != null && bp.ResultPotion == potion) return bp;
-            return null;
         }
     }
 }

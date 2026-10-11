@@ -10,7 +10,7 @@ namespace PotionSystem
     public class DraggablePotion2D : MonoBehaviour
     {
         private ResultSlot resultSlot;
-        private PotionData potion;
+        private PotionInstance potion;
         private int slotIndex;
 
         private SpriteRenderer sr;
@@ -19,7 +19,7 @@ namespace PotionSystem
         private int homeSortingOrder;
         private bool dragging;
 
-        public void Init(ResultSlot slot, PotionData data, int index)
+        public void Init(ResultSlot slot, PotionInstance data, int index)
         {
             resultSlot = slot;
             potion = data;

@@ -12,19 +12,19 @@ namespace PotionSystem
     {
         public const int Capacity = 5;
 
-        private readonly List<PotionData> potions = new List<PotionData>(Capacity);
+        private readonly List<PotionInstance> potions = new List<PotionInstance>(Capacity);
 
-        public IReadOnlyList<PotionData> Potions => potions;
+        public IReadOnlyList<PotionInstance> Potions => potions;
         public int Count => potions.Count;
         public bool IsFull => potions.Count >= Capacity;
 
-        public event Action<PotionData> OnPotionAdded;
-        public event Action<PotionData> OnPotionRemoved;
+        public event Action<PotionInstance> OnPotionAdded;
+        public event Action<PotionInstance> OnPotionRemoved;
         public event Action OnChanged;
 
-        public bool TryAdd(PotionData potion)
+        public bool TryAdd(PotionInstance potion)
         {
-            if (potion == null || IsFull) return false;
+            if (potion == null || potion.Data == null || IsFull) return false;
 
             potions.Add(potion);
             OnPotionAdded?.Invoke(potion);
@@ -33,7 +33,7 @@ namespace PotionSystem
         }
 
         /// <summary>หยิบยาออกจากช่อง (เช่น นำไปวางในคิวให้แมว)</summary>
-        public bool TryTake(int index, out PotionData potion)
+        public bool TryTake(int index, out PotionInstance potion)
         {
             potion = null;
             if (index < 0 || index >= potions.Count) return false;

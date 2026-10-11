@@ -12,8 +12,10 @@ namespace PotionSystem
         [SerializeField] private SpriteRenderer iconRenderer;
         [SerializeField] private Sprite emptySlotSprite;
 
-        public PotionData StoredPotion { get; private set; }
-        public bool IsOccupied => StoredPotion != null;
+        /// <summary>ขวดยาที่เก็บอยู่ (พร้อมวัตถุดิบที่ใช้จริง)</summary>
+        public PotionInstance StoredInstance { get; private set; }
+        public PotionData StoredPotion => StoredInstance != null ? StoredInstance.Data : null;
+        public bool IsOccupied => StoredInstance != null;
 
         private void Awake()
         {
@@ -22,7 +24,7 @@ namespace PotionSystem
             Clear();
         }
 
-        public bool TryAssignPotion(ResultSlot resultSlot, int resultIndex, PotionData potion)
+        public bool TryAssignPotion(ResultSlot resultSlot, int resultIndex, PotionInstance potion)
         {
             if (potion == null) return false;
 
@@ -31,19 +33,19 @@ namespace PotionSystem
                 return false;
 
             // ถ้าช่องนี้มียาอยู่เดิม คืนยาเก่ากลับ ResultSlot
-            if (StoredPotion != null && resultSlot != null)
+            if (StoredInstance != null && resultSlot != null)
             {
-                resultSlot.TryAdd(StoredPotion);
+                resultSlot.TryAdd(StoredInstance);
             }
 
-            StoredPotion = potion;
+            StoredInstance = potion;
             UpdateVisual();
             return true;
         }
 
         public void Clear()
         {
-            StoredPotion = null;
+            StoredInstance = null;
             UpdateVisual();
         }
 

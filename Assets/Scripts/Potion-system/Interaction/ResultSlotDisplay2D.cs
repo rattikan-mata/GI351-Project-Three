@@ -36,10 +36,11 @@ namespace PotionSystem
 
                 var potion = resultSlot.Potions[i];
                 var go = new GameObject("Potion_" + potion.DisplayName);
+                var data = potion.Data;
                 go.transform.SetParent(point, false);
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sortingOrder = 10;
-                CraftingSprites2D.Apply(sr, potion, CraftingSprites2D.ColorFor(potion), 0.8f);
+                CraftingSprites2D.Apply(sr, data, CraftingSprites2D.ColorFor(data), 0.8f);
 
                 // เพิ่ม Collider หลังตั้ง Sprite เพื่อให้ขนาดพอดีกับรูป
                 go.AddComponent<BoxCollider2D>();

@@ -105,7 +105,8 @@ namespace PotionSystem
             if (resultSlot == null || resultSlot.IsFull) return CraftResult.ResultSlotFull;
 
             var potion = CurrentResult;
-            resultSlot.TryAdd(potion);
+            // จำวัตถุดิบที่ใช้จริงไว้กับขวดยา (snapshot ก่อนล้างหม้อ)
+            resultSlot.TryAdd(new PotionInstance(potion, contents));
 
             contents.Clear(); // ทำลายวัตถุดิบถาวร (ไม่ Refund)
             NotifyContentsChanged();
