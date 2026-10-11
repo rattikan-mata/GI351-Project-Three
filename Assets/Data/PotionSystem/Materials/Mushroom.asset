@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Mushroom
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.RawMaterialData
   displayName: Mushroom
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 5afe6ae79bc771440a3857658c081508, type: 3}
   description: 
   materialType: 2

@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Berry
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.RawMaterialData
   displayName: Berry
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: aae263f609cdfaf439ca639f8ce6e50a, type: 3}
   description: 
   materialType: 2

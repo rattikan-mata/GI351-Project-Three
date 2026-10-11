@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Eyeball
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.RawMaterialData
   displayName: Eyeball
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: f42859f2de08fb34ab22426e2bac5345, type: 3}
   description: 
   materialType: 0

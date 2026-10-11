@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Ice Crystal
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.RawMaterialData
   displayName: Ice Crystal
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: a45d283305a363f4abf83ce8b35a970c, type: 3}
   description: 
   materialType: 1

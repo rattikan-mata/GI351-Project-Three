@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Heart Gemstone
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.RawMaterialData
   displayName: Heart Gemstone
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: e0710a40fac87d7479e75966923bdd77, type: 3}
   description: 
   materialType: 1
