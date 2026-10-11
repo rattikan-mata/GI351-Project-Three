@@ -40,6 +40,10 @@ namespace PotionSystem
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sortingOrder = 10;
                 CraftingSprites2D.Apply(sr, potion, CraftingSprites2D.ColorFor(potion), 0.8f);
+
+                // เพิ่ม Collider หลังตั้ง Sprite เพื่อให้ขนาดพอดีกับรูป
+                go.AddComponent<BoxCollider2D>();
+                go.AddComponent<DraggablePotion2D>().Init(resultSlot, potion, i);
             }
         }
     }
