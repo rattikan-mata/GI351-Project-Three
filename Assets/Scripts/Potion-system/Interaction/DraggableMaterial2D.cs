@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using TMPro;
 namespace PotionSystem
 {
     /// <summary>
@@ -13,7 +13,7 @@ namespace PotionSystem
         [SerializeField] private RawMaterialData material;
         [SerializeField] private SourceInventory sourceInventory;
         [SerializeField] private PotStation2D pot;
-        [SerializeField] private TextMesh label;
+        [SerializeField] private TextMeshPro label;
 
         private SpriteRenderer sr;
         private Vector3 homePosition;
