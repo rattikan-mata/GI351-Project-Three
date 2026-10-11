@@ -14,6 +14,7 @@ namespace PotionSystem
         private int slotIndex;
 
         private SpriteRenderer sr;
+        private Collider2D col;
         private Transform homeParent;
         private Vector3 grabOffset;
         private int homeSortingOrder;
@@ -25,6 +26,8 @@ namespace PotionSystem
             potion = data;
             slotIndex = index;
             sr = GetComponent<SpriteRenderer>();
+            col = GetComponent<Collider2D>();
+            col.isTrigger = true;
             homeParent = transform.parent;
             homeSortingOrder = sr.sortingOrder;
         }
@@ -33,6 +36,7 @@ namespace PotionSystem
         {
             if (potion == null) return;
             dragging = true;
+            if (col != null) col.enabled = false;
             grabOffset = transform.position - CraftingSprites2D.MouseWorldPosition();
             sr.sortingOrder = homeSortingOrder + 50;
         }
@@ -47,6 +51,7 @@ namespace PotionSystem
 {
     if (!dragging) return;
     dragging = false;
+    if (col != null) col.enabled = true;
 
     var hits = Physics2D.OverlapPointAll(CraftingSprites2D.MouseWorldPosition());
     foreach (var hit in hits)

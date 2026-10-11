@@ -107,7 +107,7 @@ namespace PotionSystem.EditorTools
                 }
 
                 var col = go.AddComponent<BoxCollider2D>(); // ขนาดตาม Sprite อัตโนมัติ
-                col.isTrigger = false;
+                col.isTrigger = true;
 
                 var drag = go.AddComponent<DraggableMaterial2D>();
                 var dso = new SerializedObject(drag);

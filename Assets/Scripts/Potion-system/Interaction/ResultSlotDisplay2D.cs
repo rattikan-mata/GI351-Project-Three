@@ -43,7 +43,8 @@ namespace PotionSystem
                 CraftingSprites2D.Apply(sr, data, CraftingSprites2D.ColorFor(data), 0.8f);
 
                 // เพิ่ม Collider หลังตั้ง Sprite เพื่อให้ขนาดพอดีกับรูป
-                go.AddComponent<BoxCollider2D>();
+                var col = go.AddComponent<BoxCollider2D>();
+                col.isTrigger = true;
                 go.AddComponent<DraggablePotion2D>().Init(resultSlot, potion, i);
             }
         }

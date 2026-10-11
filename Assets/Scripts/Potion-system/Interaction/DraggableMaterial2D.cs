@@ -16,6 +16,7 @@ namespace PotionSystem
         [SerializeField] private TextMeshPro label;
 
         private SpriteRenderer sr;
+        private Collider2D col;
         private Vector3 homePosition;
         private Vector3 grabOffset;
         private int homeSortingOrder;
@@ -33,9 +34,10 @@ namespace PotionSystem
         private void Awake()
         {
             sr = GetComponent<SpriteRenderer>();
+            col = GetComponent<Collider2D>();
+            col.isTrigger = true;
             homePosition = transform.position;
             homeSortingOrder = sr.sortingOrder;
-            
         }
 
         private void OnEnable()
@@ -72,6 +74,7 @@ namespace PotionSystem
         {
             if (sourceInventory == null || !sourceInventory.HasStock(material)) return;
             dragging = true;
+            if (col != null) col.enabled = false;
             grabOffset = transform.position - CraftingSprites2D.MouseWorldPosition();
             sr.sortingOrder = homeSortingOrder + 50;
         }
@@ -86,6 +89,7 @@ namespace PotionSystem
         {
             if (!dragging) return;
             dragging = false;
+            if (col != null) col.enabled = true;
 
             var hits = Physics2D.OverlapPointAll(CraftingSprites2D.MouseWorldPosition());
             foreach (var hit in hits)
