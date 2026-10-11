@@ -106,6 +106,17 @@ public class PotionSequenceDropper : MonoBehaviour
         StartDispensing();
     }
 
+    
+    /// <summary>ใส่ยาลงในช่อง Dropper ตาม Index ที่ระบุโดยตรง (0, 1, 2)</summary>
+         public bool TryInsertToSlot(int index, PotionType potion)
+    {
+    if (IsDispensing || potion == PotionType.None) return false;
+    if (slots == null || index < 0 || index >= slots.Length) return false;
+    if (slots[index] == null || slots[index].IsOccupied) return false;
+
+    return slots[index].TryInsert(potion);
+    }
+    
     private IEnumerator DispenseRoutine()
     {
         IsDispensing = true;

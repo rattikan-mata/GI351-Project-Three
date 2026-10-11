@@ -44,24 +44,33 @@ namespace PotionSystem
         }
 
         private void OnMouseUp()
+{
+    if (!dragging) return;
+    dragging = false;
+
+    var hits = Physics2D.OverlapPointAll(CraftingSprites2D.MouseWorldPosition());
+    foreach (var hit in hits)
+    {
+        // 1. ตรวจสอบว่าปล่อยลงบน Staging Slot หรือไม่
+        var stagingSlot = hit.GetComponent<PotionStagingSlot2D>();
+        if (stagingSlot != null)
         {
-            if (!dragging) return;
-            dragging = false;
-
-            var hits = Physics2D.OverlapPointAll(CraftingSprites2D.MouseWorldPosition());
-            foreach (var hit in hits)
-            {
-                var bin = hit.GetComponent<TrashBin2D>();
-                if (bin == null) continue;
-
-                if (bin.Recycle(resultSlot, slotIndex, potion))
-                    return; // ResultSlot เปลี่ยน -> Display สร้างขวดใหม่เอง (ขวดนี้ถูกทำลาย)
-                break;
-            }
-
-            // ปล่อยที่อื่น -> กลับตำแหน่งเดิมใน Result Slot
-            transform.position = homeParent != null ? homeParent.position : transform.position;
-            sr.sortingOrder = homeSortingOrder;
+            if (stagingSlot.TryAssignPotion(resultSlot, slotIndex, potion))
+                return; // วางสำเร็จ ResultSlot จะอัปเดตตัวเอง
         }
+
+        // 2. ตรวจสอบถังขยะ
+        var bin = hit.GetComponent<TrashBin2D>();
+        if (bin == null) continue;
+
+        if (bin.Recycle(resultSlot, slotIndex, potion))
+            return;
+        break;
+    }
+
+    // ปล่อยที่อื่น -> กลับตำแหน่งเดิมใน Result Slot
+    transform.position = homeParent != null ? homeParent.position : transform.position;
+    sr.sortingOrder = homeSortingOrder;
+    }
     }
 }

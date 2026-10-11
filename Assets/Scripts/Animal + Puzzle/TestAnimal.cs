@@ -86,8 +86,14 @@ public abstract class TestAnimal : MonoBehaviour
     public virtual bool IsAirborne => false;
     #endregion
 
-    #region Selection Visual
-    [Header("Selection Visual")]
+    #region Selection Visual & Sprites
+    [Header("Selection Visual & Sprites")]
+    [Tooltip("รูปสไปรต์แมวเปล่า/ร่างปกติก่อนกินยา")]
+    [SerializeField] protected Sprite defaultCatSprite;
+
+    [Tooltip("รูปสไปรต์ร่างใหม่หลังกินยา (ถ้าเว้นว่างไว้ จะใช้รูปเดิมที่ติดมากับ SpriteRenderer)")]
+    [SerializeField] protected Sprite poweredUpSprite;
+
     [Tooltip("(ไม่บังคับ) GameObject วงแหวน/ลูกศรที่จะโชว์เหนือตัวที่ถูกเลือกอยู่")]
     [SerializeField] protected GameObject selectionIndicator;
 
@@ -132,6 +138,12 @@ public abstract class TestAnimal : MonoBehaviour
         abilityUnlockedUntil = (potionEffectDuration > 0f) ? Time.time + potionEffectDuration : float.MaxValue;
         Debug.Log($"[{animalName}] ใช้ยา {potion} แล้ว");
 
+        // --- เปลี่ยนร่างเป็นสไปรต์ใหม่หลังได้รับยา ---
+        if (spriteRenderer != null && poweredUpSprite != null)
+        {
+            spriteRenderer.sprite = poweredUpSprite;
+        }
+
         TriggerAuto();
         return true;
     }
@@ -148,6 +160,12 @@ public abstract class TestAnimal : MonoBehaviour
         rb.sleepMode = RigidbodySleepMode2D.NeverSleep;
 
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+
+        // --- ตั้งค่าสไปรต์เริ่มต้นเป็นแมวเปล่าตอนเริ่มเกม ---
+        if (spriteRenderer != null && defaultCatSprite != null)
+        {
+            spriteRenderer.sprite = defaultCatSprite;
+        }
 
         if (selectionIndicator != null) selectionIndicator.SetActive(false);
     }
