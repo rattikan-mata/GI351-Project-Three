@@ -84,6 +84,9 @@ public abstract class TestAnimal : MonoBehaviour
 
     /// <summary>ลอยอยู่กลางอากาศไหม (สวิตช์ใช้เช็คว่าตัวเบาเกินกดไม่ติด)</summary>
     public virtual bool IsAirborne => false;
+
+    /// <summary>ความเร็วจากสายพาน (ConveyorBelt ใส่ให้ แมวยังเดินเองได้พร้อมถูกพาไป)</summary>
+    public Vector2 ConveyorVelocity { get; set; }
     #endregion
 
     #region Selection Visual & Sprites
@@ -187,31 +190,36 @@ public abstract class TestAnimal : MonoBehaviour
 
     protected virtual void FixedUpdate()
     {
-        if (!hasTarget) return;
+        Vector2 walk = Vector2.zero;
 
-        Vector2 toTarget = targetPosition - rb.position;
-        if (toTarget.magnitude <= stopDistance)
+        if (hasTarget)
         {
-            StopMoving();
-            return;
-        }
-
-        MoveDirection = toTarget.normalized;
-        FacingDirection = MoveDirection;
-        rb.linearVelocity = MoveDirection * moveSpeed * SpeedMultiplier;
-
-        // ตรวจว่าติด: เดินมาตั้งนานแต่แทบไม่ขยับ -> หยุดเดิน
-        stuckTimer += Time.fixedDeltaTime;
-        if (stuckTimer >= stuckTimeout)
-        {
-            if (Vector2.Distance(rb.position, stuckCheckPos) < stuckMinProgress)
+            Vector2 toTarget = targetPosition - rb.position;
+            if (toTarget.magnitude <= stopDistance)
             {
                 StopMoving();
-                return;
             }
-            stuckTimer = 0f;
-            stuckCheckPos = rb.position;
+            else
+            {
+                MoveDirection = toTarget.normalized;
+                FacingDirection = MoveDirection;
+                walk = MoveDirection * moveSpeed * SpeedMultiplier;
+
+                stuckTimer += Time.fixedDeltaTime;
+                if (stuckTimer >= stuckTimeout)
+                {
+                    if (Vector2.Distance(rb.position, stuckCheckPos) < stuckMinProgress)
+                        StopMoving();
+                    else
+                    {
+                        stuckTimer = 0f;
+                        stuckCheckPos = rb.position;
+                    }
+                }
+            }
         }
+
+        rb.linearVelocity = walk + ConveyorVelocity;
     }
     #endregion
 
@@ -229,7 +237,7 @@ public abstract class TestAnimal : MonoBehaviour
     {
         hasTarget = false;
         MoveDirection = Vector2.zero;
-        rb.linearVelocity = Vector2.zero;
+        rb.linearVelocity = ConveyorVelocity;
     }
     #endregion
 

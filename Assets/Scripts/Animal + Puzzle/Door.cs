@@ -1,21 +1,21 @@
 using UnityEngine;
 
 /// <summary>
-/// ประตู: เปิดเมื่อสวิตช์ที่ผูกไว้ทำงาน (ครบทุกตัว หรือแค่ตัวใดตัวหนึ่งก็ได้)
-/// ปิดอยู่ = Collider ขวางทาง / เปิดอยู่ = ปิด Collider ให้เดินผ่านได้
-/// ลาก FloorSwitch ใส่ช่อง Switches ได้หลายตัว
+/// ประตูแบบสลับสถานะ (Toggle): เมื่อสวิตช์ถูกกด (ส่งสัญญาณ StateChanged มา)
+/// จะสลับสถานะเปิด/ปิดของประตูสลับกันไปเรื่อยๆ และค้างสถานะนั้นไว้ทันที
 /// </summary>
 public class Door : MonoBehaviour
 {
     #region Switch Link
+    [Header("Start State (สถานะตอนเริ่มเกม)")]
+    [Tooltip("ติ๊กไว้ = เริ่มต้นเปิดอยู่ / ไม่ติ๊ก = เริ่มต้นปิดอยู่")]
+    [SerializeField] private bool startsOpen = false;
+
     [Header("Switch Link")]
     [SerializeField] private FloorSwitch[] switches;
 
-    [Tooltip("ติ๊กไว้ = ต้องกดสวิตช์ครบทุกตัวพร้อมกัน / ไม่ติ๊ก = ตัวใดตัวหนึ่งก็เปิดได้")]
+    [Tooltip("ติ๊กไว้ = ต้องกดสวิตช์ครบทุกตัวพร้อมกันถึงจะสลับ / ไม่ติ๊ก = ตัวใดตัวหนึ่งก็สลับได้")]
     [SerializeField] private bool requireAll = true;
-
-    [Tooltip("ติ๊กไว้ = เปิดแล้วค้างเปิดตลอด แม้สวิตช์จะปล่อยแล้ว")]
-    [SerializeField] private bool stayOpenOnceOpened = false;
     #endregion
 
     #region Visual
@@ -41,6 +41,8 @@ public class Door : MonoBehaviour
     {
         if (blockingCollider == null) blockingCollider = GetComponent<Collider2D>();
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+        IsOpen = startsOpen;
+        ApplyState();
     }
 
     private void OnEnable()
@@ -58,34 +60,25 @@ public class Door : MonoBehaviour
             if (sw != null) sw.StateChanged -= OnSwitchChanged;
         }
     }
-
-    private void Start()
-    {
-        Evaluate();
-        ApplyState(); // ตั้งสถานะเริ่มต้นให้ตรงกับภาพ/Collider
-    }
     #endregion
 
     #region Logic
-    private void OnSwitchChanged(FloorSwitch changed) => Evaluate();
-
-    private void Evaluate()
+    private void OnSwitchChanged(FloorSwitch changed)
+{
+    Debug.Log("สวิตช์ส่งสัญญาณมาที่ประตูแล้ว! สถานะสวิตช์คือ: " + changed.IsActive);
+    if (changed.IsActive)
     {
-        if (IsOpen && stayOpenOnceOpened) return;
-
-        bool shouldOpen = ShouldOpen();
-        if (shouldOpen == IsOpen) return;
-
-        IsOpen = shouldOpen;
+        IsOpen = !IsOpen;
         ApplyState();
     }
+}
 
-    private bool ShouldOpen()
+    private bool CheckAllSwitchesTriggered()
     {
         if (switches == null || switches.Length == 0) return false;
 
-        bool any = false;
         bool all = true;
+        bool any = false;
         foreach (var sw in switches)
         {
             if (sw == null) continue;

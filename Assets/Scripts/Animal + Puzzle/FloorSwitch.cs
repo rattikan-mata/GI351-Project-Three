@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// สวิตช์: มีของมาทับ/แตะ -> สวิตช์ทำงาน -> Door ที่ผูกไว้เปิด
-/// เลือกได้ว่าใครกดได้บ้าง (สัตว์ / กล่อง / ก้อนขน) และตัวที่กำลังลอยอยู่จะไม่กด (ตัวเบาเกิน)
-/// ต้องมี Collider2D (ตั้ง Is Trigger ให้อัตโนมัติ)
+/// สวิตช์แบบกดรอบเดียว (Toggle): เมื่อมีของที่ถูกต้องเข้ามาแตะ (TriggerEnter) จะสลับสถานะทันที
+/// ไม่ต้องรอให้เดินออก และไม่ต้องค้างยืนทับ
 /// </summary>
 [RequireComponent(typeof(Collider2D))]
 public class FloorSwitch : MonoBehaviour
@@ -20,15 +19,6 @@ public class FloorSwitch : MonoBehaviour
     [SerializeField] private bool ignoreAirborneAnimals = true;
     #endregion
 
-    #region Behavior
-    [Header("Behavior")]
-    [Tooltip("ติ๊กไว้ = กดครั้งเดียวค้างตลอด ไม่ปล่อยแม้ของที่ทับจะออกไปแล้ว")]
-    [SerializeField] private bool latchOnce = false;
-
-    [Tooltip("หน่วงกี่วินาทีหลังของที่ทับออกไป ก่อนสวิตช์จะปล่อย (0 = ปล่อยทันที)")]
-    [SerializeField] private float releaseDelay = 0f;
-    #endregion
-
     #region Visual
     [Header("Visual (Optional)")]
     [SerializeField] private SpriteRenderer spriteRenderer;
@@ -39,63 +29,40 @@ public class FloorSwitch : MonoBehaviour
     #region State
     public bool IsActive { get; private set; }
     public event Action<FloorSwitch> StateChanged;
-
-    private readonly HashSet<Collider2D> occupants = new HashSet<Collider2D>();
-    private readonly List<Collider2D> removeBuffer = new List<Collider2D>();
-    private float releaseTimer = 0f;
     #endregion
 
     #region Unity Lifecycle
     private void Awake()
     {
-        GetComponent<Collider2D>().isTrigger = true;
+        Collider2D col = GetComponent<Collider2D>();
+        col.isTrigger = true;
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
         ApplyVisual();
     }
 
-    private void OnTriggerEnter2D(Collider2D other) => occupants.Add(other);
-    private void OnTriggerExit2D(Collider2D other) => occupants.Remove(other);
-
-    private void Update()
+    // ทำงานทันทีเมื่อมีวัตถุเดินเข้ามาชน/ทับครั้งแรก (Trigger รอบเดียว)
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        bool pressed = HasValidOccupant();
-
-        if (pressed)
+        if (IsValidPresser(other))
         {
-            releaseTimer = releaseDelay;
-            SetActive(true);
-        }
-        else if (IsActive && !latchOnce)
-        {
-            releaseTimer -= Time.deltaTime;
-            if (releaseTimer <= 0f) SetActive(false);
+            ToggleSwitch();
         }
     }
     #endregion
 
     #region Logic
-    private bool HasValidOccupant()
+    private void ToggleSwitch()
     {
-        removeBuffer.Clear();
-        bool found = false;
-
-        foreach (var c in occupants)
-        {
-            // OnTriggerExit ไม่ถูกเรียกถ้าของถูกลบ/ปิด Collider จึงต้องเก็บกวาดเอง
-            if (c == null || !c.enabled || !c.gameObject.activeInHierarchy)
-            {
-                removeBuffer.Add(c);
-                continue;
-            }
-            if (IsValidPresser(c)) found = true;
-        }
-
-        foreach (var c in removeBuffer) occupants.Remove(c);
-        return found;
+        // สลับสถานะเปิด/ปิด (On <-> Off) ทุกครั้งที่ถูกชน
+        IsActive = !IsActive;
+        ApplyVisual();
+        StateChanged?.Invoke(this);
     }
 
     private bool IsValidPresser(Collider2D c)
     {
+        if (c == null || !c.enabled || !c.gameObject.activeInHierarchy) return false;
+
         if (triggeredByAnimals)
         {
             var animal = c.GetComponentInParent<TestAnimal>();
@@ -103,15 +70,8 @@ public class FloorSwitch : MonoBehaviour
         }
         if (triggeredByBoxes && c.GetComponentInParent<PushableBox>() != null) return true;
         if (triggeredByHairballs && c.GetComponentInParent<Hairball>() != null) return true;
+        
         return false;
-    }
-
-    private void SetActive(bool active)
-    {
-        if (IsActive == active) return;
-        IsActive = active;
-        ApplyVisual();
-        StateChanged?.Invoke(this);
     }
 
     private void ApplyVisual()
