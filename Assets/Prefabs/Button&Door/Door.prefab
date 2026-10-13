@@ -113,7 +113,7 @@ MonoBehaviour:
   blockingCollider: {fileID: 5043400925597332586}
   spriteRenderer: {fileID: 0}
   closedSprite: {fileID: 0}
-  openSprite: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  openSprite: {fileID: 0}
   animator: {fileID: 0}
   openBoolParameter: Open
 --- !u!61 &5043400925597332586
