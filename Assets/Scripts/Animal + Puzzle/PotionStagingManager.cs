@@ -15,9 +15,9 @@ namespace PotionSystem
         [SerializeField] private PotionSequenceDropper[] droppers = new PotionSequenceDropper[3];
 
         [Header("Mapping (PotionKind -> PotionType สำหรับสัตว์)")]
-        [SerializeField] private PotionType redMapping = PotionType.Vomit;
-        [SerializeField] private PotionType blueMapping = PotionType.Light;
-        [SerializeField] private PotionType greenMapping = PotionType.Strength;
+        [SerializeField] private PotionType redMapping = PotionType.Strength;   // ยาแดง  -> ยากล้ามผลักกล่อง
+        [SerializeField] private PotionType blueMapping = PotionType.Light;     // ยาฟ้า  -> ยาบิน
+        [SerializeField] private PotionType greenMapping = PotionType.Vomit;    // ยาเขียว -> ยาอ้วกก้อนขน
 
         /// <summary>
         /// ฟังก์ชันผูกกับปุ่ม "ส่งยา"
