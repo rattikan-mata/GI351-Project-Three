@@ -4,6 +4,8 @@ namespace PotionSystem
 {
     /// <summary>
     /// ขวดยาที่ปรุงเสร็จ (สร้างโดย ResultSlotDisplay2D) ลากได้ด้วยเมาส์
+    /// ปล่อยบน Staging Slot -> ย้ายไปช่องพัก
+    /// ปล่อยบนช่องล่างอีกช่อง -> ย้าย/สลับที่กับช่องนั้น
     /// ปล่อยบน TrashBin2D -> รีไซเคิล / ปล่อยที่อื่น -> วาร์ปกลับ Result Slot เดิม
     /// </summary>
     [RequireComponent(typeof(SpriteRenderer), typeof(BoxCollider2D))]
@@ -48,34 +50,50 @@ namespace PotionSystem
         }
 
         private void OnMouseUp()
-{
-    if (!dragging) return;
-    dragging = false;
-    if (col != null) col.enabled = true;
-
-    var hits = Physics2D.OverlapPointAll(CraftingSprites2D.MouseWorldPosition());
-    foreach (var hit in hits)
-    {
-        // 1. ตรวจสอบว่าปล่อยลงบน Staging Slot หรือไม่
-        var stagingSlot = hit.GetComponent<PotionStagingSlot2D>();
-        if (stagingSlot != null)
         {
-            if (stagingSlot.TryAssignPotion(resultSlot, slotIndex, potion))
-                return; // วางสำเร็จ ResultSlot จะอัปเดตตัวเอง
+            if (!dragging) return;
+            dragging = false;
+            if (col != null) col.enabled = true;
+
+            Vector2 point = CraftingSprites2D.MouseWorldPosition();
+            var hits = Physics2D.OverlapPointAll(point);
+            foreach (var hit in hits)
+            {
+                // 1. ปล่อยลงบน Staging Slot
+                var stagingSlot = hit.GetComponent<PotionStagingSlot2D>();
+                if (stagingSlot != null)
+                {
+                    if (stagingSlot.TryAssignPotion(resultSlot, slotIndex, potion))
+                        return; // วางสำเร็จ ResultSlot จะอัปเดตตัวเอง
+                }
+
+                // 2. ปล่อยลงถังขยะ
+                var bin = hit.GetComponent<TrashBin2D>();
+                if (bin == null) continue;
+
+                if (bin.Recycle(resultSlot, slotIndex, potion))
+                    return;
+                break;
+            }
+
+            // 3. ปล่อยลงบนช่องล่างอีกช่อง -> ย้าย / สลับที่
+            if (resultSlot != null)
+            {
+                foreach (var display in FindObjectsByType<ResultSlotDisplay2D>(FindObjectsSortMode.None))
+                {
+                    if (display.Slot != resultSlot) continue;
+                    if (!display.ContainsPoint(point, out int targetIndex) || targetIndex < 0) continue;
+
+                    // ช่องเดิม = ไม่ต้องทำอะไร ปล่อยให้กลับที่เดิมด้านล่าง
+                    if (targetIndex != slotIndex && resultSlot.TryMove(slotIndex, targetIndex))
+                        return; // ResultSlotDisplay2D จะสร้างภาพใหม่เอง
+                    break;
+                }
+            }
+
+            // 4. ปล่อยที่อื่น -> กลับตำแหน่งเดิมใน Result Slot
+            transform.position = homeParent != null ? homeParent.position : transform.position;
+            sr.sortingOrder = homeSortingOrder;
         }
-
-        // 2. ตรวจสอบถังขยะ
-        var bin = hit.GetComponent<TrashBin2D>();
-        if (bin == null) continue;
-
-        if (bin.Recycle(resultSlot, slotIndex, potion))
-            return;
-        break;
-    }
-
-    // ปล่อยที่อื่น -> กลับตำแหน่งเดิมใน Result Slot
-    transform.position = homeParent != null ? homeParent.position : transform.position;
-    sr.sortingOrder = homeSortingOrder;
-    }
     }
 }

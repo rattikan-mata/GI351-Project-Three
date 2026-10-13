@@ -1,22 +1,40 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace PotionSystem
 {
     /// <summary>
-    /// ช่องพักยา 1 ใน 3 ช่อง ก่อนส่งไปยัง Potion Sequence Dropper
-    /// มี Collider2D เพื่อรับการลากขวดยามาวาง
+    /// ช่องพักยา 1 ใน 3 ช่อง (แถวบน) ก่อนส่งไปยัง Potion Sequence Dropper
+    /// - วางยาจากช่องล่าง (ResultSlot) ลงมาได้
+    /// - คลิกค้างที่ช่องนี้เพื่อหยิบยาขึ้นมาลาก แล้วปล่อยที่:
+    ///     ช่องล่าง (ResultSlot)  -> ยาย้ายกลับไปช่องล่าง
+    ///     ช่องพักอีกช่อง         -> สลับ/ย้ายไปช่องนั้น
+    ///     ที่อื่น                -> เด้งกลับช่องเดิม (ยาไม่หาย)
     /// </summary>
     [RequireComponent(typeof(SpriteRenderer), typeof(BoxCollider2D))]
     public class PotionStagingSlot2D : MonoBehaviour
     {
+        #region Visual
+        [Header("Visual")]
         [SerializeField] private SpriteRenderer iconRenderer;
         [SerializeField] private Sprite emptySlotSprite;
+        #endregion
 
-        /// <summary>ขวดยาที่เก็บอยู่ (พร้อมวัตถุดิบที่ใช้จริง)</summary>
+        #region Drag Settings
+        [Header("Drag")]
+        [Tooltip("ขนาดของขวดยาตอนลาก")]
+        [SerializeField] private float dragScale = 0.8f;
+        [SerializeField] private int dragSortingOrder = 100;
+        #endregion
+
+        #region State
+        /// <summary>ขวดยาที่เก็บอยู่</summary>
         public PotionInstance StoredInstance { get; private set; }
         public PotionData StoredPotion => StoredInstance != null ? StoredInstance.Data : null;
         public bool IsOccupied => StoredInstance != null;
+        #endregion
 
+        #region Unity Lifecycle
         private void Awake()
         {
             if (iconRenderer == null) iconRenderer = GetComponent<SpriteRenderer>();
@@ -24,22 +42,61 @@ namespace PotionSystem
             Clear();
         }
 
+        // คลิกที่ช่องที่มียา = หยิบขึ้นมาลาก (ถ้าปล่อยผิดที่จะกลับมาช่องเดิม)
+        private void OnMouseDown()
+        {
+            if (!IsOccupied) return;
+            if (!TryTake(out PotionInstance taken)) return;
+
+            var go = new GameObject("DraggedPotion_FromStaging");
+            go.transform.position = CraftingSprites2D.MouseWorldPosition();
+
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sortingOrder = dragSortingOrder;
+            CraftingSprites2D.Apply(sr, taken.Data, CraftingSprites2D.ColorFor(taken.Data), dragScale);
+
+            go.AddComponent<StagingDragGhost>().Init(this, taken);
+        }
+        #endregion
+
+        #region Public API
+        /// <summary>วางยาลงช่องนี้ (มาจาก ResultSlot ช่องล่าง) ถ้าช่องนี้มียาอยู่แล้วจะส่งกลับไปช่องล่าง</summary>
         public bool TryAssignPotion(ResultSlot resultSlot, int resultIndex, PotionInstance potion)
         {
             if (potion == null) return false;
 
-            // หยิบยาออกจาก ResultSlot ต้นทาง
             if (resultSlot != null && !resultSlot.TryTake(resultIndex, out _))
                 return false;
 
-            // ถ้าช่องนี้มียาอยู่เดิม คืนยาเก่ากลับ ResultSlot
+            // ช่องนี้มียาอยู่แล้ว -> ส่งยาเก่ากลับไปช่องล่างที่เพิ่งว่าง (สลับที่กัน)
             if (StoredInstance != null && resultSlot != null)
             {
-                resultSlot.TryAdd(StoredInstance);
+                if (!resultSlot.TryAddAt(resultIndex, StoredInstance))
+                    resultSlot.TryAdd(StoredInstance);
             }
 
             StoredInstance = potion;
             UpdateVisual();
+            return true;
+        }
+
+        /// <summary>ใส่ยาตรงๆ (ใช้ตอนเด้งกลับ / สลับช่อง)</summary>
+        public void Place(PotionInstance potion)
+        {
+            StoredInstance = potion;
+            UpdateVisual();
+        }
+
+        public bool TryTake(out PotionInstance takenPotion)
+        {
+            if (!IsOccupied)
+            {
+                takenPotion = null;
+                return false;
+            }
+
+            takenPotion = StoredInstance;
+            Clear();
             return true;
         }
 
@@ -48,30 +105,115 @@ namespace PotionSystem
             StoredInstance = null;
             UpdateVisual();
         }
+        #endregion
 
+        #region Visual Update
         private void UpdateVisual()
         {
             if (iconRenderer == null) return;
 
             if (StoredPotion != null)
             {
-                CraftingSprites2D.Apply(iconRenderer, StoredPotion, CraftingSprites2D.ColorFor(StoredPotion), 0.8f);
+                CraftingSprites2D.Apply(iconRenderer, StoredPotion, CraftingSprites2D.ColorFor(StoredPotion), dragScale);
+            }
+            else if (emptySlotSprite != null)
+            {
+                iconRenderer.sprite = emptySlotSprite;
+                iconRenderer.color = Color.white;
+                iconRenderer.transform.localScale = Vector3.one;
             }
             else
             {
-                if (emptySlotSprite != null)
-                {
-                    iconRenderer.sprite = emptySlotSprite;
-                    iconRenderer.color = Color.white;
-                    iconRenderer.transform.localScale = Vector3.one;
-                }
-                else
-                {
-                    iconRenderer.sprite = CraftingSprites2D.Square;
-                    iconRenderer.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
-                    iconRenderer.transform.localScale = Vector3.one;
-                }
+                iconRenderer.sprite = CraftingSprites2D.Square;
+                iconRenderer.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+                iconRenderer.transform.localScale = Vector3.one;
             }
         }
+        #endregion
+
+        #region Drag Ghost
+        /// <summary>ตัวขวดยาชั่วคราวที่ลอยตามเมาส์ตอนลากออกจากช่องพัก</summary>
+        private class StagingDragGhost : MonoBehaviour
+        {
+            private PotionStagingSlot2D origin;
+            private PotionInstance potion;
+
+            public void Init(PotionStagingSlot2D from, PotionInstance p)
+            {
+                origin = from;
+                potion = p;
+            }
+
+            private bool dropped;
+
+            private void Update()
+            {
+                if (dropped) return;
+
+                // ไม่ได้กดเมาส์ค้างอยู่แล้ว = ปล่อยแล้ว (กันพลาดเฟรมที่ปล่อยเมาส์ ทำให้ยาติดเมาส์)
+                // โปรเจกต์นี้ใช้ Input System ใหม่ ห้ามใช้ Input.GetMouseButton (จะ error)
+                bool held = Mouse.current != null && Mouse.current.leftButton.isPressed;
+                if (!held)
+                {
+                    dropped = true;
+                    try { Drop(); }
+                    catch (System.Exception e)
+                    {
+                        // เกิด error ระหว่างวาง -> คืนยากลับช่องเดิมเสมอ ไม่ให้ยาหายหรือค้างเมาส์
+                        Debug.LogException(e);
+                        if (origin != null && !origin.IsOccupied) origin.Place(potion);
+                    }
+                    finally
+                    {
+                        Destroy(gameObject);
+                    }
+                    return;
+                }
+
+                transform.position = CraftingSprites2D.MouseWorldPosition();
+            }
+
+            private void Drop()
+            {
+                transform.position = CraftingSprites2D.MouseWorldPosition();
+                Vector2 point = transform.position;
+                Collider2D[] hits = Physics2D.OverlapPointAll(point);
+
+                // 1) ปล่อยบนช่องล่าง (ResultSlotDisplay2D) -> ย้ายกลับไปช่องล่าง (ถ้าเต็มจะเด้งกลับช่องเดิม)
+                foreach (var display in FindObjectsByType<ResultSlotDisplay2D>(FindObjectsSortMode.None))
+                {
+                    if (!display.ContainsPoint(point, out int slotIndex)) continue;
+
+                    // วางลงช่องที่ปล่อยเมาส์ ถ้าช่องนั้นมียาอยู่แล้วหรือปล่อยไม่ตรงช่อง -> ลงช่องว่างช่องแรก
+                    if (display.Slot.TryAddAt(slotIndex, potion) || display.Slot.TryAdd(potion))
+                    {
+                        Finish();
+                        return;
+                    }
+                    break; // เต็ม -> ไปเด้งกลับช่องเดิมด้านล่าง
+                }
+
+                // 2) ปล่อยบนช่องพักอื่น -> ย้าย/สลับ
+                foreach (var h in hits)
+                {
+                    var other = h.GetComponent<PotionStagingSlot2D>();
+                    if (other != null && other != origin)
+                    {
+                        PotionInstance displaced = other.StoredInstance;
+                        other.Place(potion);
+                        if (displaced != null) origin.Place(displaced);
+                        Finish();
+                        return;
+                    }
+                }
+
+                // 3) ที่อื่น -> เด้งกลับช่องเดิม
+                origin.Place(potion);
+                Finish();
+            }
+
+            private void Finish() => Destroy(gameObject);
+        }
+        #endregion
     }
 }
