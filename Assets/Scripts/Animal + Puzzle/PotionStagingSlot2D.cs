@@ -15,9 +15,30 @@ namespace PotionSystem
     public class PotionStagingSlot2D : MonoBehaviour
     {
         #region Visual
-        [Header("Visual")]
-        [SerializeField] private SpriteRenderer iconRenderer;
+        [Header("Slot Frame (กรอบ/รูปของช่อง ใช้ SpriteRenderer ของช่องเอง)")]
+        [Tooltip("ติ๊กไว้ = ใช้รูปและสีที่ตั้งไว้บน SpriteRenderer ของช่องในฉากเป็นกรอบ ไม่เขียนทับ\n" +
+                 "ไม่ติ๊ก = ใช้สี่เหลี่ยมเทาเข้มเป็นกรอบตอนว่าง (และซ่อนกรอบตอนมียา) เหมือนเดิม\n" +
+                 "ถ้ากำหนดรูปใน Empty/Filled Slot Sprite ข้างล่าง จะใช้รูปนั้นก่อนเสมอ")]
+        [SerializeField] private bool keepSceneFrame = true;
+
+        [Tooltip("รูปกรอบตอนช่องว่าง (ไม่บังคับ)")]
         [SerializeField] private Sprite emptySlotSprite;
+
+        [Tooltip("รูปกรอบตอนช่องมียา (ไม่บังคับ) ว่างไว้ = ใช้รูปเดียวกับตอนว่าง")]
+        [SerializeField] private Sprite filledSlotSprite;
+
+        [Tooltip("สีที่ย้อมรูปกรอบ (ใช้เมื่อกำหนด Empty/Filled Slot Sprite เท่านั้น)")]
+        [SerializeField] private Color frameColor = Color.white;
+
+        [Header("Potion Icon (รูปยาที่แสดงทับบนกรอบ)")]
+        [Tooltip("SpriteRenderer ที่ใช้แสดงรูปยา ว่างไว้ = สร้างลูก (child) ชื่อ PotionIcon ให้เองอัตโนมัติ")]
+        [SerializeField] private SpriteRenderer iconRenderer;
+
+        [Tooltip("ขนาดของขวดยาตอนอยู่ในช่องนี้ (1 = ขนาดปกติ, 0.5 = เล็กลงครึ่งหนึ่ง) ไม่กระทบขนาดตอนลาก และไม่กระทบพื้นที่คลิก")]
+        [SerializeField, Range(0.1f, 2f)] private float storedPotionScale = 1f;
+
+        [Tooltip("ขยับรูปยาจากกึ่งกลางช่อง (หน่วย local)")]
+        [SerializeField] private Vector2 iconOffset = Vector2.zero;
         #endregion
 
         #region Drag Settings
@@ -28,6 +49,10 @@ namespace PotionSystem
         #endregion
 
         #region State
+        private SpriteRenderer frameRenderer;
+        private Sprite sceneFrameSprite;
+        private Color sceneFrameColor;
+
         /// <summary>ขวดยาที่เก็บอยู่</summary>
         public PotionInstance StoredInstance { get; private set; }
         public PotionData StoredPotion => StoredInstance != null ? StoredInstance.Data : null;
@@ -37,9 +62,28 @@ namespace PotionSystem
         #region Unity Lifecycle
         private void Awake()
         {
-            if (iconRenderer == null) iconRenderer = GetComponent<SpriteRenderer>();
+            frameRenderer = GetComponent<SpriteRenderer>();
+            sceneFrameSprite = frameRenderer.sprite;
+            sceneFrameColor = frameRenderer.color;
+
+            // ไม่มี Icon Renderer แยก (หรือใส่ตัวเดียวกับกรอบ) = สร้างลูกไว้แสดงรูปยาทับกรอบ
+            if (iconRenderer == null || iconRenderer == frameRenderer)
+            {
+                var iconGo = new GameObject("PotionIcon");
+                iconGo.transform.SetParent(transform, false);
+                iconRenderer = iconGo.AddComponent<SpriteRenderer>();
+                iconRenderer.sortingLayerID = frameRenderer.sortingLayerID;
+                iconRenderer.sortingOrder = frameRenderer.sortingOrder + 1;
+            }
+
             GetComponent<BoxCollider2D>().isTrigger = true;
             Clear();
+        }
+
+        // ปรับค่าในส่วน Visual ใน Inspector ตอนเล่นอยู่ แล้วเห็นผลทันที
+        private void OnValidate()
+        {
+            if (Application.isPlaying && iconRenderer != null && frameRenderer != null) UpdateVisual();
         }
 
         // คลิกที่ช่องที่มียา = หยิบขึ้นมาลาก (ถ้าปล่อยผิดที่จะกลับมาช่องเดิม)
@@ -110,23 +154,42 @@ namespace PotionSystem
         #region Visual Update
         private void UpdateVisual()
         {
-            if (iconRenderer == null) return;
+            if (iconRenderer == null || frameRenderer == null) return;
 
-            if (StoredPotion != null)
+            bool occupied = StoredPotion != null;
+
+            // --- กรอบของช่อง ---
+            Sprite customFrame = occupied ? (filledSlotSprite != null ? filledSlotSprite : emptySlotSprite) : emptySlotSprite;
+            if (customFrame != null)
             {
-                CraftingSprites2D.Apply(iconRenderer, StoredPotion, CraftingSprites2D.ColorFor(StoredPotion), dragScale);
+                frameRenderer.enabled = true;
+                frameRenderer.sprite = customFrame;
+                frameRenderer.color = frameColor;
             }
-            else if (emptySlotSprite != null)
+            else if (keepSceneFrame)
             {
-                iconRenderer.sprite = emptySlotSprite;
-                iconRenderer.color = Color.white;
-                iconRenderer.transform.localScale = Vector3.one;
+                frameRenderer.enabled = true;
+                frameRenderer.sprite = sceneFrameSprite;
+                frameRenderer.color = sceneFrameColor;
+            }
+            else if (occupied)
+            {
+                frameRenderer.enabled = false; // พฤติกรรมเดิม: มียาแล้วไม่โชว์กรอบ
             }
             else
             {
-                iconRenderer.sprite = CraftingSprites2D.Square;
-                iconRenderer.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
-                iconRenderer.transform.localScale = Vector3.one;
+                frameRenderer.enabled = true;
+                frameRenderer.sprite = CraftingSprites2D.Square;
+                frameRenderer.color = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+            }
+
+            // --- รูปยา (ลูกของช่อง ย่อ/ขยับได้โดยไม่กระทบพื้นที่คลิก) ---
+            iconRenderer.enabled = occupied;
+            iconRenderer.transform.localPosition = iconOffset;
+            if (occupied)
+            {
+                CraftingSprites2D.Apply(iconRenderer, StoredPotion, CraftingSprites2D.ColorFor(StoredPotion), dragScale);
+                iconRenderer.transform.localScale *= storedPotionScale; // ปรับขนาดยาตอนอยู่ในช่อง (ตั้งใน Inspector)
             }
         }
         #endregion
