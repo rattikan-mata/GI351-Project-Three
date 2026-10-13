@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Green Potion
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionData
   displayName: Green Potion
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 514874803d4259c4fb801440385b3ae2, type: 3}
   description: 
   kind: 2
