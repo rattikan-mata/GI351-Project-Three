@@ -1096,6 +1096,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Fur ball cat
       objectReference: {fileID: 0}
+    - target: {fileID: 4616068359830145287, guid: ca9f6800a73c829429dc1b3828c985e9, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 9ef51909d734f9642a2a063a53164043, type: 3}
     - target: {fileID: 6066909442961026395, guid: ca9f6800a73c829429dc1b3828c985e9, type: 3}
       propertyPath: m_LocalPosition.x
       value: 4.5
@@ -1760,6 +1764,10 @@ PrefabInstance:
       propertyPath: flyOverLayers.m_Bits
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7422185771695394339, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 59cc8f2169a14d5488e5b046df3bdab9, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3829,7 +3837,7 @@ Sprite:
       height: 4
     textureRectOffset: {x: 0, y: 0}
     atlasRectOffset: {x: -1, y: -1}
-    settingsRaw: 64
+    settingsRaw: 3136
     uvTransform: {x: 4, y: 2, z: 4, w: 2}
     downscaleMultiplier: 1
   m_AtlasRD:
@@ -4478,6 +4486,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1681394927}
     m_Modifications:
+    - target: {fileID: 268916821910766910, guid: 2471f67dbea11a34f9932526f5b2465c, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 208dba99dbb618f4da81706688281bab, type: 3}
     - target: {fileID: 638540066612953218, guid: 2471f67dbea11a34f9932526f5b2465c, type: 3}
       propertyPath: autoMode
       value: 1
