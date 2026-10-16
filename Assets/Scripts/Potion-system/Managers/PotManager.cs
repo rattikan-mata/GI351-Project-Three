@@ -18,6 +18,10 @@ namespace PotionSystem
         [SerializeField] private ResultSlot resultSlot;
         [SerializeField] private PotionRecipeBook recipeBook;
 
+        [Header("Ingredient Tray Mode")]
+        [Tooltip("เปิด = วัตถุดิบมาจากถาดเซ็ตยา (ใส่ทีละ 3 ชิ้นผ่าน TryAddTray) ไม่ใช้ SourceInventory/วัตถุดิบเดี่ยว")]
+        [SerializeField] private bool useIngredientTrays = true;
+
         private readonly List<RawMaterialData> contents = new List<RawMaterialData>(PotCapacity);
 
         public IReadOnlyList<RawMaterialData> Contents => contents;
@@ -31,6 +35,10 @@ namespace PotionSystem
         public event Action<PotionData> OnResultChanged;
         public event Action<AddMaterialResult> OnAddRejected;
         public event Action<PotionData> OnCrafted;
+        /// <summary>ถูกเรียกเมื่อเทของในหม้อทิ้ง (โหมดถาด: ถาดที่ใช้อยู่จะถูกปลดล็อก)</summary>
+        public event Action OnPouredOut;
+
+        public bool UseIngredientTrays => useIngredientTrays;
 
         // ---------- Step 1: Input Validation ----------
 
@@ -38,6 +46,7 @@ namespace PotionSystem
         public AddMaterialResult CanAdd(RawMaterialData material)
         {
             if (material == null) return AddMaterialResult.InvalidItem;
+            if (useIngredientTrays) return AddMaterialResult.InvalidItem; // โหมดถาด: ใส่ได้เฉพาะผ่านถาด
             if (IsFull) return AddMaterialResult.PotFull;
             if (HasType(material.MaterialType)) return AddMaterialResult.DuplicateType;
             if (sourceInventory == null || !sourceInventory.HasStock(material)) return AddMaterialResult.OutOfStock;
@@ -60,6 +69,33 @@ namespace PotionSystem
             return AddMaterialResult.Success;
         }
 
+        /// <summary>
+        /// โหมดถาด: ใส่วัตถุดิบครบ 3 ชิ้นจากถาดลงหม้อพร้อมกัน (หม้อต้องว่าง และต้องไม่มีประเภทซ้ำ)
+        /// ไม่แตะ SourceInventory
+        /// </summary>
+        public AddMaterialResult TryAddTray(IReadOnlyList<RawMaterialData> set)
+        {
+            AddMaterialResult Reject(AddMaterialResult r)
+            {
+                OnAddRejected?.Invoke(r);
+                return r;
+            }
+
+            if (set == null || set.Count != PotCapacity) return Reject(AddMaterialResult.InvalidItem);
+            if (!IsEmpty) return Reject(AddMaterialResult.PotFull);
+
+            var seen = new HashSet<MaterialType>();
+            foreach (var m in set)
+            {
+                if (m == null || !seen.Add(m.MaterialType))
+                    return Reject(m == null ? AddMaterialResult.InvalidItem : AddMaterialResult.DuplicateType);
+            }
+
+            contents.AddRange(set);
+            NotifyContentsChanged();
+            return AddMaterialResult.Success;
+        }
+
         public bool HasType(MaterialType type)
         {
             foreach (var m in contents)
@@ -74,6 +110,7 @@ namespace PotionSystem
         /// <summary>เอาวัตถุดิบชิ้นเดียวออกจากหม้อ ของคืนกลับคลัง</summary>
         public bool RemoveMaterial(RawMaterialData material)
         {
+            if (useIngredientTrays) return false; // โหมดถาด: เอาออกทีละชิ้นไม่ได้
             if (material == null || !contents.Remove(material)) return false;
 
             sourceInventory.Add(material);
@@ -86,11 +123,15 @@ namespace PotionSystem
         {
             if (IsEmpty) return;
 
-            foreach (var material in contents)
-                sourceInventory.Add(material);
+            if (!useIngredientTrays)
+            {
+                foreach (var material in contents)
+                    sourceInventory.Add(material);
+            }
 
             contents.Clear();
             NotifyContentsChanged();
+            if (useIngredientTrays) OnPouredOut?.Invoke();
         }
 
         // ---------- Step 3: Confirm (Craft) ----------
