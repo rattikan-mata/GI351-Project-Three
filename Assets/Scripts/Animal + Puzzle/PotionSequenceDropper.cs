@@ -2,18 +2,20 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// เครื่องปล่อยยาตามลำดับ (แทน PotionDropper ตัวเก่า):
-/// - มีช่องใส่ยาหลายช่อง (Slots) เรียงลำดับ ช่อง 1 -> 2 -> 3
-/// - ผู้เล่นปรุงยาให้ถูกชนิด แล้วใส่เข้าช่องตามลำดับ (ระบบปรุงยาของเพื่อนเรียก TryAddPotion)
-/// - พอช่องเต็ม (หรือกดปุ่มเริ่ม) ยาจะถูกปล่อยออกมาทีละตัวตามลำดับช่อง
-///   ยาแต่ละตัวลอยไปหาสัตว์ที่ใช้ยาชนิดนั้น แล้วสัตว์ทำงานเอง
-/// - รอให้สัตว์ตัวนั้นทำเสร็จก่อน ค่อยปล่อยยาตัวถัดไป (ลำดับถึงจะมีผลกับ puzzle)
+/// เครื่องปล่อยยา 1 เครื่อง (ต่อ 1 ช่องพัก)
+///
+/// การใช้งานปกติ: PotionStagingManager สั่ง LaunchPotion ทีละชิ้นตามลำดับใน PotionSequence
+/// ยาแต่ละชิ้นลอยไปหาสัตว์ที่ใช้ยาชนิดนั้น แล้วสัตว์ทำงานเอง
+/// IsBusy บอกว่าสัตว์ยังทำงานอยู่ไหม เพื่อให้ลำดับรอจนชิ้นนี้ติดก่อน
+///
+/// ส่วน Slots / DispenseRoutine เป็นระบบเดิมสำหรับทดสอบโดยคลิกช่อง PotionSlot
+/// ยังไม่ได้ลบ เพราะฉากเดิมยังอ้างอิงอยู่ และจะลบในขั้นทำความสะอาดโค้ด
 /// </summary>
 public class PotionSequenceDropper : MonoBehaviour
 {
     #region Links
     [Header("Links")]
-    [Tooltip("ช่องใส่ยาเรียงตามลำดับที่จะปล่อย (ช่อง 1 ปล่อยก่อน)")]
+    [Tooltip("ช่องใส่ยาเรียงตามลำดับที่จะปล่อย (ช่อง 1 ปล่อยก่อน) ใช้เฉพาะระบบทดสอบ")]
     [SerializeField] private PotionSlot[] slots;
 
     [Tooltip("สัตว์ทั้งหมดในด่าน ยาจะไปหาสัตว์ที่ Required Potion ตรงกับชนิดยา")]
@@ -34,13 +36,13 @@ public class PotionSequenceDropper : MonoBehaviour
     [Tooltip("ติ๊กไว้ = ช่องเต็มทุกช่องแล้วเริ่มปล่อยเอง / ไม่ติ๊ก = รอเรียก StartDispensing() (เช่น ผูกกับปุ่ม)")]
     [SerializeField] private bool autoStartWhenFull = true;
 
-    [Tooltip("หน่วงกี่วินาทีก่อนปล่อยยาแต่ละตัว")]
+    [Tooltip("หน่วงกี่วินาทีก่อนปล่อยยาแต่ละตัว (ระบบทดสอบ)")]
     [SerializeField] private float dropInterval = 0.5f;
 
     [Tooltip("ความเร็วที่ยาลอยไป")]
     [SerializeField] private float potionSpeed = 4f;
 
-    [Tooltip("ติ๊กไว้ = รอให้สัตว์ทำงานเสร็จก่อนปล่อยยาตัวถัดไป")]
+    [Tooltip("ติ๊กไว้ = รอให้สัตว์ทำงานเสร็จก่อนปล่อยยาตัวถัดไป (ระบบทดสอบ)")]
     [SerializeField] private bool waitForAnimalToFinish = true;
 
     [Tooltip("รอสัตว์ทำเสร็จนานสุดกี่วินาที (กันค้าง ถ้าสัตว์ติดอะไรสักอย่าง)")]
@@ -49,6 +51,12 @@ public class PotionSequenceDropper : MonoBehaviour
 
     #region State
     public bool IsDispensing { get; private set; }
+
+    private PotionProjectile activeProjectile;
+    private TestAnimal activeAnimal;
+
+    /// <summary>ยังมียาลอยอยู่ หรือสัตว์ตัวที่รับยาไปยังทำงานอยู่ (ลำดับใช้รอให้ชิ้นนี้ติดก่อน)</summary>
+    public bool IsBusy => activeProjectile != null || (activeAnimal != null && activeAnimal.IsAutoRunning);
     #endregion
 
     #region Unity Lifecycle
@@ -66,7 +74,28 @@ public class PotionSequenceDropper : MonoBehaviour
     #endregion
 
     #region API
-    /// <summary>ใส่ยาลงช่องว่างช่องแรก คืน true ถ้าใส่ได้ (ระบบปรุงยาของเพื่อนเรียกตัวนี้)</summary>
+    /// <summary>ปล่อยยา 1 ชิ้นไปหาสัตว์ที่ใช้ยาชนิดนี้ (ใช้โดย PotionStagingManager) คืน false ถ้าปล่อยไม่ได้</summary>
+    public bool LaunchPotion(PotionType type)
+    {
+        if (type == PotionType.None || potionPrefab == null) return false;
+
+        TestAnimal animal = FindAnimalFor(type);
+        if (animal == null)
+        {
+            Debug.LogWarning($"[PotionSequenceDropper] ไม่มีสัตว์ที่ใช้ยา {type} ในลิสต์ Animals ยาเสียเปล่า");
+            return false;
+        }
+
+        Vector3 pos = (dropPoint != null) ? dropPoint.position : transform.position;
+        PotionProjectile p = Instantiate(potionPrefab, pos, Quaternion.identity);
+        p.Init(type, animal, pathPoints, potionSpeed);
+
+        activeProjectile = p;
+        activeAnimal = animal;
+        return true;
+    }
+
+    /// <summary>ใส่ยาลงช่องแรกที่ว่าง คืน true ถ้าใส่ได้ (ระบบทดสอบ)</summary>
     public bool TryAddPotion(PotionType potion)
     {
         if (IsDispensing || potion == PotionType.None) return false;
@@ -79,23 +108,33 @@ public class PotionSequenceDropper : MonoBehaviour
         return false; // ช่องเต็มหมดแล้ว
     }
 
-    /// <summary>เริ่มปล่อยยาตามลำดับ (เรียกจากปุ่ม UI ได้ถ้าไม่ใช้ Auto Start)</summary>
+    /// <summary>เริ่มปล่อยยาตามช่อง (ระบบทดสอบ)</summary>
     public void StartDispensing()
     {
         if (IsDispensing) return;
         StartCoroutine(DispenseRoutine());
     }
 
-    /// <summary>เคลียร์ทุกช่อง (เช่น ผู้เล่นกดรีเซ็ต หรือทิ้งยาลงถังขยะ) ทำไม่ได้ตอนกำลังปล่อย</summary>
+    /// <summary>เคลียร์ทุกช่อง (ระบบทดสอบ) ทำไม่ได้ตอนกำลังปล่อย</summary>
     public void ClearAllSlots()
     {
         if (IsDispensing) return;
         foreach (var s in slots)
             if (s != null) s.Clear();
     }
+
+    /// <summary>ใส่ยาลงช่องตาม Index โดยตรง (0, 1, 2) (ระบบทดสอบ)</summary>
+    public bool TryInsertToSlot(int index, PotionType potion)
+    {
+        if (IsDispensing || potion == PotionType.None) return false;
+        if (slots == null || index < 0 || index >= slots.Length) return false;
+        if (slots[index] == null || slots[index].IsOccupied) return false;
+
+        return slots[index].TryInsert(potion);
+    }
     #endregion
 
-    #region Logic
+    #region Test Logic
     private void OnSlotInserted(PotionSlot slot, PotionType potion)
     {
         if (!autoStartWhenFull || IsDispensing) return;
@@ -106,17 +145,6 @@ public class PotionSequenceDropper : MonoBehaviour
         StartDispensing();
     }
 
-    
-    /// <summary>ใส่ยาลงในช่อง Dropper ตาม Index ที่ระบุโดยตรง (0, 1, 2)</summary>
-         public bool TryInsertToSlot(int index, PotionType potion)
-    {
-    if (IsDispensing || potion == PotionType.None) return false;
-    if (slots == null || index < 0 || index >= slots.Length) return false;
-    if (slots[index] == null || slots[index].IsOccupied) return false;
-
-    return slots[index].TryInsert(potion);
-    }
-    
     private IEnumerator DispenseRoutine()
     {
         IsDispensing = true;

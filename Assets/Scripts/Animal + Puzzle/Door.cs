@@ -1,21 +1,25 @@
+using System.Collections.Generic;
+using PuzzleEngine;
 using UnityEngine;
 
 /// <summary>
-/// ประตูแบบสลับสถานะ (Toggle): เมื่อสวิตช์ถูกกด (ส่งสัญญาณ StateChanged มา)
-/// จะสลับสถานะเปิด/ปิดของประตูสลับกันไปเรื่อยๆ และค้างสถานะนั้นไว้
-/// ประตูเลื่อนไปมาระหว่าง "จุดปิด" กับ "จุดเปิด" ได้ (ตั้งจุดใน Inspector)
+/// ประตูแบบระดับ (ไม่ใช่การสลับ)
+/// เปิดเมื่อเงื่อนไขของสวิตช์เป็นจริง ปิดเมื่อเป็นเท็จ
+/// - requireAll ติ๊ก = ทุกสวิตช์ต้อง ON (ค่าเริ่มต้น) / ไม่ติ๊ก = สวิตช์ตัวใดตัวหนึ่ง ON ก็เปิด
+/// - ไม่มีสวิตช์ผูกอยู่ = ใช้ Starts Open ตลอด
+/// ตรรกะการรวมสัญญาณอยู่ใน PuzzleEngine.Gate ชื่อฟิลด์เดิมคงไว้เพื่อให้ฉากเดิมยังใช้ได้
 /// </summary>
 public class Door : MonoBehaviour
 {
     #region Switch Link
-    [Header("Start State (สถานะตอนเริ่มเกม)")]
+    [Header("Start State (ใช้เฉพาะตอนไม่มีสวิตช์ผูกอยู่)")]
     [Tooltip("ติ๊กไว้ = เริ่มต้นเปิดอยู่ / ไม่ติ๊ก = เริ่มต้นปิดอยู่")]
     [SerializeField] private bool startsOpen = false;
 
     [Header("Switch Link")]
     [SerializeField] private FloorSwitch[] switches;
 
-    [Tooltip("ติ๊กไว้ = ต้องกดสวิตช์ครบทุกตัวพร้อมกันถึงจะสลับ / ไม่ติ๊ก = ตัวใดตัวหนึ่งก็สลับได้")]
+    [Tooltip("ติ๊กไว้ = ทุกสวิตช์ต้อง ON ประตูถึงจะเปิด / ไม่ติ๊ก = สวิตช์ตัวใดตัวหนึ่ง ON ก็เปิด")]
     [SerializeField] private bool requireAll = true;
     #endregion
 
@@ -56,6 +60,7 @@ public class Door : MonoBehaviour
     #region State
     public bool IsOpen { get; private set; }
 
+    private readonly List<ISignal> signals = new List<ISignal>();
     private Vector3 closedPos;
     private Vector3 openPos;
     private bool positionsCached = false;
@@ -67,26 +72,21 @@ public class Door : MonoBehaviour
         if (blockingCollider == null) blockingCollider = GetComponent<Collider2D>();
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
 
+        BuildSignals();
         CachePositions();
-        IsOpen = startsOpen;
+        IsOpen = ComputeOpen();
         transform.position = TargetPosition; // เริ่มที่จุดของสถานะเริ่มต้นเลย ไม่ต้องเลื่อน
         ApplyState();
     }
 
     private void OnEnable()
     {
-        foreach (var sw in switches)
-        {
-            if (sw != null) sw.StateChanged += OnSwitchChanged;
-        }
+        foreach (ISignal s in signals) s.Changed += Refresh;
     }
 
     private void OnDisable()
     {
-        foreach (var sw in switches)
-        {
-            if (sw != null) sw.StateChanged -= OnSwitchChanged;
-        }
+        foreach (ISignal s in signals) s.Changed -= Refresh;
     }
 
     private void Update()
@@ -130,29 +130,32 @@ public class Door : MonoBehaviour
     #endregion
 
     #region Logic
-    private void OnSwitchChanged(FloorSwitch changed)
+    private void BuildSignals()
     {
-        Debug.Log("สวิตช์ส่งสัญญาณมาที่ประตูแล้ว! สถานะสวิตช์คือ: " + changed.IsActive);
-        if (changed.IsActive)
+        signals.Clear();
+        if (switches == null) return;
+
+        foreach (FloorSwitch sw in switches)
         {
-            IsOpen = !IsOpen;
-            ApplyState();
+            if (sw != null) signals.Add(sw);
         }
     }
 
-    private bool CheckAllSwitchesTriggered()
+    /// <summary>ประตูควรเปิดหรือไม่ตามสถานะสวิตช์ตอนนี้</summary>
+    private bool ComputeOpen()
     {
-        if (switches == null || switches.Length == 0) return false;
+        if (signals.Count == 0) return startsOpen;
+        return Gate.Evaluate(requireAll ? GateMode.All : GateMode.Any, signals);
+    }
 
-        bool all = true;
-        bool any = false;
-        foreach (var sw in switches)
-        {
-            if (sw == null) continue;
-            if (sw.IsActive) any = true;
-            else all = false;
-        }
-        return requireAll ? all : any;
+    /// <summary>เรียกเมื่อสวิตช์ตัวใดตัวหนึ่งสลับ</summary>
+    private void Refresh()
+    {
+        bool shouldOpen = ComputeOpen();
+        if (shouldOpen == IsOpen) return;
+
+        IsOpen = shouldOpen;
+        ApplyState();
     }
 
     private void ApplyState()

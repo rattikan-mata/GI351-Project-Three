@@ -1,9 +1,15 @@
+using System.Collections.Generic;
+using PuzzleEngine;
 using UnityEngine;
 
 namespace PotionSystem
 {
     /// <summary>
-    /// จัดการช่องพักยา 3 ช่อง ส่งยาไปยัง Dropper 3 ตัวแบบ 1:1 (Slot 1 -> Dropper 1, Slot 2 -> Dropper 2, Slot 3 -> Dropper 3)
+    /// จัดการช่องพักยา 3 ช่อง และปุ่ม "ส่งยา"
+    /// กดปุ่มแล้วยาจะถูกปล่อยตามลำดับช่อง 1 -> 3 ตามกติกาใน PuzzleEngine.PotionSequence
+    ///   - ช่องว่างถูกข้าม
+    ///   - ยาชิ้นถัดไปรอให้ชิ้นก่อนหน้าติด แล้วรอ Gap วินาที
+    /// ช่อง i ส่งไปที่ Dropper ตัวที่ i เสมอ
     /// </summary>
     public class PotionStagingManager : MonoBehaviour
     {
@@ -19,53 +25,76 @@ namespace PotionSystem
         [SerializeField] private PotionType blueMapping = PotionType.Light;     // ยาฟ้า  -> ยาบิน
         [SerializeField] private PotionType greenMapping = PotionType.Vomit;    // ยาเขียว -> ยาอ้วกก้อนขน
 
-        /// <summary>
-        /// ฟังก์ชันผูกกับปุ่ม "ส่งยา"
-        /// นำยาจาก Staging Slot แต่ละช่อง ไปใส่และสั่งทำงาน Dropper ตัวที่ตรงกันทันที
-        /// </summary>
+        [Header("Sequence Timing")]
+        [Tooltip("รอกี่วินาทีหลังยาชิ้นก่อนหน้าติด ก่อนปล่อยชิ้นถัดไป")]
+        [SerializeField] private float gapSeconds = 3f;
+
+        [Tooltip("ถ้ายาไม่ติดภายในกี่วินาที ถือว่าติดแล้ว (กันลำดับค้าง)")]
+        [SerializeField] private float timeoutSeconds = 20f;
+
+        private PotionSequence<PotionData> sequence;
+        private PotionSequenceDropper activeDropper;
+
+        /// <summary>กำลังส่งยาอยู่ไหม (ใช้ซ่อน/ล็อกปุ่มได้)</summary>
+        public bool IsSending => sequence != null && sequence.IsRunning;
+
+        private void Awake()
+        {
+            sequence = new PotionSequence<PotionData>(gapSeconds, timeoutSeconds);
+            sequence.Dispense += OnDispense;
+            sequence.Finished += OnFinished;
+        }
+
+        private void Update()
+        {
+            if (sequence == null || !sequence.IsRunning) return;
+
+            sequence.Update(Time.deltaTime);
+
+            // ยาที่ปล่อยไปแล้วติดหรือยัง: ถ้า Dropper ที่ใช้อยู่ว่างแล้ว แปลว่าสัตว์ทำงานเสร็จ
+            if (sequence.IsInFlight && (activeDropper == null || !activeDropper.IsBusy))
+                sequence.NotifyFinished();
+        }
+
+        /// <summary>ฟังก์ชันผูกกับปุ่ม "ส่งยา"</summary>
         public void SendPotionsToDropper()
         {
-            bool sentAny = false;
+            if (sequence == null || sequence.IsRunning) return;
 
-            for (int i = 0; i < stagingSlots.Length; i++)
+            var slots = new List<PotionData>(stagingSlots.Length);
+            foreach (PotionStagingSlot2D slot in stagingSlots)
             {
-                var slot = stagingSlots[i];
-                if (slot == null || !slot.IsOccupied) continue;
-
-                if (i >= droppers.Length || droppers[i] == null)
-                {
-                    Debug.LogWarning($"[PotionStagingManager] ยังไม่ได้กำหนด Dropper สำหรับช่องที่ {i + 1}");
-                    continue;
-                }
-
-                var potionData = slot.StoredPotion;
-                PotionType pType = ConvertToPotionType(potionData);
-
-                if (pType == PotionType.None)
-                {
-                    Debug.LogWarning($"[PotionStagingManager] ยา {potionData.DisplayName} ไม่สามารถแปลงเป็น PotionType ได้");
-                    continue;
-                }
-
-                // สั่งเพิ่มยาเข้าไปใน Dropper ตัวที่ i
-                if (droppers[i].TryAddPotion(pType))
-                {
-                    // สั่งให้ Dropper ตัวนี้เริ่มปล่อยยาทันที (เพราะแต่ละเครื่องมีช่องเดียว)
-                    droppers[i].StartDispensing();
-                    
-                    slot.Clear(); // ล้างช่องพักหลังจากส่งสำเร็จ
-                    sentAny = true;
-                }
-                else
-                {
-                    Debug.Log($"[PotionStagingManager] Dropper ตัวที่ {i + 1} กำลังทำงานอยู่หรือช่องไม่ว่าง");
-                }
+                slots.Add(slot != null ? slot.StoredPotion : null);
             }
 
-            if (sentAny)
+            if (!sequence.Start(slots)) return;
+
+            // ยาถูกย้ายเข้าลำดับแล้ว ล้างช่องพัก ผู้เล่นวางยาใหม่ได้ โดยไม่กระทบลำดับที่กำลังทำงาน
+            foreach (PotionStagingSlot2D slot in stagingSlots)
             {
-                Debug.Log("[PotionStagingManager] ส่งยาไปยัง Dropper แต่ละตัวสำเร็จ");
+                if (slot != null) slot.Clear();
             }
+        }
+
+        private void OnDispense(int index, PotionData potion)
+        {
+            activeDropper = (index >= 0 && index < droppers.Length) ? droppers[index] : null;
+
+            PotionType type = ConvertToPotionType(potion);
+            bool launched = activeDropper != null && type != PotionType.None && activeDropper.LaunchPotion(type);
+
+            if (!launched)
+            {
+                Debug.LogWarning($"[PotionStagingManager] ช่อง {index + 1} ปล่อยยาไม่ได้ ข้ามไปชิ้นถัดไป");
+                activeDropper = null;
+                sequence.NotifyFinished();
+            }
+        }
+
+        private void OnFinished()
+        {
+            activeDropper = null;
+            Debug.Log("[PotionStagingManager] ยาทั้งลำดับถูกใช้ครบแล้ว");
         }
 
         private PotionType ConvertToPotionType(PotionData potion)

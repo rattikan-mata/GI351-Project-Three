@@ -1,10 +1,13 @@
 using System.Collections.Generic;
+using PuzzleEngine;
 using UnityEngine;
 
 /// <summary>
 /// สายพาน: วางสคริปต์นี้บนวัตถุที่มี Collider2D แล้วลาก FloorSwitch ใส่ช่อง Switches
-/// ตอนสวิตช์ทำงาน สายพานจะพา กล่อง / แมว / ก้อนขน ไปตามทิศที่ตั้งไว้
-/// ถ้าไม่ใส่สวิตช์เลย สายพานจะทำงานตลอด (ใช้ทดสอบได้)
+/// สายพานทำงานตราบที่เงื่อนไขของสวิตช์เป็นจริง (เหมือนประตู)
+/// - requireAll ติ๊ก = ทุกสวิตช์ต้อง ON (ค่าเริ่มต้น) / ไม่ติ๊ก = ตัวใดตัวหนึ่ง ON ก็พอ
+/// - ไม่มีสวิตช์ผูกอยู่ = ทำงานตลอด (ใช้ทดสอบได้)
+/// ตรรกะการรวมสัญญาณอยู่ใน PuzzleEngine.Gate
 /// </summary>
 [RequireComponent(typeof(Collider2D))]
 public class ConveyorBelt : MonoBehaviour
@@ -17,7 +20,7 @@ public class ConveyorBelt : MonoBehaviour
     [Tooltip("ติ๊กไว้ = ต้องกดสวิตช์ครบทุกตัวพร้อมกัน / ไม่ติ๊ก = ตัวใดตัวหนึ่งก็พอ")]
     [SerializeField] private bool requireAll = true;
 
-    [Tooltip("ติ๊กไว้ = เปิดแล้วสายพานทำงานต่อเนื่อง แม้สวิตช์จะปล่อยแล้ว")]
+    [Tooltip("ติ๊กไว้ = เปิดแล้วสายพานทำงานต่อเนื่องแม้สวิตช์จะปิดแล้ว (ขัดกับกติการะดับ ใช้เฉพาะจำเป็น)")]
     [SerializeField] private bool stayOnOnceActivated = false;
     #endregion
 
@@ -57,6 +60,7 @@ public class ConveyorBelt : MonoBehaviour
     #region State
     public bool IsPowered { get; private set; }
 
+    private readonly List<ISignal> signals = new List<ISignal>();
     private readonly HashSet<Collider2D> occupants = new HashSet<Collider2D>();
     private readonly List<Collider2D> removeBuffer = new List<Collider2D>();
     private readonly RaycastHit2D[] castResults = new RaycastHit2D[8];
@@ -67,22 +71,18 @@ public class ConveyorBelt : MonoBehaviour
     {
         GetComponent<Collider2D>().isTrigger = true;
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+
+        BuildSignals();
     }
 
     private void OnEnable()
     {
-        foreach (var sw in switches)
-        {
-            if (sw != null) sw.StateChanged += OnSwitchChanged;
-        }
+        foreach (ISignal s in signals) s.Changed += OnSwitchChanged;
     }
 
     private void OnDisable()
     {
-        foreach (var sw in switches)
-        {
-            if (sw != null) sw.StateChanged -= OnSwitchChanged;
-        }
+        foreach (ISignal s in signals) s.Changed -= OnSwitchChanged;
         ClearAnimalCarry();
     }
 
@@ -153,13 +153,24 @@ public class ConveyorBelt : MonoBehaviour
     #endregion
 
     #region Logic
-    private void OnSwitchChanged(FloorSwitch changed) => Evaluate();
+    private void BuildSignals()
+    {
+        signals.Clear();
+        if (switches == null) return;
+
+        foreach (FloorSwitch sw in switches)
+        {
+            if (sw != null) signals.Add(sw);
+        }
+    }
+
+    private void OnSwitchChanged() => Evaluate();
 
     private void Evaluate()
     {
         if (IsPowered && stayOnOnceActivated) return;
 
-        bool shouldRun = ShouldRun();
+        bool shouldRun = ComputeRun();
         if (shouldRun == IsPowered) return;
 
         IsPowered = shouldRun;
@@ -167,22 +178,11 @@ public class ConveyorBelt : MonoBehaviour
         if (!IsPowered) ClearAnimalCarry();
     }
 
-    private bool ShouldRun()
+    /// <summary>สายพานควรทำงานหรือไม่ตามสถานะสวิตช์ตอนนี้ (ไม่มีสวิตช์ = ทำงานตลอด)</summary>
+    private bool ComputeRun()
     {
-        if (switches == null || switches.Length == 0) return true;
-
-        bool any = false;
-        bool all = true;
-        bool hasAny = false;
-        foreach (var sw in switches)
-        {
-            if (sw == null) continue;
-            hasAny = true;
-            if (sw.IsActive) any = true;
-            else all = false;
-        }
-        if (!hasAny) return true;
-        return requireAll ? all : any;
+        if (signals.Count == 0) return true;
+        return Gate.Evaluate(requireAll ? GateMode.All : GateMode.Any, signals);
     }
 
     private bool IsValidRider(Collider2D c)
