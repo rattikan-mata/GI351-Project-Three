@@ -6,7 +6,7 @@ namespace PotionSystem
     /// ขวดยาที่ปรุงเสร็จ (สร้างโดย ResultSlotDisplay2D) ลากได้ด้วยเมาส์
     /// ปล่อยบน Staging Slot -> ย้ายไปช่องพัก
     /// ปล่อยบนช่องล่างอีกช่อง -> ย้าย/สลับที่กับช่องนั้น
-    /// ปล่อยบน TrashBin2D -> รีไซเคิล / ปล่อยที่อื่น -> วาร์ปกลับ Result Slot เดิม
+    /// ปล่อยบน TrashBin2D -> ทิ้งยา (ลบถาวร ไม่คืนวัตถุดิบ) / ปล่อยที่อื่น -> วาร์ปกลับ Result Slot เดิม
     /// </summary>
     [RequireComponent(typeof(SpriteRenderer), typeof(BoxCollider2D))]
     public class DraggablePotion2D : MonoBehaviour
@@ -71,7 +71,7 @@ namespace PotionSystem
                 var bin = hit.GetComponent<TrashBin2D>();
                 if (bin == null) continue;
 
-                if (bin.Recycle(resultSlot, slotIndex, potion))
+                if (bin.Discard(resultSlot, slotIndex, potion))
                     return;
                 break;
             }

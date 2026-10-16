@@ -25,7 +25,7 @@ namespace PotionSystem
         private BoxCollider2D col;
         private SpriteRenderer background;
         private readonly SpriteRenderer[] icons = new SpriteRenderer[MaterialCount];
-        private SpriteRenderer spinner;
+        private RadialFillRing ring;
 
         private Vector2 size;
         private float iconScale;
@@ -35,6 +35,7 @@ namespace PotionSystem
         private Vector3 homePosition;
         private Vector3 grabOffset;
         private bool dragging;
+        private float cooldownStartTime;
         private float cooldownEndTime;
 
         public TrayState State { get; private set; } = TrayState.Ready;
@@ -44,7 +45,8 @@ namespace PotionSystem
         // ---------- Setup ----------
 
         public void Init(IngredientTrayManager owner, Vector2 traySize, float materialIconScale,
-                         int sortingOrder, Sprite backgroundSprite, float slideSpeed)
+                         int sortingOrder, Sprite backgroundSprite, float slideSpeed,
+                         Color ringTrackColor, Color ringFillColor)
         {
             manager = owner;
             size = traySize;
@@ -72,13 +74,9 @@ namespace PotionSystem
                 icons[i] = sr;
             }
 
-            var spGo = new GameObject("CooldownSpinner");
-            spGo.transform.SetParent(transform, false);
-            spGo.transform.localScale = Vector3.one * (Mathf.Min(size.x, size.y) * 0.6f);
-            spinner = spGo.AddComponent<SpriteRenderer>();
-            spinner.sprite = RingSprite;
-            spinner.sortingOrder = baseOrder + 3;
-            spinner.gameObject.SetActive(false);
+            // วงโหลดกลางถาด: ชั้นล่างเป็นราง ชั้นบนเติมสีจนเต็มเมื่อคูลดาวน์จบ
+            ring = RadialFillRing.Create(transform, Vector3.zero, Mathf.Min(size.x, size.y) * 0.7f,
+                                         baseOrder + 3, ringTrackColor, ringFillColor);
 
             Refresh();
         }
@@ -100,15 +98,24 @@ namespace PotionSystem
         {
             State = state;
             if (state != TrayState.Ready) CancelDrag();
-            spinner.gameObject.SetActive(state == TrayState.Cooldown);
+            if (ring != null)
+            {
+                if (state == TrayState.Cooldown) ring.Show();
+                else ring.Hide();
+            }
             ApplyStateVisual();
         }
 
-        public void StartCooldown(float seconds)
+        /// <summary>
+        /// เริ่มคูลดาวน์: วงโหลดเติมจากเวลา startTime จนเต็มที่ endTime (Time.time)
+        /// ถาดที่เริ่มทีหลังในชุดเดียวกันจะเริ่มที่ช่วงกลาง ๆ แล้วเต็มพร้อมถาดแรก
+        /// </summary>
+        public void StartCooldown(float startTime, float endTime)
         {
-            cooldownEndTime = Time.time + Mathf.Max(0f, seconds);
-            spinner.transform.localRotation = Quaternion.identity;
+            cooldownStartTime = startTime;
+            cooldownEndTime = Mathf.Max(startTime, endTime);
             SetState(TrayState.Cooldown);
+            ring.SetProgress(Mathf.InverseLerp(cooldownStartTime, cooldownEndTime, Time.time));
         }
 
         // ---------- Unity ----------
@@ -132,7 +139,7 @@ namespace PotionSystem
 
             if (State == TrayState.Cooldown)
             {
-                spinner.transform.Rotate(0f, 0f, -360f * Time.deltaTime);
+                ring.SetProgress(Mathf.InverseLerp(cooldownStartTime, cooldownEndTime, Time.time));
                 if (Time.time >= cooldownEndTime && manager != null)
                     manager.HandleCooldownFinished(this);
             }
@@ -185,7 +192,7 @@ namespace PotionSystem
             background.sortingOrder = baseOrder + offset;
             for (int i = 0; i < icons.Length; i++)
                 if (icons[i] != null) icons[i].sortingOrder = baseOrder + offset + 1;
-            if (spinner != null) spinner.sortingOrder = baseOrder + offset + 3;
+            if (ring != null) ring.SetSortingOrder(baseOrder + offset + 3);
         }
 
         // ---------- Visual ----------
@@ -241,49 +248,6 @@ namespace PotionSystem
                 var c = sr.color;
                 c.a = iconAlpha;
                 sr.color = c;
-            }
-        }
-
-        // ---------- วงกลมหมุน (สร้างด้วยโค้ด ไม่ต้องใช้รูป) ----------
-
-        private static Sprite ringSprite;
-
-        public static Sprite RingSprite
-        {
-            get
-            {
-                if (ringSprite != null) return ringSprite;
-
-                const int n = 64;
-                var tex = new Texture2D(n, n, TextureFormat.RGBA32, false)
-                {
-                    wrapMode = TextureWrapMode.Clamp,
-                    filterMode = FilterMode.Bilinear
-                };
-                var px = new Color32[n * n];
-                float c = (n - 1) * 0.5f;
-                float outer = n * 0.5f - 1f;
-                float inner = outer * 0.72f;
-
-                for (int y = 0; y < n; y++)
-                {
-                    for (int x = 0; x < n; x++)
-                    {
-                        float dx = x - c, dy = y - c;
-                        float d = Mathf.Sqrt(dx * dx + dy * dy);
-                        float ang = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg;
-                        if (ang < 0f) ang += 360f;
-
-                        bool onRing = d <= outer && d >= inner && ang <= 270f; // เว้นช่องว่าง 90°
-                        px[y * n + x] = onRing ? new Color32(255, 255, 255, 255) : new Color32(255, 255, 255, 0);
-                    }
-                }
-
-                tex.SetPixels32(px);
-                tex.Apply();
-                ringSprite = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
-                ringSprite.name = "TrayCooldownRing";
-                return ringSprite;
             }
         }
     }

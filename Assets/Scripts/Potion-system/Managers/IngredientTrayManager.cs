@@ -40,6 +40,9 @@ namespace PotionSystem
 
         [Header("Cooldown")]
         [SerializeField, Min(0f)] private float cooldownSeconds = 8f;
+        [Tooltip("วงโหลดตอนคูลดาวน์: สีราง (ชั้นล่าง) และสีที่ค่อย ๆ เติม (ชั้นบน)")]
+        [SerializeField] private Color ringTrackColor = new Color(0.25f, 0.25f, 0.25f, 0.85f);
+        [SerializeField] private Color ringFillColor = new Color(0.85f, 0.85f, 0.85f, 1f);
         [Tooltip("เปิด = พอคูลดาวน์จบ ถาดสุ่มสูตรใหม่จาก Pool / ปิด = ได้สูตรเดิม")]
         [SerializeField] private bool rerollAfterCooldown = true;
 
@@ -66,6 +69,7 @@ namespace PotionSystem
 
         private System.Random rng;
         private readonly List<IngredientTray2D> row = new List<IngredientTray2D>();
+        private float batchCooldownStart;
         private float batchCooldownEnd; // เวลาที่คูลดาวน์ชุดปัจจุบันจบ (ถาดที่เริ่มทีหลังจบพร้อมกัน)
 
         // ---------- Unity ----------
@@ -99,6 +103,7 @@ namespace PotionSystem
             foreach (var t in row)
                 if (t != null) Destroy(t.gameObject);
             row.Clear();
+            batchCooldownStart = 0f;
             batchCooldownEnd = 0f;
 
             rng = useSeed ? new System.Random(seed) : new System.Random();
@@ -109,7 +114,7 @@ namespace PotionSystem
                 var go = new GameObject("Tray_" + (i + 1));
                 go.transform.SetParent(transform, false);
                 var tray = go.AddComponent<IngredientTray2D>();
-                tray.Init(this, traySize, materialIconScale, sortingOrder, traySprite, slideSpeed);
+                tray.Init(this, traySize, materialIconScale, sortingOrder, traySprite, slideSpeed, ringTrackColor, ringFillColor);
                 tray.SetBlueprint(recipes[i]);
                 row.Add(tray);
             }
@@ -231,8 +236,12 @@ namespace PotionSystem
         private void BeginCooldown(IngredientTray2D tray)
         {
             float now = Time.time;
-            if (batchCooldownEnd <= now) batchCooldownEnd = now + cooldownSeconds;
-            tray.StartCooldown(batchCooldownEnd - now);
+            if (batchCooldownEnd <= now)
+            {
+                batchCooldownStart = now;
+                batchCooldownEnd = now + cooldownSeconds;
+            }
+            tray.StartCooldown(batchCooldownStart, batchCooldownEnd);
         }
 
         /// <summary>เรียกจากถาดตอนคูลดาวน์จบ</summary>

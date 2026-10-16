@@ -7,9 +7,9 @@ namespace PotionSystem
     /// <summary>
     /// หม้อต้ม (2D World Space) ทำหน้าที่เป็น Drop Zone (Collider2D IsTrigger)
     /// - DropTray(set) -> PotManager.TryAddTray: ใส่วัตถุดิบ 3 ชิ้นจากถาด
-    /// - พอหม้อเต็มและมีสูตรที่ได้ จะเริ่มปรุงอัตโนมัติ (ตั้งเวลาได้ ค่าเริ่มต้น 3 วินาที) ไม่ต้องคลิก
-    ///   ระหว่างปรุงมีวงกลมหมุนที่หม้อ พอครบเวลาจะ Craft เอง
-    ///   ถ้า Result Slot เต็มตอนปรุงเสร็จ จะรอจนมีที่ว่างแล้วค่อย Craft
+    /// - พอหม้อเต็มและมีสูตรที่ได้ จะเริ่มปรุงอัตโนมัติ (ค่าเริ่มต้น 3 วินาที) ไม่ต้องคลิก
+    ///   ระหว่างปรุงมีวงโหลดกลางหม้อ ค่อย ๆ เติมสีจนเต็มวงเมื่อปรุงเสร็จ แล้ว Craft เอง
+    ///   ถ้า Result Slot เต็มตอนปรุงเสร็จ วงจะค้างเต็มจนมีที่ว่างแล้วค่อย Craft
     /// </summary>
     [RequireComponent(typeof(BoxCollider2D))]
     public class PotStation2D : MonoBehaviour
@@ -18,29 +18,32 @@ namespace PotionSystem
 
         [Header("Auto Brew")]
         [SerializeField, Min(0f)] private float brewSeconds = 3f;
-        [Tooltip("ขนาดวงกลมหมุนตอนปรุง และตำแหน่งเทียบกับหม้อ")]
-        [SerializeField, Min(0.1f)] private float spinnerScale = 1f;
-        [SerializeField] private Vector3 spinnerOffset = new Vector3(0f, 1f, 0f);
-        [SerializeField] private int spinnerSortingOrder = 20;
+
+        [Header("Brew Ring (วงโหลดกลางหม้อ)")]
+        [Tooltip("ขนาดวงเทียบกับด้านที่สั้นกว่าของ Collider หม้อ")]
+        [SerializeField, Min(0.1f)] private float ringSizeMultiplier = 0.6f;
+        [Tooltip("ขยับวงจากกลาง Collider ของหม้อ (0,0 = กลางหม้อพอดี)")]
+        [SerializeField] private Vector2 ringOffset = Vector2.zero;
+        [SerializeField] private int ringSortingOrder = 20;
+        [SerializeField] private Color ringTrackColor = new Color(0.25f, 0.25f, 0.25f, 0.85f);
+        [SerializeField] private Color ringFillColor = new Color(0.85f, 0.85f, 0.85f, 1f);
 
         // ของเดิม: ไอคอนวัตถุดิบลอยเหนือหม้อ (Pot Contents) เลิกใช้แล้ว เก็บฟิลด์ไว้เพื่อซ่อนของที่เคยตั้งไว้ในซีน
         [HideInInspector, SerializeField] private SpriteRenderer[] contentDisplays = new SpriteRenderer[PotManager.PotCapacity];
 
-        private SpriteRenderer spinner;
+        private RadialFillRing ring;
         private Coroutine brewRoutine;
 
         public bool IsBrewing => brewRoutine != null;
 
         private void Awake()
         {
-            var go = new GameObject("BrewSpinner");
-            go.transform.SetParent(transform, false);
-            go.transform.localPosition = spinnerOffset;
-            go.transform.localScale = Vector3.one * spinnerScale;
-            spinner = go.AddComponent<SpriteRenderer>();
-            spinner.sprite = IngredientTray2D.RingSprite;
-            spinner.sortingOrder = spinnerSortingOrder;
-            go.SetActive(false);
+            var box = GetComponent<BoxCollider2D>();
+            Vector2 center = box.offset + ringOffset; // กลางหม้อ (กลาง Collider)
+            float diameter = Mathf.Min(box.size.x, box.size.y) * ringSizeMultiplier;
+
+            ring = RadialFillRing.Create(transform, new Vector3(center.x, center.y, 0f), diameter,
+                                         ringSortingOrder, ringTrackColor, ringFillColor);
         }
 
         private void OnEnable()
@@ -67,12 +70,6 @@ namespace PotionSystem
             return potManager.TryAddTray(set);
         }
 
-        private void Update()
-        {
-            if (spinner != null && spinner.gameObject.activeSelf)
-                spinner.transform.Rotate(0f, 0f, -360f * Time.deltaTime);
-        }
-
         // ---------- Auto brew ----------
 
         // OnResultChanged ถูกเรียกหลังประเมินสูตรเสร็จ (ใช้ OnContentsChanged ไม่ได้ เพราะตอนนั้น CurrentResult ยังไม่อัปเดต)
@@ -90,12 +87,19 @@ namespace PotionSystem
 
         private IEnumerator BrewRoutine()
         {
-            spinner.transform.localRotation = Quaternion.identity;
-            spinner.gameObject.SetActive(true);
+            ring.Show();
+            ring.SetProgress(0f);
 
-            yield return new WaitForSeconds(brewSeconds);
+            float elapsed = 0f;
+            while (elapsed < brewSeconds)
+            {
+                elapsed += Time.deltaTime;
+                ring.SetProgress(elapsed / brewSeconds);
+                yield return null;
+            }
+            ring.SetProgress(1f);
 
-            // ปรุงเสร็จ: Craft ให้เอง ถ้า Result Slot เต็มจะรอจนมีที่ว่าง
+            // ปรุงเสร็จ: Craft ให้เอง ถ้า Result Slot เต็มจะรอจนมีที่ว่าง (วงค้างเต็ม)
             while (potManager.IsFull && potManager.CurrentResult != null)
             {
                 var result = potManager.TryCraft();
@@ -108,7 +112,7 @@ namespace PotionSystem
                 yield return null;
             }
 
-            spinner.gameObject.SetActive(false);
+            ring.Hide();
             brewRoutine = null;
         }
 
@@ -119,7 +123,7 @@ namespace PotionSystem
                 StopCoroutine(brewRoutine);
                 brewRoutine = null;
             }
-            if (spinner != null) spinner.gameObject.SetActive(false);
+            if (ring != null) ring.Hide();
         }
 
         private void HideLegacyContentDisplays()
