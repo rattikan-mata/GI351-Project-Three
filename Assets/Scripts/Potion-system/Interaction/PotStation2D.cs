@@ -47,12 +47,12 @@ namespace PotionSystem
         {
             HideLegacyContentDisplays();
             if (potManager == null) return;
-            potManager.OnContentsChanged += HandleContentsChanged;
+            potManager.OnResultChanged += HandleResultChanged;
         }
 
         private void OnDisable()
         {
-            if (potManager != null) potManager.OnContentsChanged -= HandleContentsChanged;
+            if (potManager != null) potManager.OnResultChanged -= HandleResultChanged;
             StopBrew();
         }
 
@@ -75,9 +75,10 @@ namespace PotionSystem
 
         // ---------- Auto brew ----------
 
-        private void HandleContentsChanged()
+        // OnResultChanged ถูกเรียกหลังประเมินสูตรเสร็จ (ใช้ OnContentsChanged ไม่ได้ เพราะตอนนั้น CurrentResult ยังไม่อัปเดต)
+        private void HandleResultChanged(PotionData result)
         {
-            if (potManager.IsFull && potManager.CurrentResult != null)
+            if (potManager.IsFull && result != null)
             {
                 if (brewRoutine == null) brewRoutine = StartCoroutine(BrewRoutine());
             }

@@ -8,8 +8,9 @@ namespace PotionSystem
     /// ตัวสร้าง/จัดการถาดเซ็ตยา (แทน SourceInventory + วัตถุดิบเดี่ยว)
     /// - ตั้งใน Inspector ได้ว่าด่านนี้มีสูตรไหนบ้าง (Recipe Pool) พร้อมน้ำหนักสุ่ม / จำนวนขั้นต่ำ / สูงสุด
     /// - สุ่มถาด 9 ถาดตอนเริ่มด่าน เรียงเป็นแถว
-    /// - ลากถาดไปปล่อยที่หม้อ -> ใส่วัตถุดิบ 3 ชิ้น -> Craft สำเร็จ ถาดจะไปต่อท้ายแถว (ช่องสุดท้าย)
-    ///   ขึ้นวงกลมหมุนคูลดาวน์ ถาดอื่นเลื่อนมาข้างหน้า พอครบเวลาถาดพร้อมใช้อีกครั้ง
+    /// - ลากถาดไปปล่อยที่หม้อ -> ใส่วัตถุดิบ 3 ชิ้น และถาดเริ่มรีเฟรชทันที: ไปต่อท้ายแถว (ช่องสุดท้าย)
+    ///   ขึ้นวงกลมหมุนคูลดาวน์ ถาดอื่นเลื่อนมาข้างหน้า
+    /// - ถาดที่คูลดาวน์อยู่พร้อมกันจะเสร็จพร้อมกัน ตามเวลาของถาดแรก พอครบเวลาถาดพร้อมใช้อีกครั้ง
     /// </summary>
     public class IngredientTrayManager : MonoBehaviour
     {
@@ -65,23 +66,9 @@ namespace PotionSystem
 
         private System.Random rng;
         private readonly List<IngredientTray2D> row = new List<IngredientTray2D>();
-        private IngredientTray2D activeTray; // ถาดที่ใส่ลงหม้ออยู่ (รอ Craft)
+        private float batchCooldownEnd; // เวลาที่คูลดาวน์ชุดปัจจุบันจบ (ถาดที่เริ่มทีหลังจบพร้อมกัน)
 
         // ---------- Unity ----------
-
-        private void OnEnable()
-        {
-            if (potManager == null) return;
-            potManager.OnCrafted += HandleCrafted;
-            potManager.OnPouredOut += HandlePouredOut;
-        }
-
-        private void OnDisable()
-        {
-            if (potManager == null) return;
-            potManager.OnCrafted -= HandleCrafted;
-            potManager.OnPouredOut -= HandlePouredOut;
-        }
 
         private void Start()
         {
@@ -112,7 +99,7 @@ namespace PotionSystem
             foreach (var t in row)
                 if (t != null) Destroy(t.gameObject);
             row.Clear();
-            activeTray = null;
+            batchCooldownEnd = 0f;
 
             rng = useSeed ? new System.Random(seed) : new System.Random();
 
@@ -218,11 +205,13 @@ namespace PotionSystem
 
         // ---------- Use / Cooldown ----------
 
-        /// <summary>เรียกจากถาดตอนผู้เล่นปล่อยถาดบนหม้อ คืน true ถ้าใส่หม้อสำเร็จ</summary>
+        /// <summary>
+        /// เรียกจากถาดตอนผู้เล่นปล่อยถาดบนหม้อ คืน true ถ้าใส่หม้อสำเร็จ
+        /// ถาดเริ่มรีเฟรช (ไปต่อท้ายแถว + คูลดาวน์) ทันทีที่ใส่ ไม่ต้องรอปรุงเสร็จ
+        /// </summary>
         public bool TryUseTray(IngredientTray2D tray, PotStation2D pot)
         {
             if (tray == null || pot == null || tray.State != TrayState.Ready) return false;
-            if (activeTray != null) return false; // มีถาดอยู่ในหม้อแล้ว
 
             var result = pot.DropTray(tray.Materials);
             if (result != AddMaterialResult.Success)
@@ -231,31 +220,19 @@ namespace PotionSystem
                 return false;
             }
 
-            activeTray = tray;
-            tray.SetState(TrayState.InPot);
+            row.Remove(tray);
+            row.Add(tray); // ช่องสุดท้าย ถาดอื่นเลื่อนมาข้างหน้า
+            UpdateHomes();
+            BeginCooldown(tray);
             return true;
         }
 
-        // Craft สำเร็จ: ถาดไปต่อท้ายแถว + คูลดาวน์
-        private void HandleCrafted(PotionData potion)
+        // คูลดาวน์พร้อมกัน: ถ้ามีถาดกำลังคูลดาวน์อยู่ ถาดใหม่จบพร้อมถาดแรก ไม่งั้นเริ่มชุดใหม่
+        private void BeginCooldown(IngredientTray2D tray)
         {
-            if (activeTray == null) return;
-
-            var tray = activeTray;
-            activeTray = null;
-
-            row.Remove(tray);
-            row.Add(tray); // ช่องสุดท้าย (ช่อง 9) ถาดอื่นเลื่อนมาข้างหน้า
-            UpdateHomes();
-            tray.StartCooldown(cooldownSeconds);
-        }
-
-        // เทของในหม้อทิ้ง: ปลดล็อกถาด ไม่เสียคูลดาวน์
-        private void HandlePouredOut()
-        {
-            if (activeTray == null) return;
-            activeTray.SetState(TrayState.Ready);
-            activeTray = null;
+            float now = Time.time;
+            if (batchCooldownEnd <= now) batchCooldownEnd = now + cooldownSeconds;
+            tray.StartCooldown(batchCooldownEnd - now);
         }
 
         /// <summary>เรียกจากถาดตอนคูลดาวน์จบ</summary>
