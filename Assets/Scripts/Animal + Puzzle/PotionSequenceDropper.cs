@@ -245,7 +245,7 @@ public class PotionSequenceDropper : MonoBehaviour
     public TestAnimal FindAnimalFor(PotionType type)
     {
         foreach (var a in animals)
-            if (a != null && a.RequiredPotionType == type) return a;
+            if (a != null && a.AcceptsPotion(type)) return a;
         return null;
     }
     #endregion

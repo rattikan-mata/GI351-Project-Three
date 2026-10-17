@@ -153,7 +153,12 @@ public class PushableBox : MonoBehaviour
         if (requirePoweredAnimal && !animal.CanUseAbility) return false;
 
         // ตรวจสอบตามชนิดของสัตว์
-        if (animal is PusherAnimal || animal.RequiredPotionType == PotionType.Strength)
+        if (animal is PusherAnimal pusherAnimal)
+        {
+            return canBeDestroyedByPusher && pusherAnimal.CanSmash;
+        }
+
+        if (animal.RequiredPotionType == PotionType.Strength)
         {
             return canBeDestroyedByPusher;
         }

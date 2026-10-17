@@ -94,7 +94,43 @@ public class PusherAnimal : TestAnimal
     #endregion
 
     #region Potion
-    protected override PotionType RequiredPotion => PotionType.Strength;
+    [Header("Potion Modes (ยาไหน = โหมดไหน)")]
+    [Tooltip("ยาที่ทำให้เป็นโหมด 'ดันกล่อง' (แพะโย้ง)")]
+    [SerializeField] private PotionType pushPotion = PotionType.Strength;
+
+    [Tooltip("ยาที่ทำให้เป็นโหมด 'ทำลายกล่อง' (แพะกล้าม) เว้น None = ไม่ใช้ระบบ 2 โหมด (ตัวเดียวทำทั้งดันและทำลายตามกล่อง)")]
+    [SerializeField] private PotionType smashPotion = PotionType.None;
+
+    [Tooltip("(ไม่บังคับ) สไปรต์ตอนเป็นแพะกล้าม (โหมดทำลาย)")]
+    [SerializeField] private Sprite smashFormSprite;
+
+    [Tooltip("(ไม่บังคับ) สไปรต์ตอนเป็นแพะโย้ง (โหมดดัน)")]
+    [SerializeField] private Sprite pushFormSprite;
+
+    private bool smashMode = false;
+
+    private bool IsDualMode => smashPotion != PotionType.None;
+
+    /// <summary>ตอนนี้ชนแล้วทำลายกล่องได้ไหม (โหมด 2 ยา: ได้เฉพาะตอนกินยาทำลาย)</summary>
+    public bool CanSmash => !IsDualMode || smashMode;
+
+    protected override PotionType RequiredPotion => pushPotion;
+
+    public override bool AcceptsPotion(PotionType potion)
+    {
+        if (potion == PotionType.None) return false;
+        return potion == pushPotion || (IsDualMode && potion == smashPotion);
+    }
+
+    protected override void OnPotionDrunk(PotionType potion)
+    {
+        smashMode = IsDualMode && potion == smashPotion;
+
+        Sprite s = smashMode ? smashFormSprite : pushFormSprite;
+        if (s != null && spriteRenderer != null) spriteRenderer.sprite = s;
+
+        Debug.Log($"[{animalName}] โหมด: {(smashMode ? "ทำลายกล่อง" : "ดันกล่อง")}");
+    }
     #endregion
 
     #region Ability
@@ -114,6 +150,15 @@ public class PusherAnimal : TestAnimal
 
         PushableBox box = FindBoxInFront(dir);
         if (box == null) return false; // ไม่มีกล่องให้ดัน ไม่เริ่ม cooldown
+
+        // โหมดทำลาย (แพะกล้าม): ทำลายได้เฉพาะกล่องที่ตั้งให้พังได้ ไม่ต้องอยู่ติดกำแพง
+        if (IsDualMode && smashMode)
+        {
+            if (!box.IsDestructible || !box.CanAnimalDestroyBox(this)) return false;
+            StopMoving();
+            box.TriggerDestructionSequence(this, dir);
+            return true;
+        }
 
         StopMoving();
         return box.TryPush(dir, pushDistance, pushSpeed, this);

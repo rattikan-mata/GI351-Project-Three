@@ -131,12 +131,19 @@ public abstract class TestAnimal : MonoBehaviour
     protected abstract PotionType RequiredPotion { get; }
     public PotionType RequiredPotionType => RequiredPotion;
 
+    /// <summary>สัตว์ตัวนี้รับยาชนิดนี้ไหม (คลาสลูก override ได้ถ้ารับหลายยา)</summary>
+    public virtual bool AcceptsPotion(PotionType potion) => potion == RequiredPotion;
+
+    /// <summary>ถูกเรียกหลังกินยาสำเร็จ (คลาสลูก override เพื่อเปลี่ยนโหมด/ร่างตามยา)</summary>
+    protected virtual void OnPotionDrunk(PotionType potion) { }
+
     public bool CanUseAbility => !requirePotion || Time.time < abilityUnlockedUntil;
 
     /// <summary>ให้ยาสัตว์ตัวนี้ คืนค่า true ถ้าเป็นยาที่ถูกตัว ถ้าอยู่โหมดอัตโนมัติ สัตว์จะเริ่มทำงานเอง</summary>
     public bool DrinkPotion(PotionType potion)
     {
-        if (potion != RequiredPotion) return false;
+        if (!AcceptsPotion(potion)) return false;
+        OnPotionDrunk(potion);
 
         abilityUnlockedUntil = (potionEffectDuration > 0f) ? Time.time + potionEffectDuration : float.MaxValue;
         Debug.Log($"[{animalName}] ใช้ยา {potion} แล้ว");
