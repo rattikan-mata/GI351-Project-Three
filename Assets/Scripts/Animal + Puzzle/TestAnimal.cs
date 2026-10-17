@@ -188,8 +188,13 @@ public abstract class TestAnimal : MonoBehaviour
         }
     }
 
+    private bool isExternalMotion = false;
+    public bool IsExternalMotion => isExternalMotion;
+
     protected virtual void FixedUpdate()
     {
+        if (isExternalMotion) return;
+
         Vector2 walk = Vector2.zero;
 
         if (hasTarget)
@@ -224,6 +229,16 @@ public abstract class TestAnimal : MonoBehaviour
     #endregion
 
     #region Movement API
+    /// <summary>เปิด/ปิดการเคลื่อนที่จากภายนอก (เช่น ถูกชนกระเด็น หรือพุ่งชนกล่อง)</summary>
+    public void SetExternalMotion(bool active)
+    {
+        isExternalMotion = active;
+        if (active)
+        {
+            StopMoving();
+        }
+    }
+
     /// <summary>สั่งให้เดินไปยังจุดนี้</summary>
     public void MoveTo(Vector2 worldPosition)
     {

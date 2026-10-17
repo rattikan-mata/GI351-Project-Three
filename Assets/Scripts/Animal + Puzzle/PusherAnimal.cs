@@ -73,7 +73,7 @@ public class PusherAnimal : TestAnimal
             // ผลัก
             if (!ExecuteAbility(rb.position + dir)) yield break; // ผลักไม่ไปแล้ว (ติดกำแพง) เลิก
 
-            while (box.IsMoving) yield return null;
+            while (box != null && (box.IsMoving || box.IsProcessingHit)) yield return null;
         }
     }
 
@@ -116,7 +116,7 @@ public class PusherAnimal : TestAnimal
         if (box == null) return false; // ไม่มีกล่องให้ดัน ไม่เริ่ม cooldown
 
         StopMoving();
-        return box.TryPush(dir, pushDistance, pushSpeed);
+        return box.TryPush(dir, pushDistance, pushSpeed, this);
     }
 
     private PushableBox FindBoxInFront(Vector2 dir)
