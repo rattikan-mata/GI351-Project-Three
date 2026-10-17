@@ -8,7 +8,7 @@ namespace PotionSystem
     /// จัดการช่องพักยา 3 ช่อง และปุ่ม "ส่งยา"
     /// กดปุ่มแล้วยาจะถูกปล่อยตามลำดับช่อง 1 -> 3 ตามกติกาใน PuzzleEngine.PotionSequence
     ///   - ช่องว่างถูกข้าม
-    ///   - ยาชิ้นถัดไปรอให้ชิ้นก่อนหน้าติด แล้วรอ Gap วินาที
+    ///   - ยาชิ้นถัดไปรอให้ชิ้นก่อนหน้าติด แล้วรอ Gap วินาที (ค่าเริ่มต้น 0 = ปล่อยทันที)
     /// ช่อง i ส่งไปที่ Dropper ตัวที่ i เสมอ
     /// </summary>
     public class PotionStagingManager : MonoBehaviour
@@ -26,8 +26,8 @@ namespace PotionSystem
         [SerializeField] private PotionType greenMapping = PotionType.Vomit;    // ยาเขียว -> ยาอ้วกก้อนขน
 
         [Header("Sequence Timing")]
-        [Tooltip("รอกี่วินาทีหลังยาชิ้นก่อนหน้าติด ก่อนปล่อยชิ้นถัดไป")]
-        [SerializeField] private float gapSeconds = 3f;
+        [Tooltip("รอกี่วินาทีหลังยาชิ้นก่อนหน้าติด ก่อนปล่อยชิ้นถัดไป (0 = ปล่อยทันที)")]
+        [SerializeField] private float gapSeconds = 0f;
 
         [Tooltip("ถ้ายาไม่ติดภายในกี่วินาที ถือว่าติดแล้ว (กันลำดับค้าง)")]
         [SerializeField] private float timeoutSeconds = 20f;

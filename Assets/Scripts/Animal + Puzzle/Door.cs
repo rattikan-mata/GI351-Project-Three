@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using PuzzleEngine;
 using UnityEngine;
@@ -9,7 +10,7 @@ using UnityEngine;
 /// - ไม่มีสวิตช์ผูกอยู่ = ใช้ Starts Open ตลอด
 /// ตรรกะการรวมสัญญาณอยู่ใน PuzzleEngine.Gate ชื่อฟิลด์เดิมคงไว้เพื่อให้ฉากเดิมยังใช้ได้
 /// </summary>
-public class Door : MonoBehaviour
+public class Door : MonoBehaviour, ISignal
 {
     #region Switch Link
     [Header("Start State (ใช้เฉพาะตอนไม่มีสวิตช์ผูกอยู่)")]
@@ -59,6 +60,10 @@ public class Door : MonoBehaviour
 
     #region State
     public bool IsOpen { get; private set; }
+
+    /// <summary>ประตูเป็น ISignal ให้สายพานหรือด่านใช้เป็นเงื่อนไขได้ (ON = เปิดอยู่)</summary>
+    public bool IsOn => IsOpen;
+    public event Action Changed;
 
     private readonly List<ISignal> signals = new List<ISignal>();
     private Vector3 closedPos;
@@ -156,6 +161,7 @@ public class Door : MonoBehaviour
 
         IsOpen = shouldOpen;
         ApplyState();
+        Changed?.Invoke();
     }
 
     private void ApplyState()

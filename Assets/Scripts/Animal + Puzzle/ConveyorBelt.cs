@@ -115,7 +115,7 @@ public class ConveyorBelt : MonoBehaviour
             return;
         }
 
-        Vector2 dir = ToDirection(moveDirection);
+        Vector2 dir = TestAnimal.ToVector(moveDirection);
         Vector2 animalCarry = dir * speed;
         float step = speed * Time.fixedDeltaTime;
 
@@ -253,20 +253,6 @@ public class ConveyorBelt : MonoBehaviour
             animator.SetBool(onBoolParameter, IsPowered);
     }
 
-    private static Vector2 ToDirection(AutoDirection d)
-    {
-        switch (d)
-        {
-            case AutoDirection.Right: return Vector2.right;
-            case AutoDirection.Left: return Vector2.left;
-            case AutoDirection.Up: return Vector2.up;
-            case AutoDirection.Down: return Vector2.down;
-            case AutoDirection.UpRight: return new Vector2(1f, 1f).normalized;
-            case AutoDirection.UpLeft: return new Vector2(-1f, 1f).normalized;
-            case AutoDirection.DownRight: return new Vector2(1f, -1f).normalized;
-            default: return new Vector2(-1f, -1f).normalized;
-        }
-    }
     #endregion
 
     #region Debug
@@ -274,7 +260,7 @@ public class ConveyorBelt : MonoBehaviour
     {
         Gizmos.color = Color.cyan;
         Vector3 origin = transform.position;
-        Vector3 dir = (Vector3)ToDirection(moveDirection);
+        Vector3 dir = (Vector3)TestAnimal.ToVector(moveDirection);
         Gizmos.DrawLine(origin, origin + dir * 1.5f);
         Gizmos.DrawSphere(origin + dir * 1.5f, 0.08f);
     }

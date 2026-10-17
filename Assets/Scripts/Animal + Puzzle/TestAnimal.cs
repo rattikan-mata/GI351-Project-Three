@@ -309,7 +309,7 @@ public abstract class TestAnimal : MonoBehaviour
         yield break;
     }
 
-    protected static Vector2 ToVector(AutoDirection d)
+    public static Vector2 ToVector(AutoDirection d)
     {
         switch (d)
         {
