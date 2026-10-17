@@ -4,6 +4,7 @@ using UnityEngine;
 /// ประตูแบบสลับสถานะ (Toggle): เมื่อสวิตช์ถูกกด (ส่งสัญญาณ StateChanged มา)
 /// จะสลับสถานะเปิด/ปิดของประตูสลับกันไปเรื่อยๆ และค้างสถานะนั้นไว้
 /// ประตูเลื่อนไปมาระหว่าง "จุดปิด" กับ "จุดเปิด" ได้ (ตั้งจุดใน Inspector)
+/// สามารถตั้งค่าให้ "พังได้" (Breakable) เมื่อติ๊กเลือกใน Inspector
 /// </summary>
 public class Door : MonoBehaviour
 {
@@ -39,6 +40,31 @@ public class Door : MonoBehaviour
     [SerializeField] private bool disableColliderWhenOpen = true;
     #endregion
 
+    #region Breakable
+    [Header("Breakable Door (ประตูพังได้)")]
+    [Tooltip("ติ๊กไว้ = ประตูนี้สามารถพังได้ (ไม่ว่าจะเป็นสวิตช์สั่ง หรือถูกชน)")]
+    [SerializeField] private bool isBreakable = false;
+
+    [Tooltip("ติ๊กไว้ = พังเมื่อสวิตช์ส่งสัญญาณเปิด (แทนที่จะค่อยๆ เลื่อนเปิด)")]
+    [SerializeField] private bool breakOnSwitch = true;
+
+    [Tooltip("ติ๊กไว้ = พังเมื่อถูกชน (สัตว์ หรือ กล่อง)")]
+    [SerializeField] private bool breakOnCollision = true;
+
+    [Tooltip("ติ๊กไว้ = พังเฉพาะเมื่อสัตว์ที่มาชนได้รับยาเสริมพลังแล้ว")]
+    [SerializeField] private bool requirePoweredAnimal = false;
+
+    [Header("Break Visuals (ภาพและเอฟเฟกต์ตอนพัง)")]
+    [Tooltip("(ไม่บังคับ) ภาพสไปรต์ซากประตูตอนพังแล้ว ถ้าไม่ใส่จะซ่อนหรือลบประตูทิ้ง")]
+    [SerializeField] private Sprite brokenSprite;
+
+    [Tooltip("(ไม่บังคับ) Prefab เอฟเฟกต์ตอนพัง (เช่น เศษไม้แตก ควันระเบิด)")]
+    [SerializeField] private GameObject breakEffectPrefab;
+
+    [Tooltip("ติ๊กไว้ = ลบ GameObject ประตูทิ้งทันทีเมื่อพัง / ไม่ติ๊ก = ปิด Collider และคงภาพซากไว้")]
+    [SerializeField] private bool destroyOnBreak = false;
+    #endregion
+
     #region Visual
     [Header("Visual (Optional)")]
     [Tooltip("Collider ที่ขวางทางตอนปิด (ถ้าไม่ใส่จะใช้ Collider2D บนตัวนี้เอง)")]
@@ -55,6 +81,7 @@ public class Door : MonoBehaviour
 
     #region State
     public bool IsOpen { get; private set; }
+    public bool IsBroken { get; private set; }
 
     private Vector3 closedPos;
     private Vector3 openPos;
@@ -91,6 +118,8 @@ public class Door : MonoBehaviour
 
     private void Update()
     {
+        if (IsBroken) return;
+
         Vector3 target = TargetPosition;
         if (transform.position != target)
         {
@@ -105,6 +134,16 @@ public class Door : MonoBehaviour
             bool arrivedOpen = IsOpen && transform.position == openPos;
             blockingCollider.enabled = !(disableColliderWhenOpen && arrivedOpen);
         }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        CheckCollisionBreak(collision.gameObject);
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        CheckCollisionBreak(other.gameObject);
     }
     #endregion
 
@@ -132,11 +171,80 @@ public class Door : MonoBehaviour
     #region Logic
     private void OnSwitchChanged(FloorSwitch changed)
     {
+        if (IsBroken) return;
+
         Debug.Log("สวิตช์ส่งสัญญาณมาที่ประตูแล้ว! สถานะสวิตช์คือ: " + changed.IsActive);
         if (changed.IsActive)
         {
+            if (isBreakable && breakOnSwitch)
+            {
+                BreakDoor();
+                return;
+            }
+
             IsOpen = !IsOpen;
             ApplyState();
+        }
+    }
+
+    private void CheckCollisionBreak(GameObject hitObj)
+    {
+        if (!isBreakable || !breakOnCollision || IsBroken) return;
+
+        TestAnimal animal = hitObj.GetComponentInParent<TestAnimal>();
+        if (animal != null)
+        {
+            if (requirePoweredAnimal && !animal.CanUseAbility) return;
+            BreakDoor();
+            return;
+        }
+
+        PushableBox box = hitObj.GetComponentInParent<PushableBox>();
+        if (box != null)
+        {
+            BreakDoor();
+            return;
+        }
+    }
+
+    /// <summary>
+    /// สั่งให้ประตูพัง (ปลดบล็อกทางเดิน, ปิด Collider, เล่นเอฟเฟกต์)
+    /// </summary>
+    public void BreakDoor()
+    {
+        if (IsBroken) return;
+        IsBroken = true;
+        IsOpen = true;
+
+        Debug.Log($"[Door] ประตู {name} พังแล้ว!");
+
+        if (blockingCollider != null)
+        {
+            blockingCollider.enabled = false;
+        }
+
+        if (breakEffectPrefab != null)
+        {
+            Instantiate(breakEffectPrefab, transform.position, Quaternion.identity);
+        }
+
+        if (animator != null)
+        {
+            animator.enabled = false;
+        }
+
+        if (brokenSprite != null && spriteRenderer != null)
+        {
+            spriteRenderer.sprite = brokenSprite;
+        }
+        else if (destroyOnBreak)
+        {
+            Destroy(gameObject);
+        }
+        else if (spriteRenderer != null)
+        {
+            // ถ้าไม่มี brokenSprite ให้ซ่อนตัวประตูเพื่อให้เห็นว่าเป็นทางผ่านโล่ง
+            spriteRenderer.enabled = false;
         }
     }
 

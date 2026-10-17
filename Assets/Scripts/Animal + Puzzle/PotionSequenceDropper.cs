@@ -47,6 +47,24 @@ public class PotionSequenceDropper : MonoBehaviour
     [SerializeField] private float finishTimeout = 20f;
     #endregion
 
+    #region Switch Progression
+    [Header("Switch Progression (ใช้สวิตช์ปลดล็อคขั้นตอน)")]
+    [Tooltip("สวิตช์เงื่อนไขก่อนปล่อยยา: ต้องถูกกดก่อนถึงจะเริ่มปล่อยยาตัวนี้ (ถ้าไม่ใส่ = ปล่อยได้ทันที)")]
+    [SerializeField] private FloorSwitch prerequisiteSwitch;
+
+    [Tooltip("ติ๊กไว้ = เมื่อ prerequisiteSwitch ถูกกด จะเริ่มปล่อยยาอัตโนมัติทันที (ถ้ามียาในช่อง)")]
+    [SerializeField] private bool autoStartOnPrerequisiteSwitch = false;
+
+    [Tooltip("สวิตช์เป้าหมายที่สัตว์ตัวนี้ต้องไปกด: เมื่อสวิตช์นี้ Active ถือว่าเสร็จทันที ตัดจบการรอ ไม่ต้องรอนาน")]
+    [SerializeField] private FloorSwitch targetSwitch;
+
+    [Tooltip("(กรณีเครื่องนี้มีหลายช่อง) สวิตช์เป้าหมายแยกแต่ละช่องตามลำดับ 1, 2, 3")]
+    [SerializeField] private FloorSwitch[] targetSwitches;
+
+    [Tooltip("เวลารอสูงสุดกรณีมีสวิตช์เป้าหมาย (วินาที) ถ้าไม่โดนสวิตช์ในเวลานี้จะตัดจบ")]
+    [SerializeField] private float switchWaitTimeout = 8f;
+    #endregion
+
     #region State
     public bool IsDispensing { get; private set; }
     #endregion
@@ -56,12 +74,35 @@ public class PotionSequenceDropper : MonoBehaviour
     {
         foreach (var s in slots)
             if (s != null) s.PotionInserted += OnSlotInserted;
+
+        if (prerequisiteSwitch != null)
+            prerequisiteSwitch.StateChanged += OnPrerequisiteSwitchChanged;
     }
 
     private void OnDisable()
     {
         foreach (var s in slots)
             if (s != null) s.PotionInserted -= OnSlotInserted;
+
+        if (prerequisiteSwitch != null)
+            prerequisiteSwitch.StateChanged -= OnPrerequisiteSwitchChanged;
+    }
+
+    private void OnPrerequisiteSwitchChanged(FloorSwitch sw)
+    {
+        if (autoStartOnPrerequisiteSwitch && sw != null && sw.IsActive && !IsDispensing)
+        {
+            bool hasPotion = false;
+            foreach (var s in slots)
+            {
+                if (s != null && s.IsOccupied) { hasPotion = true; break; }
+            }
+            if (hasPotion)
+            {
+                Debug.Log($"[{name}] สวิตช์เงื่อนไข {sw.name} ทำงานแล้ว เริ่มปล่อยยาอัตโนมัติ");
+                StartDispensing();
+            }
+        }
     }
     #endregion
 
@@ -79,11 +120,11 @@ public class PotionSequenceDropper : MonoBehaviour
         return false; // ช่องเต็มหมดแล้ว
     }
 
-    /// <summary>เริ่มปล่อยยาตามลำดับ (เรียกจากปุ่ม UI ได้ถ้าไม่ใช้ Auto Start)</summary>
-    public void StartDispensing()
+    /// <summary>เริ่มปล่อยยาตามลำดับ (ignorePrerequisite = true คือสั่งปล่อยทันทีโดยไม่เช็คสวิตช์เงื่อนไขก่อนหน้า)</summary>
+    public void StartDispensing(bool ignorePrerequisite = false)
     {
         if (IsDispensing) return;
-        StartCoroutine(DispenseRoutine());
+        StartCoroutine(DispenseRoutine(ignorePrerequisite));
     }
 
     /// <summary>เคลียร์ทุกช่อง (เช่น ผู้เล่นกดรีเซ็ต หรือทิ้งยาลงถังขยะ) ทำไม่ได้ตอนกำลังปล่อย</summary>
@@ -108,21 +149,38 @@ public class PotionSequenceDropper : MonoBehaviour
 
     
     /// <summary>ใส่ยาลงในช่อง Dropper ตาม Index ที่ระบุโดยตรง (0, 1, 2)</summary>
-         public bool TryInsertToSlot(int index, PotionType potion)
+    public bool TryInsertToSlot(int index, PotionType potion)
     {
-    if (IsDispensing || potion == PotionType.None) return false;
-    if (slots == null || index < 0 || index >= slots.Length) return false;
-    if (slots[index] == null || slots[index].IsOccupied) return false;
+        if (IsDispensing || potion == PotionType.None) return false;
+        if (slots == null || index < 0 || index >= slots.Length) return false;
+        if (slots[index] == null || slots[index].IsOccupied) return false;
 
-    return slots[index].TryInsert(potion);
+        return slots[index].TryInsert(potion);
     }
+
+    /// <summary>สวิตช์เงื่อนไขพร้อมทำงานแล้วหรือไม่</summary>
+    public bool IsPrerequisiteMet => prerequisiteSwitch == null || prerequisiteSwitch.IsActive;
+    public FloorSwitch PrerequisiteSwitch => prerequisiteSwitch;
+    public FloorSwitch TargetSwitch => targetSwitch;
+
+    /// <summary>มีสัตว์ในเครื่องนี้ที่ต้องการยานี้หรือไม่</summary>
+    public bool CanAcceptPotion(PotionType type) => FindAnimalFor(type) != null;
     
-    private IEnumerator DispenseRoutine()
+    private IEnumerator DispenseRoutine(bool ignorePrerequisite = false)
     {
         IsDispensing = true;
 
-        foreach (var slot in slots)
+        // ถ้ามีสวิตช์เงื่อนไขก่อนหน้า และไม่ได้สั่งข้าม แต่สวิตช์ยังไม่ถูกกด -> ไม่ปล่อยยา และไม่ปล่อยให้ผู้เล่นรอนาน
+        if (!ignorePrerequisite && prerequisiteSwitch != null && !prerequisiteSwitch.IsActive)
         {
+            Debug.LogWarning($"[{name}] สวิตช์เงื่อนไข ({prerequisiteSwitch.name}) ยังไม่ถูกกด! ข้ามขั้นตอนนี้ไปก่อนเพื่อไม่ให้รอนาน (ยาคงอยู่ในช่อง)");
+            IsDispensing = false;
+            yield break;
+        }
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            var slot = slots[i];
             if (slot == null || !slot.IsOccupied) continue;
 
             PotionType type = slot.StoredPotion;
@@ -145,17 +203,38 @@ public class PotionSequenceDropper : MonoBehaviour
             if (!waitForAnimalToFinish) continue;
 
             // รอให้ยาถึงตัวสัตว์ (ยาจะถูกทำลายตอนถึง)
-            float timer = 0f;
-            while (p != null && timer < finishTimeout)
+            float flyTimer = 0f;
+            while (p != null && flyTimer < finishTimeout)
             {
-                timer += Time.deltaTime;
+                flyTimer += Time.deltaTime;
                 yield return null;
             }
 
-            // รอให้สัตว์ทำงานเสร็จ
-            while (animal.IsAutoRunning && timer < finishTimeout)
+            // หาสวิตช์เป้าหมายของรอบนี้ (ถ้ามี)
+            FloorSwitch curTarget = (targetSwitches != null && i < targetSwitches.Length && targetSwitches[i] != null)
+                ? targetSwitches[i]
+                : targetSwitch;
+
+            float waitTimer = 0f;
+            float maxWait = (curTarget != null) ? switchWaitTimeout : finishTimeout;
+
+            // รอให้สัตว์ทำงานเสร็จ หรือ สวิตช์เป้าหมายถูกกด (อย่างใดอย่างหนึ่งถึงก่อน จบการรอทันที)
+            while (waitTimer < maxWait)
             {
-                timer += Time.deltaTime;
+                // 1. ถ้ามีสวิตช์เป้าหมาย และสวิตช์นั้นถูกกดแล้ว -> สำเร็จทันที! ตัดจบการรอ ไม่ต้องรอนาน
+                if (curTarget != null && curTarget.IsActive)
+                {
+                    Debug.Log($"[{name}] สวิตช์เป้าหมาย ({curTarget.name}) ถูกกดแล้ว! สำเร็จขั้นตอนทันที");
+                    break;
+                }
+
+                // 2. ถ้าสัตว์หยุดทำงานและหยุดขยับแล้ว (ทำเสร็จ หรือติดสิ่งกีดขวาง) -> ตัดจบ ไม่ต้องรอ timeout นาน
+                if (!animal.IsAutoRunning && !animal.IsMoving)
+                {
+                    break;
+                }
+
+                waitTimer += Time.deltaTime;
                 yield return null;
             }
         }
@@ -163,7 +242,7 @@ public class PotionSequenceDropper : MonoBehaviour
         IsDispensing = false;
     }
 
-    private TestAnimal FindAnimalFor(PotionType type)
+    public TestAnimal FindAnimalFor(PotionType type)
     {
         foreach (var a in animals)
             if (a != null && a.RequiredPotionType == type) return a;
