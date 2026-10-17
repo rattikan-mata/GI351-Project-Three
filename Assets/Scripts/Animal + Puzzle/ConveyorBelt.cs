@@ -19,9 +19,6 @@ public class ConveyorBelt : MonoBehaviour
 
     [Tooltip("ติ๊กไว้ = ต้องกดสวิตช์ครบทุกตัวพร้อมกัน / ไม่ติ๊ก = ตัวใดตัวหนึ่งก็พอ")]
     [SerializeField] private bool requireAll = true;
-
-    [Tooltip("ติ๊กไว้ = เปิดแล้วสายพานทำงานต่อเนื่องแม้สวิตช์จะปิดแล้ว (ขัดกับกติการะดับ ใช้เฉพาะจำเป็น)")]
-    [SerializeField] private bool stayOnOnceActivated = false;
     #endregion
 
     #region Motion
@@ -168,8 +165,6 @@ public class ConveyorBelt : MonoBehaviour
 
     private void Evaluate()
     {
-        if (IsPowered && stayOnOnceActivated) return;
-
         bool shouldRun = ComputeRun();
         if (shouldRun == IsPowered) return;
 

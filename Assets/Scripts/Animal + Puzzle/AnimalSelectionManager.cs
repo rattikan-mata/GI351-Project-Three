@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 /// <summary>
-/// ตัวจัดการ point and click:
+/// ตัวจัดการ point and click (ใช้ Input System ใหม่):
 /// - คลิกซ้ายที่สัตว์ = เลือกตัวนั้น (หรือกดปุ่มเลข 1-3 ในแป้นพิมพ์)
 /// - คลิกซ้ายที่พื้น = สั่งตัวที่เลือกอยู่เดินไปจุดนั้น
 /// - ปุ่มใช้ความสามารถ (ค่าเริ่มต้น Space หรือคลิกขวา) = ให้ตัวที่เลือกอยู่ใช้ความสามารถ (เล็งตามเมาส์)
@@ -27,13 +28,13 @@ public class AnimalSelectionManager : MonoBehaviour
 
     #region Controls
     [Header("Controls (ปรับปุ่มได้)")]
-    [SerializeField] private KeyCode abilityKey = KeyCode.Space;
+    [SerializeField] private Key abilityKey = Key.Space;
 
     [Tooltip("ให้คลิกขวาใช้ความสามารถได้ด้วย")]
     [SerializeField] private bool allowRightClickAbility = true;
 
     [Tooltip("ปุ่มเลือกสัตว์ตามลำดับในลิสต์ (ช่องที่ 1 = ตัวแรก ช่องที่ 2 = ตัวที่สอง ...)")]
-    [SerializeField] private KeyCode[] selectKeys = { KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3 };
+    [SerializeField] private Key[] selectKeys = { Key.Digit1, Key.Digit2, Key.Digit3 };
 
     [Tooltip("ไม่ให้คลิกทะลุ UI ลงมาสั่งเดิน")]
     [SerializeField] private bool blockClicksOverUI = true;
@@ -82,15 +83,18 @@ public class AnimalSelectionManager : MonoBehaviour
     #region Input Handling
     private void HandleKeySelection()
     {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null) return;
+
         for (int i = 0; i < selectKeys.Length && i < animals.Count; i++)
         {
-            if (Input.GetKeyDown(selectKeys[i])) SelectAnimal(animals[i]);
+            if (keyboard[selectKeys[i]].wasPressedThisFrame) SelectAnimal(animals[i]);
         }
     }
 
     private void HandleMouseClick()
     {
-        if (!Input.GetMouseButtonDown(0)) return;
+        if (!LeftClickPressed()) return;
         if (blockClicksOverUI && EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 
         Vector2 world = GetMouseWorldPosition();
@@ -115,12 +119,31 @@ public class AnimalSelectionManager : MonoBehaviour
     {
         if (SelectedAnimal == null) return;
 
-        bool pressed = Input.GetKeyDown(abilityKey) || (allowRightClickAbility && Input.GetMouseButtonDown(1));
-        if (!pressed) return;
-        if (blockClicksOverUI && Input.GetMouseButtonDown(1)
+        bool keyPressed = IsKeyPressed(abilityKey);
+        bool rightPressed = RightClickPressed();
+        if (!(keyPressed || (allowRightClickAbility && rightPressed))) return;
+        if (blockClicksOverUI && rightPressed
             && EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 
         SelectedAnimal.UseAbility(GetMouseWorldPosition());
+    }
+
+    private static bool IsKeyPressed(Key key)
+    {
+        Keyboard keyboard = Keyboard.current;
+        return keyboard != null && keyboard[key].wasPressedThisFrame;
+    }
+
+    private static bool LeftClickPressed()
+    {
+        Mouse mouse = Mouse.current;
+        return mouse != null && mouse.leftButton.wasPressedThisFrame;
+    }
+
+    private static bool RightClickPressed()
+    {
+        Mouse mouse = Mouse.current;
+        return mouse != null && mouse.rightButton.wasPressedThisFrame;
     }
     #endregion
 
@@ -136,7 +159,8 @@ public class AnimalSelectionManager : MonoBehaviour
 
     private Vector2 GetMouseWorldPosition()
     {
-        return worldCamera.ScreenToWorldPoint(Input.mousePosition);
+        Vector2 screen = (Mouse.current != null) ? Mouse.current.position.ReadValue() : Vector2.zero;
+        return worldCamera.ScreenToWorldPoint(screen);
     }
 
     private void SpawnMoveMarker(Vector2 position)
