@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4821906173520418302}
   - component: {fileID: 4821906173520418303}
   m_Layer: 0
-  m_Name: Test Potions
+  m_Name: Cheat potion
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
