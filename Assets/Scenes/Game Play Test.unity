@@ -3360,6 +3360,18 @@ MonoBehaviour:
     weight: 1
     minCount: 0
     maxCount: 0
+  - blueprint: {fileID: 11400000, guid: 73fd93e65d524f54180b9409a1c40271, type: 2}
+    weight: 1
+    minCount: 0
+    maxCount: 0
+  - blueprint: {fileID: 11400000, guid: 9dcc6b78529b1ef409ef4c5adccca9f3, type: 2}
+    weight: 1
+    minCount: 0
+    maxCount: 0
+  - blueprint: {fileID: 11400000, guid: 35aca250795dabf48a2a36e7ea6bb1e1, type: 2}
+    weight: 1
+    minCount: 0
+    maxCount: 0
   trayCount: 9
   useSeed: 0
   seed: 12345
