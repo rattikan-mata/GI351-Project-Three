@@ -48,9 +48,42 @@ namespace PotionSystem
 
         public bool IsBusy => isSendingSequentially;
 
+        // ชื่อสวิตช์ประจำแต่ละขั้น ใช้ผูกใหม่หลังรีเซ็ตพัซเซิล
+        private string[] stageSwitchNames;
+
         private void Awake()
         {
             EnsureStageSwitchesInitialized();
+            RememberStageSwitchNames();
+        }
+
+        private void RememberStageSwitchNames()
+        {
+            stageSwitchNames = new string[stageSwitches.Length];
+            for (int i = 0; i < stageSwitches.Length; i++)
+                stageSwitchNames[i] = stageSwitches[i] != null ? stageSwitches[i].name : null;
+        }
+
+        /// <summary>รีเซ็ตพัซเซิล: หยุดการส่งยาที่ค้างอยู่ (ยาที่ส่งไปแล้วไม่คืน ยาที่ยังอยู่ในช่องพักไม่ถูกแตะ)</summary>
+        public void ResetState()
+        {
+            if (sendRoutine != null) StopCoroutine(sendRoutine);
+            sendRoutine = null;
+            isSendingSequentially = false;
+        }
+
+        /// <summary>หลังรีเซ็ตพัซเซิล สวิตช์ถูกสร้างใหม่ ผูกกลับด้วยชื่อเดิม</summary>
+        public void RebindStageSwitches()
+        {
+            if (stageSwitchNames == null) return;
+            var all = FindObjectsByType<FloorSwitch>();
+            for (int i = 0; i < stageSwitchNames.Length && i < stageSwitches.Length; i++)
+            {
+                if (stageSwitchNames[i] == null) continue;
+                stageSwitches[i] = null;
+                foreach (var sw in all)
+                    if (sw.name == stageSwitchNames[i]) { stageSwitches[i] = sw; break; }
+            }
         }
 
         /// <summary>

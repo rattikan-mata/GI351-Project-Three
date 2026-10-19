@@ -70,11 +70,13 @@ public class DartGun : MonoBehaviour
     public PotionProjectile LastDart { get; private set; }
 
     private Vector3 barrelRestLocalPos;
+    private Quaternion restRotation;
     private SpriteRenderer loadedNeedle;
 
     private void Awake()
     {
         if (aimPivot == null) aimPivot = transform;
+        restRotation = aimPivot.localRotation;
         if (barrelRenderer != null) barrelRestLocalPos = barrelRenderer.transform.localPosition;
         CreateLoadedNeedle();
     }
@@ -96,6 +98,16 @@ public class DartGun : MonoBehaviour
         Vector3 muzzleLocal = muzzle != null ? aimPivot.InverseTransformPoint(muzzle.position) : (Vector3)(fwd * 1.5f);
         loadedNeedle.transform.localPosition = muzzleLocal + (Vector3)(fwd * (needleProtrusion - half));
         loadedNeedle.enabled = true;
+    }
+
+    /// <summary>รีเซ็ตพัซเซิล: หยุดเล็ง/ยิง เอาเข็มออก แล้วหันตัวถังกลับท่าเดิม</summary>
+    public void ResetState()
+    {
+        StopAllCoroutines();
+        Unload();
+        LastDart = null;
+        aimPivot.localRotation = restRotation;
+        if (barrelRenderer != null) barrelRenderer.transform.localPosition = barrelRestLocalPos;
     }
 
     /// <summary>เอาเข็มออกจากปืน (เช่น เคลียร์ช่อง)</summary>

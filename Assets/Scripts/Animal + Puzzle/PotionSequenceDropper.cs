@@ -79,6 +79,23 @@ public class PotionSequenceDropper : MonoBehaviour
     #endregion
 
     #region Unity Lifecycle
+    // ชื่อของสัตว์/สวิตช์ที่อ้างอิงไว้ ใช้ผูกใหม่หลังรีเซ็ตพัซเซิล (ของใหม่ชื่อเดิมแต่เป็นคนละตัว)
+    private string targetAnimalName, prerequisiteSwitchName, targetSwitchName;
+    private string[] targetSwitchNames;
+
+    private void Awake()
+    {
+        targetAnimalName = targetAnimal != null ? targetAnimal.name : null;
+        prerequisiteSwitchName = prerequisiteSwitch != null ? prerequisiteSwitch.name : null;
+        targetSwitchName = targetSwitch != null ? targetSwitch.name : null;
+        if (targetSwitches != null)
+        {
+            targetSwitchNames = new string[targetSwitches.Length];
+            for (int i = 0; i < targetSwitches.Length; i++)
+                targetSwitchNames[i] = targetSwitches[i] != null ? targetSwitches[i].name : null;
+        }
+    }
+
     private void OnEnable()
     {
         foreach (var s in slots)
@@ -95,6 +112,41 @@ public class PotionSequenceDropper : MonoBehaviour
 
         if (prerequisiteSwitch != null)
             prerequisiteSwitch.StateChanged -= OnPrerequisiteSwitchChanged;
+    }
+
+    /// <summary>รีเซ็ตพัซเซิล: หยุดการปล่อยที่ค้างอยู่ เคลียร์ช่อง และเก็บปืนกลับท่าเดิม</summary>
+    public void ResetState()
+    {
+        StopAllCoroutines();
+        IsDispensing = false;
+        foreach (var s in slots)
+            if (s != null) s.Clear();
+        if (dartGun != null) dartGun.ResetState();
+    }
+
+    /// <summary>หลังรีเซ็ตพัซเซิล สัตว์/สวิตช์ถูกสร้างใหม่ ผูกกลับด้วยชื่อเดิม</summary>
+    public void RebindTargets()
+    {
+        if (targetAnimalName != null) targetAnimal = FindByName<TestAnimal>(targetAnimalName);
+        if (prerequisiteSwitchName != null) prerequisiteSwitch = FindByName<FloorSwitch>(prerequisiteSwitchName);
+        if (targetSwitchName != null) targetSwitch = FindByName<FloorSwitch>(targetSwitchName);
+        if (targetSwitchNames != null)
+            for (int i = 0; i < targetSwitchNames.Length && i < targetSwitches.Length; i++)
+                if (targetSwitchNames[i] != null) targetSwitches[i] = FindByName<FloorSwitch>(targetSwitchNames[i]);
+
+        // ฟังสวิตช์เงื่อนไขตัวใหม่
+        if (prerequisiteSwitch != null)
+        {
+            prerequisiteSwitch.StateChanged -= OnPrerequisiteSwitchChanged;
+            prerequisiteSwitch.StateChanged += OnPrerequisiteSwitchChanged;
+        }
+    }
+
+    private static T FindByName<T>(string objectName) where T : Component
+    {
+        foreach (var c in FindObjectsByType<T>())
+            if (c.name == objectName) return c;
+        return null;
     }
 
     private void OnPrerequisiteSwitchChanged(FloorSwitch sw)
