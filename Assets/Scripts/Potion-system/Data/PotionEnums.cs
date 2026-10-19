@@ -14,14 +14,9 @@ namespace PotionSystem
         Red,
         Blue,
         Green,
-        Death
-    }
-
-    /// <summary>หมวดของยา: Working = ยาใช้งานได้, Bad = ยาเสีย</summary>
-    public enum PotionCategory
-    {
-        Working,
-        Bad
+        Skyward,    // เขียว + ฟ้า
+        Havoc,      // เขียว + ส้ม
+        Surge       // ฟ้า + ส้ม
     }
 
     /// <summary>ผลลัพธ์ของการพยายามใส่วัตถุดิบลงหม้อ</summary>

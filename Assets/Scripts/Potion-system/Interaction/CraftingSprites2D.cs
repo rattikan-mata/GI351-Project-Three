@@ -81,7 +81,10 @@ namespace PotionSystem
                 case PotionKind.Red: return Color.red;
                 case PotionKind.Blue: return Color.blue;
                 case PotionKind.Green: return Color.green;
-                default: return new Color(0.3f, 0.1f, 0.3f);
+                case PotionKind.Skyward: return Color.cyan;
+                case PotionKind.Havoc: return new Color(0.6f, 0.8f, 0.2f);
+                case PotionKind.Surge: return new Color(0.9f, 0.6f, 0.3f);
+                default: return Color.white;
             }
         }
     }

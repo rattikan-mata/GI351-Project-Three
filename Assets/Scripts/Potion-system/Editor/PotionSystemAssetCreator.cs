@@ -7,7 +7,7 @@ namespace PotionSystem.EditorTools
 {
     /// <summary>
     /// เมนู Tools > Potion System > Create Default Assets
-    /// สร้าง ScriptableObject ตามสเปก (วัตถุดิบ 6, ยา 4, Blueprint 3, Recipe Book) ไว้ที่ Assets/Data/PotionSystem
+    /// สร้าง ScriptableObject ตามสเปก (วัตถุดิบ 6, ยา 6, Blueprint 6, Recipe Book) ไว้ที่ Assets/Data/PotionSystem
     /// ไม่เขียนทับของเดิมถ้ามีอยู่แล้ว
     /// </summary>
     public static class PotionSystemAssetCreator
@@ -35,12 +35,17 @@ namespace PotionSystem.EditorTools
             var red = Potion("Red Potion", PotionKind.Red);
             var blue = Potion("Blue Potion", PotionKind.Blue);
             var green = Potion("Green Potion", PotionKind.Green);
-            var death = Potion("Death Potion", PotionKind.Death);
+            var skyward = Potion("Skyward Potion", PotionKind.Skyward, "Skyward");
+            var havoc = Potion("Havoc Potion", PotionKind.Havoc, "Havoc");
+            var surge = Potion("Surge Potion", PotionKind.Surge, "Surge");
 
             // Blueprints
             var bpRed = Blueprint("Red Potion Blueprint", red, skull, heart, mushroom);
             var bpBlue = Blueprint("Blue Potion Blueprint", blue, skull, ice, berry);
             var bpGreen = Blueprint("Green Potion Blueprint", green, eyeball, heart, berry);
+            var bpSkyward = Blueprint("Skyward Potion Blueprint", skyward, eyeball, ice, berry);
+            var bpHavoc = Blueprint("Havoc Potion Blueprint", havoc, eyeball, heart, mushroom);
+            var bpSurge = Blueprint("Surge Potion Blueprint", surge, skull, ice, mushroom);
 
             // Recipe book
             string bookPath = Root + "/PotionRecipeBook.asset";
@@ -49,16 +54,21 @@ namespace PotionSystem.EditorTools
             {
                 book = ScriptableObject.CreateInstance<PotionRecipeBook>();
                 AssetDatabase.CreateAsset(book, bookPath);
-
-                var so = new SerializedObject(book);
-                var list = so.FindProperty("blueprints");
-                list.arraySize = 3;
-                list.GetArrayElementAtIndex(0).objectReferenceValue = bpRed;
-                list.GetArrayElementAtIndex(1).objectReferenceValue = bpBlue;
-                list.GetArrayElementAtIndex(2).objectReferenceValue = bpGreen;
-                so.FindProperty("deathPotion").objectReferenceValue = death;
-                so.ApplyModifiedPropertiesWithoutUndo();
             }
+
+            // เติมสูตรที่ยังไม่มีในเล่ม (ไม่ลบหรือสลับของเดิม)
+            var bookSo = new SerializedObject(book);
+            var list = bookSo.FindProperty("blueprints");
+            foreach (var bp in new[] { bpRed, bpBlue, bpGreen, bpSkyward, bpHavoc, bpSurge })
+            {
+                bool exists = false;
+                for (int i = 0; i < list.arraySize; i++)
+                    if (list.GetArrayElementAtIndex(i).objectReferenceValue == bp) { exists = true; break; }
+                if (exists) continue;
+                list.arraySize++;
+                list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = bp;
+            }
+            bookSo.ApplyModifiedPropertiesWithoutUndo();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -80,7 +90,7 @@ namespace PotionSystem.EditorTools
             return asset;
         }
 
-        private static PotionData Potion(string displayName, PotionKind kind)
+        private static PotionData Potion(string displayName, PotionKind kind, string iconName = null)
         {
             string path = $"{Root}/Potions/{displayName}.asset";
             var asset = AssetDatabase.LoadAssetAtPath<PotionData>(path);
@@ -91,6 +101,12 @@ namespace PotionSystem.EditorTools
             var so = new SerializedObject(asset);
             so.FindProperty("displayName").stringValue = displayName;
             so.FindProperty("kind").enumValueIndex = (int)kind;
+            if (iconName != null)
+            {
+                // ไอคอนอยู่ที่ Assets/Sprites/Item/Potion/<iconName>.png (ตั้งเป็น Sprite แล้ว)
+                var icon = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/Sprites/Item/Potion/{iconName}.png");
+                so.FindProperty("icon").objectReferenceValue = icon;
+            }
             so.ApplyModifiedPropertiesWithoutUndo();
             return asset;
         }

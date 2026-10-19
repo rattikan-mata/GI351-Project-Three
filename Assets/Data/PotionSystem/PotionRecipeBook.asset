@@ -16,4 +16,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b066760fd1b63594a83efa680b92fc1f, type: 2}
   - {fileID: 11400000, guid: f1ad26888679ce0439a431cc637459b1, type: 2}
   - {fileID: 11400000, guid: 77fbdc2116a6eb84da756d3fbb044ad4, type: 2}
-  deathPotion: {fileID: 11400000, guid: f0d894bbf3a8ce645a9863c2967fe9c3, type: 2}
+  - {fileID: 11400000, guid: 73fd93e65d524f54180b9409a1c40271, type: 2}
+  - {fileID: 11400000, guid: 9dcc6b78529b1ef409ef4c5adccca9f3, type: 2}
+  - {fileID: 11400000, guid: 35aca250795dabf48a2a36e7ea6bb1e1, type: 2}
