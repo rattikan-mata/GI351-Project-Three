@@ -26,6 +26,11 @@ public class Hairball : MonoBehaviour
     private float lingerSeconds;
     private float traveled;
     private bool isFlying = true;
+
+    [Header("Weight")]
+    [Tooltip("มวลก้อนขน (แมวจะตั้งให้ตามชนิดการอ้วก) ใช้กับสวิตช์ที่ต้องใช้น้ำหนัก")]
+    [SerializeField] private float mass = 1f;
+    public float Mass { get => mass; set => mass = value; }
     #endregion
 
     #region Unity Lifecycle

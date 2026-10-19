@@ -244,6 +244,17 @@ public class PotionSequenceDropper : MonoBehaviour
 
     public TestAnimal FindAnimalFor(PotionType type)
     {
+        // ยาผสม: สัตว์ทุกตัวรับได้ จึงส่งให้ตัวที่ผู้เล่นเลือกอยู่ (ถ้าอยู่ในลิสต์ของเครื่องนี้)
+        if (TestAnimal.IsComboPotion(type) && AnimalSelectionManager.Instance != null)
+        {
+            TestAnimal selected = AnimalSelectionManager.Instance.SelectedAnimal;
+            if (selected != null && selected.AcceptsPotion(type))
+            {
+                foreach (var a in animals)
+                    if (a == selected) return selected;
+            }
+        }
+
         foreach (var a in animals)
             if (a != null && a.AcceptsPotion(type)) return a;
         return null;

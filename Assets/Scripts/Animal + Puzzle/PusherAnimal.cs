@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -30,6 +31,56 @@ public class PusherAnimal : TestAnimal
     [SerializeField, Range(0f, 1f)] private float aimAlignment = 0.5f;
     #endregion
 
+    #region Combo Settings
+    private enum GoatMode { Push, Laser, Havoc, Ceiling }
+    private enum CeilingState { Floor, Rising, OnCeiling, Falling }
+
+    [Header("Skyward (เขียว+ฟ้า): เสกลำแสงเลเซอร์")]
+    [Tooltip("ระยะยิงเลเซอร์ (สลับประตู ทำลายกล่องที่พังได้ ดันกล่องที่พังไม่ได้ ไม่กดปุ่ม/สวิตช์)")]
+    [SerializeField] private float laserRange = 12f;
+
+    [Tooltip("Layer ที่ทำให้เลเซอร์หยุดทันที (เช่น กำแพง พื้น ประตู กล่อง) เว้นว่าง = ทะลุทุกอย่าง")]
+    [SerializeField] private LayerMask laserBlockLayers;
+
+    [SerializeField] private Color laserColor = new Color(0.4f, 0.9f, 1f);
+
+    [Tooltip("เลเซอร์ค้างให้เห็นกี่วินาที")]
+    [SerializeField] private float laserDisplaySeconds = 0.3f;
+
+    [Header("Surge (ฟ้า+ส้ม): ยากราวิตี้ กระโดดแตะเพดานแล้วเดินบนเพดาน")]
+    [Tooltip("Layer ของพื้น/เพดาน ใช้หาเพดานที่จะกระโดดไปแตะ และหาพื้นตอนกลับลง เว้นว่าง = ทุก Layer ที่ไม่ใช่ Trigger")]
+    [SerializeField] private LayerMask ceilingLayers;
+
+    [Tooltip("ค้นหาเพดาน/พื้นไกลสุดกี่หน่วย")]
+    [SerializeField] private float ceilingSearchDistance = 20f;
+
+    [Tooltip("ความเร็วตอนกระโดดขึ้นไปแตะเพดาน / ตกกลับลงพื้น")]
+    [SerializeField] private float ceilingRiseSpeed = 14f;
+
+    [Tooltip("ตัวคูณความเร็วเดินตอนอยู่บนเพดาน")]
+    [SerializeField] private float ceilingWalkSpeedMultiplier = 1.2f;
+
+    [Tooltip("อยู่บนเพดานนานกี่วินาทีแล้วตกลงเอง (0 = อยู่ได้ไม่จำกัด กดใช้ความสามารถซ้ำเพื่อลง)")]
+    [SerializeField] private float ceilingDuration = 10f;
+
+    [Tooltip("Layer ที่ทะลุผ่านได้ตอนเดินกลับหัวบนเพดาน (เช่น กล่องบนพื้น) กำแพงแนวตั้งยังขวางปกติ")]
+    [SerializeField] private LayerMask ceilingPassLayers;
+
+    [Tooltip("โหมดอัตโนมัติ: ระยะที่เดินบนเพดานไปทางซ้าย/ขวาตามทิศที่ตั้งไว้ แล้วตกลง")]
+    [SerializeField] private float ceilingAutoWalkDistance = 6f;
+
+    private GoatMode comboMode = GoatMode.Push;
+    private CeilingState ceilingState = CeilingState.Floor;
+    private float ceilingY;
+    private float groundYBeforeRise;
+    private float ceilingWalkDir = 1f;
+    private float bounceCooldown = 0f;
+    private Collider2D bodyCollider;
+
+    public override bool IsAirborne => ceilingState != CeilingState.Floor;
+    protected override float SpeedMultiplier => ceilingState == CeilingState.OnCeiling ? ceilingWalkSpeedMultiplier : 1f;
+    #endregion
+
     #region Auto
     [Header("Auto Push (โหมดอัตโนมัติ)")]
     [Tooltip("ทิศที่จะผลักกล่องไปเมื่อได้ยา")]
@@ -47,6 +98,11 @@ public class PusherAnimal : TestAnimal
     protected override IEnumerator AutoRoutine()
     {
         Vector2 dir = ToVector(pushDirection);
+        if (comboMode != GoatMode.Push)
+        {
+            yield return ComboAutoRoutine(dir);
+            yield break;
+        }
         if (snapToCardinalDirections)
         {
             dir = (Mathf.Abs(dir.x) >= Mathf.Abs(dir.y))
@@ -119,11 +175,19 @@ public class PusherAnimal : TestAnimal
     public override bool AcceptsPotion(PotionType potion)
     {
         if (potion == PotionType.None) return false;
-        return potion == pushPotion || (IsDualMode && potion == smashPotion);
+        return potion == pushPotion || (IsDualMode && potion == smashPotion) || IsComboPotion(potion);
     }
 
     protected override void OnPotionDrunk(PotionType potion)
     {
+        switch (potion)
+        {
+            case PotionType.Skyward: comboMode = GoatMode.Laser; break;
+            case PotionType.Havoc: comboMode = GoatMode.Havoc; break;
+            case PotionType.Surge: comboMode = GoatMode.Ceiling; break;
+            default: comboMode = GoatMode.Push; break;
+        }
+
         smashMode = IsDualMode && potion == smashPotion;
 
         Sprite s = smashMode ? smashFormSprite : pushFormSprite;
@@ -138,6 +202,8 @@ public class PusherAnimal : TestAnimal
     {
         Vector2 dir = aimWorldPoint - rb.position;
         if (dir.sqrMagnitude < 0.0001f) dir = FacingDirection;
+
+        if (comboMode != GoatMode.Push) return PerformComboAbility(dir.normalized);
 
         if (snapToCardinalDirections)
         {
@@ -186,6 +252,335 @@ public class PusherAnimal : TestAnimal
         }
         return best;
     }
+    #endregion
+
+    #region Combo Abilities
+    protected override void Awake()
+    {
+        base.Awake();
+        bodyCollider = GetComponent<Collider2D>();
+    }
+
+    protected override void Update()
+    {
+        base.Update();
+
+        // เมื่ออยู่บนเพดาน: ตัวกลับหัว และหันซ้ายขวาตามทิศที่กำลังเดิน
+        if (ceilingState == CeilingState.OnCeiling && spriteRenderer != null)
+        {
+            spriteRenderer.flipY = true;
+            bool goingLeft = ceilingWalkDir < 0f;
+            spriteRenderer.flipX = spriteFacesRight ? goingLeft : !goingLeft;
+        }
+    }
+
+    protected override void FixedUpdate()
+    {
+        base.FixedUpdate();
+
+        // เดินบนเพดาน: ล็อกแกน Y ติดเพดานตลอดไป และเดินไป-กลับเมื่อชนซ้ายขวา
+        if (ceilingState == CeilingState.OnCeiling)
+        {
+            if (bounceCooldown > 0f) bounceCooldown -= Time.fixedDeltaTime;
+
+            // ตรวจจับสิ่งกีดขวางข้างหน้า (ซ้ายหรือขวา)
+            if (bounceCooldown <= 0f && CheckHorizontalObstacle(ceilingWalkDir))
+            {
+                ceilingWalkDir = -ceilingWalkDir;
+                bounceCooldown = 0.2f;
+            }
+
+            float speed = moveSpeed * SpeedMultiplier;
+            rb.linearVelocity = new Vector2(ceilingWalkDir * speed, 0f) + ConveyorVelocity;
+            rb.position = new Vector2(rb.position.x, ceilingY);
+
+            FacingDirection = new Vector2(ceilingWalkDir, 0f);
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (ceilingState == CeilingState.OnCeiling)
+        {
+            HandleCeilingBounce(collision);
+        }
+    }
+
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        if (ceilingState == CeilingState.OnCeiling)
+        {
+            HandleCeilingBounce(collision);
+        }
+    }
+
+    /// <summary>สลับทิศเดินเฉพาะเมื่อไปชนสิ่งกีดขวางแนวตั้ง (ซ้ายหรือขวาเท่านั้น ชนเพดานด้านบนไม่สลับ)</summary>
+    private void HandleCeilingBounce(Collision2D collision)
+    {
+        if (bounceCooldown > 0f) return;
+
+        for (int i = 0; i < collision.contactCount; i++)
+        {
+            Vector2 normal = collision.GetContact(i).normal;
+
+            // ตรวจว่าเป็นการชนแนวตั้งซ้าย-ขวาเท่านั้น (|normal.x| มาก และไม่ใช่พื้น/เพดาน |normal.y| น้อย)
+            if (normal.x < -0.4f && Mathf.Abs(normal.y) < 0.7f && ceilingWalkDir > 0f)
+            {
+                ceilingWalkDir = -1f;
+                bounceCooldown = 0.2f;
+                break;
+            }
+            else if (normal.x > 0.4f && Mathf.Abs(normal.y) < 0.7f && ceilingWalkDir < 0f)
+            {
+                ceilingWalkDir = 1f;
+                bounceCooldown = 0.2f;
+                break;
+            }
+        }
+    }
+
+    private bool CheckHorizontalObstacle(float dirX)
+    {
+        if (bodyCollider == null) return false;
+
+        var filter = new ContactFilter2D { useTriggers = false };
+        if (ceilingPassLayers.value != 0)
+            filter.SetLayerMask(~ceilingPassLayers.value);
+
+        var hits = new RaycastHit2D[8];
+        Vector2 checkDir = new Vector2(dirX, 0f);
+        int count = bodyCollider.Cast(checkDir, filter, hits, 0.15f);
+
+        for (int i = 0; i < count; i++)
+        {
+            var hit = hits[i];
+            if (hit.collider == null || hit.collider.isTrigger || hit.collider == bodyCollider) continue;
+            if (hit.collider.GetComponentInParent<TestAnimal>() == this) continue;
+
+            // ตรวจเฉพาะชนสิ่งกีดขวางแนวตั้งซ้ายขวาเท่านั้น
+            if (Mathf.Abs(hit.normal.x) > 0.35f && Mathf.Abs(hit.normal.y) < 0.7f)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private IEnumerator ComboAutoRoutine(Vector2 dir)
+    {
+        if (comboMode == GoatMode.Ceiling)
+        {
+            float sx = (dir.x < 0f) ? -1f : 1f;
+            ceilingWalkDir = sx;
+
+            if (!ExecuteAbility(rb.position + dir)) yield break;
+            while (ceilingState == CeilingState.Rising) yield return null;
+
+            // อยู่บนเพดาน เดินไป-กลับซ้ายขวาเรื่อยๆ ตลอดไป ไม่ต้องร่วงลงมา
+            yield break;
+        }
+
+        ExecuteAbility(rb.position + dir);
+    }
+
+    private bool PerformComboAbility(Vector2 dir)
+    {
+        FacingDirection = dir;
+
+        switch (comboMode)
+        {
+            case GoatMode.Laser: return FireLaser(dir);
+            case GoatMode.Havoc: return SmashEverything();
+            case GoatMode.Ceiling: return ToggleCeiling();
+        }
+        return false;
+    }
+
+    #region Laser
+    /// <summary>Skyward: ยิงเลเซอร์ตามแนวตรง สลับประตู/ทำลายหรือดันกล่อง (ไม่กดปุ่ม/สวิตช์) และหยุดเมื่อชน Laser Block Layers</summary>
+    private bool FireLaser(Vector2 dir)
+    {
+        StopMoving();
+        Vector2 origin = rb.position;
+        Vector2 end = origin + dir * laserRange;
+
+        RaycastHit2D[] hits = Physics2D.RaycastAll(origin, dir, laserRange);
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        var handledDoors = new List<Door>();
+        var handledBoxes = new List<PushableBox>();
+
+        foreach (var hit in hits)
+        {
+            if (hit.collider == null) continue;
+            if (hit.collider.GetComponentInParent<TestAnimal>() == this) continue;
+
+            // ข้าม FloorSwitch เลเซอร์จะไม่กดปุ่ม/สวิตช์
+            if (hit.collider.GetComponentInParent<FloorSwitch>() != null) continue;
+
+            var door = hit.collider.GetComponentInParent<Door>();
+            if (door != null && !handledDoors.Contains(door))
+            {
+                handledDoors.Add(door);
+                if (door.IsBreakable) door.BreakDoor();
+                else door.RemoteToggle();
+            }
+
+            var box = hit.collider.GetComponentInParent<PushableBox>();
+            if (box != null && !handledBoxes.Contains(box))
+            {
+                handledBoxes.Add(box);
+                if (box.IsDestructible && !box.IsBroken && box.CanAnimalDestroyBox(this))
+                    box.BreakBox();                                   // กล่องพังได้ -> ทำลาย
+                else
+                    box.TryPush(dir, pushDistance, pushSpeed, null);  // กล่องพังไม่ได้ -> ดัน
+            }
+
+            // ชนกำแพง/พื้น/ประตู/กล่อง ใน Layer ที่ตั้งไว้ -> เลเซอร์หยุดตรงนี้
+            if ((laserBlockLayers.value & (1 << hit.collider.gameObject.layer)) != 0)
+            {
+                end = hit.point;
+                break;
+            }
+        }
+
+        DrawLaser(origin, end);
+        return true;
+    }
+
+    private void DrawLaser(Vector2 from, Vector2 to)
+    {
+        GameObject go = new GameObject("GoatLaser");
+        var lr = go.AddComponent<LineRenderer>();
+        lr.positionCount = 2;
+        lr.SetPosition(0, from);
+        lr.SetPosition(1, to);
+        lr.startWidth = lr.endWidth = 0.12f;
+        lr.material = new Material(Shader.Find("Sprites/Default"));
+        lr.startColor = lr.endColor = laserColor;
+        lr.sortingOrder = 50;
+        Destroy(go, laserDisplaySeconds);
+    }
+    #endregion
+
+    /// <summary>Havoc: ทำลายกล่องและประตูทั้งหมดที่พังได้ในด่าน</summary>
+    private bool SmashEverything()
+    {
+        StopMoving();
+
+        foreach (var box in FindObjectsByType<PushableBox>(FindObjectsSortMode.None))
+        {
+            if (box.IsDestructible && !box.IsBroken) box.BreakBox();
+        }
+        foreach (var door in FindObjectsByType<Door>(FindObjectsSortMode.None))
+        {
+            if (door.IsBreakable && !door.IsBroken) door.BreakDoor();
+        }
+        return true;
+    }
+
+    #region Ceiling Walk (Gravity Potion)
+    /// <summary>Surge: อยู่บนพื้น -> กระโดดไปแตะเพดาน / อยู่บนเพดาน -> สลับทิศทางเดินซ้าย-ขวา (ติดอยู่บนเพดานตลอดไปไม่ร่วง)</summary>
+    private bool ToggleCeiling()
+    {
+        switch (ceilingState)
+        {
+            case CeilingState.Floor:
+                if (!TryFindSurface(Vector2.up, out float y))
+                {
+                    Debug.Log($"[{animalName}] ไม่เจอเพดานเหนือหัว");
+                    return false;
+                }
+                ceilingWalkDir = (FacingDirection.x < 0f) ? -1f : 1f;
+                StartCoroutine(RiseToCeilingRoutine(y));
+                return true;
+
+            case CeilingState.OnCeiling:
+                // ติดอยู่บนเพดานตลอดไป: ถ้ากดใช้ความสามารถอีกครั้งจะสลับทิศทางเดิน
+                ceilingWalkDir = -ceilingWalkDir;
+                bounceCooldown = 0.2f;
+                return true;
+        }
+        return false; // กำลังขึ้นอยู่
+    }
+
+    /// <summary>หาพื้นผิว (เพดาน/พื้น) ในทิศนั้น คืนค่าแกน Y ที่ "กลางตัว" จะไปอยู่เมื่อแตะพื้นผิวนั้น</summary>
+    private bool TryFindSurface(Vector2 direction, out float centerY)
+    {
+        centerY = rb.position.y;
+
+        var filter = new ContactFilter2D { useTriggers = false };
+        filter.SetLayerMask(ceilingLayers.value != 0 ? ceilingLayers : (LayerMask)Physics2D.DefaultRaycastLayers);
+
+        var results = new RaycastHit2D[16];
+        int count = bodyCollider.Cast(direction, filter, results, ceilingSearchDistance);
+
+        float best = float.MaxValue;
+        for (int i = 0; i < count; i++)
+        {
+            Collider2D c = results[i].collider;
+            if (c == null || c.isTrigger) continue;
+            if (c.GetComponentInParent<PushableBox>() != null) continue; // กล่องไม่ใช่เพดาน/พื้น
+            if (c.GetComponentInParent<TestAnimal>() != null) continue;
+            best = Mathf.Min(best, results[i].distance);
+        }
+
+        if (best == float.MaxValue) return false;
+
+        centerY = rb.position.y + Mathf.Sign(direction.y) * Mathf.Max(0f, best - 0.02f);
+        return true;
+    }
+
+    private IEnumerator RiseToCeilingRoutine(float targetY)
+    {
+        ceilingState = CeilingState.Rising;
+        groundYBeforeRise = rb.position.y;
+        SetExternalMotion(true);
+        bodyCollider.excludeLayers = ~0; // ทะลุทุกอย่างระหว่างกระโดดขึ้น
+
+        while (Mathf.Abs(rb.position.y - targetY) > 0.02f)
+        {
+            float y = Mathf.MoveTowards(rb.position.y, targetY, ceilingRiseSpeed * Time.deltaTime);
+            rb.position = new Vector2(rb.position.x, y);
+            yield return null;
+        }
+
+        ceilingY = targetY;
+        rb.position = new Vector2(rb.position.x, ceilingY);
+        SetExternalMotion(false);
+
+        bodyCollider.excludeLayers = ceilingPassLayers;
+        if (spriteRenderer != null) spriteRenderer.flipY = true; // กลับหัว
+        ceilingWalkDir = (FacingDirection.x < 0f) ? -1f : 1f;
+        ceilingState = CeilingState.OnCeiling;
+    }
+
+    private IEnumerator DropToFloorRoutine()
+    {
+        if (ceilingState != CeilingState.OnCeiling) yield break;
+
+        // หาพื้นก่อนปล่อยตัว (ถ้าไม่เจอ ตกกลับไปที่เดิมที่เคยยืน)
+        if (!TryFindSurface(Vector2.down, out float floorY)) floorY = groundYBeforeRise;
+
+        ceilingState = CeilingState.Falling;
+        StopMoving();
+        SetExternalMotion(true);
+        bodyCollider.excludeLayers = ~0;
+
+        while (Mathf.Abs(rb.position.y - floorY) > 0.02f)
+        {
+            float y = Mathf.MoveTowards(rb.position.y, floorY, ceilingRiseSpeed * Time.deltaTime);
+            rb.position = new Vector2(rb.position.x, y);
+            yield return null;
+        }
+
+        rb.position = new Vector2(rb.position.x, floorY);
+        SetExternalMotion(false);
+        bodyCollider.excludeLayers = (LayerMask)0;
+        if (spriteRenderer != null) spriteRenderer.flipY = false;
+        ceilingState = CeilingState.Floor;
+    }
+    #endregion
     #endregion
 
     #region Debug Gizmos

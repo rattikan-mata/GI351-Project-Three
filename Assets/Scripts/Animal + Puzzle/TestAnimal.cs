@@ -7,7 +7,10 @@ public enum PotionType
     None,
     Vomit,      // ยาอาเจียน     -> ตัวอ้วกก้อนขน
     Light,      // ยาตัวเบา      -> ตัวอ้วนบิน
-    Strength    // ยาเพิ่มพละกำลัง -> ตัวผลัก/ดันกล่อง
+    Strength,   // ยาเพิ่มพละกำลัง -> ตัวผลัก/ดันกล่อง
+    Skyward,    // ยาผสม เขียว + ฟ้า  (ไปหาสัตว์ที่ผู้เล่นเลือกอยู่)
+    Havoc,      // ยาผสม เขียว + ส้ม
+    Surge       // ยาผสม ฟ้า + ส้ม
 }
 
 /// <summary>ทิศที่เลือกได้ใน Inspector สำหรับโหมดอัตโนมัติ</summary>
@@ -30,6 +33,10 @@ public abstract class TestAnimal : MonoBehaviour
     [Header("Identity")]
     [SerializeField] protected string animalName = "Animal";
     public string AnimalName => animalName;
+
+    [Tooltip("มวลของสัตว์ ใช้คำนวณน้ำหนักที่กดสวิตช์ (FloorSwitch.Required Weight)")]
+    [SerializeField] protected float mass = 1f;
+    public float Mass => mass;
     #endregion
 
     #region Auto Mode
@@ -130,6 +137,10 @@ public abstract class TestAnimal : MonoBehaviour
     /// <summary>ยาที่ตัวนี้ต้องใช้ (แต่ละคลาสลูกกำหนดเอง)</summary>
     protected abstract PotionType RequiredPotion { get; }
     public PotionType RequiredPotionType => RequiredPotion;
+
+    /// <summary>ยาผสม (Skyward/Havoc/Surge) สัตว์ทุกตัวรับได้ แต่ละตัวมีท่าต่างกัน</summary>
+    public static bool IsComboPotion(PotionType potion) =>
+        potion == PotionType.Skyward || potion == PotionType.Havoc || potion == PotionType.Surge;
 
     /// <summary>สัตว์ตัวนี้รับยาชนิดนี้ไหม (คลาสลูก override ได้ถ้ารับหลายยา)</summary>
     public virtual bool AcceptsPotion(PotionType potion) => potion == RequiredPotion;

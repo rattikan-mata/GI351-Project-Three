@@ -104,6 +104,11 @@ public class PushableBox : MonoBehaviour
     private readonly RaycastHit2D[] castResults = new RaycastHit2D[8];
 
     public bool IsMoving => isMoving;
+
+    [Header("Weight")]
+    [Tooltip("มวลของกล่อง ใช้กับสวิตช์ที่ต้องใช้น้ำหนัก (FloorSwitch.Required Weight)")]
+    [SerializeField] private float mass = 2f;
+    public float Mass => mass;
     public bool IsGravityHeld => gravityHoldCount > 0;
     public bool IsDestructible => isDestructible;
     public bool IsBroken { get; private set; } = false;
@@ -162,6 +167,8 @@ public class PushableBox : MonoBehaviour
         {
             return canBeDestroyedByPusher;
         }
+
+        if (animal is FlyingAnimal ramCow && ramCow.IsRamming) return true;
 
         if (animal is FlyingAnimal || animal.RequiredPotionType == PotionType.Light)
         {
