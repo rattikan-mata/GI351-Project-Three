@@ -35,9 +35,12 @@ public class PotionProjectile : MonoBehaviour
     private int pathIndex = 0;
     private float speed;
     private bool initialized = false;
+    private bool faceMovement = false;
+    private float faceAngleOffset = 0f;
     #endregion
 
     #region API
+
     public void Init(PotionType type, TestAnimal targetAnimal, Transform[] pathPoints, float moveSpeed)
     {
         potionType = type;
@@ -54,6 +57,23 @@ public class PotionProjectile : MonoBehaviour
                 if (pc.type == type) { spriteRenderer.color = pc.color; break; }
             }
         }
+    }
+
+    /// <summary>ใช้กับเข็มของ DartGun: หันหัวเข็มไปตามทิศที่บิน (spriteForwardAngle = ทิศปลายเข็มในรูปที่ยังไม่หมุน)</summary>
+    public void ConfigureDart(float spriteForwardAngle, float arrive)
+    {
+        faceMovement = true;
+        faceAngleOffset = spriteForwardAngle;
+        arriveDistance = arrive;
+        FaceTo(target != null ? target.transform.position : transform.position);
+    }
+
+    private void FaceTo(Vector3 dest)
+    {
+        Vector2 dir = dest - transform.position;
+        if (dir.sqrMagnitude < 0.0001f) return;
+        float z = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - faceAngleOffset;
+        transform.rotation = Quaternion.Euler(0f, 0f, z);
     }
     #endregion
 
@@ -74,6 +94,7 @@ public class PotionProjectile : MonoBehaviour
         bool onWaypoint = path != null && pathIndex < path.Length;
         Vector3 dest = onWaypoint ? path[pathIndex].position : target.transform.position;
 
+        if (faceMovement) FaceTo(dest);
         transform.position = Vector3.MoveTowards(transform.position, dest, speed * Time.deltaTime);
 
         if (Vector2.Distance(transform.position, dest) > arriveDistance) return;
