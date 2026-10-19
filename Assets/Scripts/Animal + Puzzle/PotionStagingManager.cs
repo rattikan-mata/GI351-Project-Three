@@ -23,6 +23,9 @@ namespace PotionSystem
         [SerializeField] private PotionType redMapping = PotionType.Strength;   // ยาแดง  -> ยากล้ามผลักกล่อง
         [SerializeField] private PotionType blueMapping = PotionType.Light;     // ยาฟ้า  -> ยาบิน
         [SerializeField] private PotionType greenMapping = PotionType.Vomit;    // ยาเขียว -> ยาอ้วกก้อนขน
+        [SerializeField] private PotionType skywardMapping = PotionType.Skyward; // เขียว+ฟ้า
+        [SerializeField] private PotionType havocMapping = PotionType.Havoc;     // เขียว+ส้ม
+        [SerializeField] private PotionType surgeMapping = PotionType.Surge;     // ฟ้า+ส้ม
 
         [Header("Switch Progression (เฉพาะตอนใส่ยาครบทุกช่อง)")]
         [Tooltip("ติ๊กไว้ = เมื่อใส่ยาครบทุกช่อง จะปล่อยยาเรียงทีละขั้นตอนตามลำดับสวิตช์\nไม่ติ๊ก = ปล่อยพร้อมกันเสมอ")]
@@ -413,6 +416,9 @@ namespace PotionSystem
                 case PotionKind.Red: return redMapping;
                 case PotionKind.Blue: return blueMapping;
                 case PotionKind.Green: return greenMapping;
+                case PotionKind.Skyward: return skywardMapping;
+                case PotionKind.Havoc: return havocMapping;
+                case PotionKind.Surge: return surgeMapping;
                 default: return PotionType.None;
             }
         }

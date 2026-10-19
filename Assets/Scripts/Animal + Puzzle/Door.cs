@@ -82,6 +82,15 @@ public class Door : MonoBehaviour
     #region State
     public bool IsOpen { get; private set; }
     public bool IsBroken { get; private set; }
+    public bool IsBreakable => isBreakable;
+
+    /// <summary>สลับเปิด/ปิดประตูจากภายนอก (เช่น เลเซอร์ของแพะ)</summary>
+    public void RemoteToggle()
+    {
+        if (IsBroken) return;
+        IsOpen = !IsOpen;
+        ApplyState();
+    }
 
     private Vector3 closedPos;
     private Vector3 openPos;
