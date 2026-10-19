@@ -71,6 +71,22 @@ public class HairballAnimal : TestAnimal
 
     [Tooltip("ก้อนใหญ่นอนอยู่กี่วินาที")]
     [SerializeField] private float giantLingerSeconds = 12f;
+
+    [Tooltip("ติ๊กไว้ = อ้วกยักษ์สามารถพังกล่องและประตูที่พังได้")]
+    [SerializeField] private bool giantBreaksObstacles = true;
+
+    [Tooltip("ความสูงชดเชยเมื่ออ้วกก้อนยักษ์ (กันก้อนใหญ่จมพื้น)")]
+    [SerializeField] private float giantSpawnHeightOffset = 0.65f;
+
+    [Tooltip("ระยะห่างจากตัวเพิ่มเติมเมื่ออ้วกก้อนยักษ์")]
+    [SerializeField] private float giantSpawnForwardOffset = 0.5f;
+
+    [Header("Gravity (แรงโน้มถ่วง)")]
+    [Tooltip("แรงโน้มถ่วงของก้อนขนปกติ/กระสุน/ก้อนยักษ์ (1 = ปกติ)")]
+    [SerializeField] private float defaultGravityScale = 1f;
+
+    [Tooltip("แรงโน้มถ่วงของก้อนขน Skyward (0 = ลอยขึ้นข้างบนตามความสามารถ)")]
+    [SerializeField] private float skywardGravityScale = 0f;
     #endregion
 
     #region Auto
@@ -130,7 +146,7 @@ public class HairballAnimal : TestAnimal
         switch (mode)
         {
             case VomitMode.Skyward:
-                SpawnHairball(dir, skywardSpeed, skywardRange, hairballLingerSeconds, 1f, normalMass);
+                SpawnHairball(dir, skywardSpeed, skywardRange, hairballLingerSeconds, 1f, normalMass, false, skywardGravityScale);
                 break;
 
             case VomitMode.Barrage:
@@ -140,28 +156,51 @@ public class HairballAnimal : TestAnimal
                     float t = (count == 1) ? 0.5f : (float)i / (count - 1);
                     float angle = Mathf.Lerp(-barrageSpreadAngle * 0.5f, barrageSpreadAngle * 0.5f, t);
                     Vector2 d = Quaternion.Euler(0f, 0f, angle) * dir;
-                    SpawnHairball(d, hairballSpeed, barrageRange, barrageLingerSeconds, 1f, barrageMass);
+                    SpawnHairball(d, hairballSpeed, barrageRange, barrageLingerSeconds, 1f, barrageMass, false, defaultGravityScale);
                 }
                 break;
 
             case VomitMode.Giant:
-                SpawnHairball(dir, giantSpeed, hairballRange, giantLingerSeconds, giantScale, giantMass);
+                SpawnHairball(dir, giantSpeed, hairballRange, giantLingerSeconds, giantScale, giantMass, giantBreaksObstacles, defaultGravityScale);
                 break;
 
             default:
-                SpawnHairball(dir, hairballSpeed, hairballRange, hairballLingerSeconds, 1f, normalMass);
+                SpawnHairball(dir, hairballSpeed, hairballRange, hairballLingerSeconds, 1f, normalMass, false, defaultGravityScale);
                 break;
         }
         return true;
     }
 
-    private void SpawnHairball(Vector2 dir, float speed, float range, float linger, float scale, float ballMass)
+    private void SpawnHairball(Vector2 dir, float speed, float range, float linger, float scale, float ballMass, bool canBreak = false, float gravScale = 1f)
     {
-        Vector2 spawnPos = rb.position + dir * mouthDistance;
+        float forwardDist = mouthDistance;
+        float heightOffset = 0f;
+
+        if (scale > 1f)
+        {
+            // ชดเชยความสูงและระยะข้างหน้าสำหรับก้อนขนยักษ์ เพื่อไม่ให้เกิดมาแล้วจมพื้นหรือทับตัวแมว
+            heightOffset = giantSpawnHeightOffset;
+            forwardDist += giantSpawnForwardOffset;
+        }
+
+        Vector2 spawnOffset = dir * forwardDist + Vector2.up * heightOffset;
+        float offsetDist = spawnOffset.magnitude;
+        if (offsetDist > 0.001f)
+        {
+            Vector2 offsetDir = spawnOffset / offsetDist;
+            RaycastHit2D hit = Physics2D.Raycast(rb.position, offsetDir, offsetDist + 0.1f);
+            if (hit.collider != null && !hit.collider.isTrigger && hit.collider.GetComponentInParent<TestAnimal>() == null)
+            {
+                spawnOffset = offsetDir * Mathf.Max(0.05f, hit.distance - 0.15f);
+            }
+        }
+
+        Vector2 spawnPos = rb.position + spawnOffset;
         Hairball ball = Instantiate(hairballPrefab, spawnPos, Quaternion.identity);
         if (!Mathf.Approximately(scale, 1f)) ball.transform.localScale *= scale;
         ball.Mass = ballMass;
-        ball.Init(dir, speed, range, linger);
+        ball.CanBreakObstacles = canBreak;
+        ball.Init(dir, speed, range, linger, gravScale);
     }
     #endregion
 }
