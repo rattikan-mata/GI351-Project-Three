@@ -31,24 +31,59 @@ namespace PotionSystem
         [Tooltip("ติ๊กไว้ = เมื่อใส่ยาครบทุกช่อง จะปล่อยยาเรียงทีละขั้นตอนตามลำดับสวิตช์\nไม่ติ๊ก = ปล่อยพร้อมกันเสมอ")]
         [SerializeField] private bool dispenseSequentially = true;
 
+        [Tooltip("เว้นอย่างน้อยกี่วินาทีระหว่างการยิงแต่ละนัด (นับหลังสั่งยิง) ก่อนจะเช็คว่าปลดล็อคขั้นถัดไปได้ไหม")]
+        [SerializeField] private float minShotGap = 1f;
+
+        [Tooltip("จำนวนยาขั้นต่ำที่ทำให้ส่งตามลำดับสวิตช์ (น้อยกว่านี้ = ส่งทันทีพร้อมกัน) ปืนมี 4 ช่องแล้ว จึงไม่ใช้เงื่อนไข 'ครบทุกช่อง' อีก")]
+        [SerializeField, Min(1)] private int minPotionsForSequence = 2;
+
         [Tooltip("สวิตช์เป้าหมายของแต่ละขั้นตอน (ช่อง 1 -> สวิตช์ 1, ช่อง 2 -> สวิตช์ 2, ช่อง 3 -> สวิตช์ 3)")]
         [SerializeField] private FloorSwitch[] stageSwitches = new FloorSwitch[3];
 
         [Tooltip("หน่วงเวลารอสวิตช์เป้าหมายนานสุดต่อขั้นตอน (วินาที) ป้องกันการค้างถ้าสัตว์ติดสิ่งกีดขวาง")]
         [SerializeField] private float stageTimeout = 8f;
 
-        [Header("Smart Routing")]
-        [Tooltip("ส่งยาเข้า Dropper ตามชนิดยาที่สัตว์ต้องการเสมอ แม้ผู้เล่นจะวางยาผิดช่อง (เช่น เอายาผลักกล่องไปวางช่อง 3 ก็จะส่งไปหาแมวผลักกล่องที่ตรงกัน)")]
-        [SerializeField] private bool autoRouteByPotionType = true;
-
         private Coroutine sendRoutine;
         private bool isSendingSequentially;
 
         public bool IsBusy => isSendingSequentially;
 
+        // ชื่อสวิตช์ประจำแต่ละขั้น ใช้ผูกใหม่หลังรีเซ็ตพัซเซิล
+        private string[] stageSwitchNames;
+
         private void Awake()
         {
             EnsureStageSwitchesInitialized();
+            RememberStageSwitchNames();
+        }
+
+        private void RememberStageSwitchNames()
+        {
+            stageSwitchNames = new string[stageSwitches.Length];
+            for (int i = 0; i < stageSwitches.Length; i++)
+                stageSwitchNames[i] = stageSwitches[i] != null ? stageSwitches[i].name : null;
+        }
+
+        /// <summary>รีเซ็ตพัซเซิล: หยุดการส่งยาที่ค้างอยู่ (ยาที่ส่งไปแล้วไม่คืน ยาที่ยังอยู่ในช่องพักไม่ถูกแตะ)</summary>
+        public void ResetState()
+        {
+            if (sendRoutine != null) StopCoroutine(sendRoutine);
+            sendRoutine = null;
+            isSendingSequentially = false;
+        }
+
+        /// <summary>หลังรีเซ็ตพัซเซิล สวิตช์ถูกสร้างใหม่ ผูกกลับด้วยชื่อเดิม</summary>
+        public void RebindStageSwitches()
+        {
+            if (stageSwitchNames == null) return;
+            var all = FindObjectsByType<FloorSwitch>();
+            for (int i = 0; i < stageSwitchNames.Length && i < stageSwitches.Length; i++)
+            {
+                if (stageSwitchNames[i] == null) continue;
+                stageSwitches[i] = null;
+                foreach (var sw in all)
+                    if (sw.name == stageSwitchNames[i]) { stageSwitches[i] = sw; break; }
+            }
         }
 
         /// <summary>
@@ -71,12 +106,10 @@ namespace PotionSystem
                 return;
             }
 
-            bool isFull = IsAllSlotsOccupied();
-
-            if (isFull && dispenseSequentially)
+            if (count >= minPotionsForSequence && dispenseSequentially)
             {
-                // มียาครบทุกช่อง -> ส่งตามลำดับสวิตช์ (Switch Progression)
-                Debug.Log($"[PotionStagingManager] มียาครบทุกช่อง ({count}/{stagingSlots.Length}) -> ส่งตามลำดับสวิตช์");
+                // มียาตั้งแต่ขั้นต่ำขึ้นไป -> ส่งตามลำดับสวิตช์ (Switch Progression)
+                Debug.Log($"[PotionStagingManager] มียา {count}/{stagingSlots.Length} ขวด -> ส่งตามลำดับสวิตช์");
                 sendRoutine = StartCoroutine(SequentialSendWithSwitchesRoutine());
             }
             else
@@ -107,7 +140,7 @@ namespace PotionSystem
                     continue;
                 }
 
-                int targetIndex = ResolveTargetDropper(i, pType);
+                int targetIndex = i; // ช่อง i ยิงจากปืน i เสมอ ไม่เกี่ยวกับชนิดยา
                 if (targetIndex < 0 || targetIndex >= droppers.Length || droppers[targetIndex] == null)
                 {
                     Debug.LogWarning($"[PotionStagingManager] ไม่พบ Dropper ที่รับยา {pType} ได้สำหรับช่องที่ {i + 1}");
@@ -183,7 +216,7 @@ namespace PotionSystem
                     PotionType pType = ConvertToPotionType(potionData);
                     if (pType == PotionType.None) continue;
 
-                    int targetIndex = ResolveTargetDropper(i, pType);
+                    int targetIndex = i; // ช่อง i ยิงจากปืน i เสมอ ไม่เกี่ยวกับชนิดยา
                     if (targetIndex < 0 || targetIndex >= droppers.Length || droppers[targetIndex] == null) continue;
 
                     var dropper = droppers[targetIndex];
@@ -256,6 +289,14 @@ namespace PotionSystem
                         float timer = 0f;
                         while (timer < stageTimeout)
                         {
+                            // เว้นช่วงขั้นต่ำระหว่างนัด ไม่ให้ยิงรัวทันทีที่สวิตช์ติด
+                            if (timer < minShotGap)
+                            {
+                                timer += Time.deltaTime;
+                                yield return null;
+                                continue;
+                            }
+
                             if (target != null && (target.IsActive || triggeredSwitches.Contains(target)))
                             {
                                 Debug.Log($"[PotionStagingManager] สวิตช์ {target.name} ถูกกดแล้ว! ปลดล็อคขั้นตอนถัดไปทันที");
@@ -383,25 +424,6 @@ namespace PotionSystem
             }
         }
 
-        private int ResolveTargetDropper(int slotIndex, PotionType type)
-        {
-            // 1. ถ้าตรงกับช่องเดิมและ Dropper เดิมรับยานี้ได้ -> ใช้ช่องเดิม
-            if (slotIndex >= 0 && slotIndex < droppers.Length && droppers[slotIndex] != null)
-            {
-                if (droppers[slotIndex].CanAcceptPotion(type))
-                    return slotIndex;
-            }
-
-            // 2. ถ้าเปิด autoRoute หรือ Dropper เดิมรับยานี้ไม่ได้ -> หา Dropper ที่ตรงกับยา
-            if (autoRouteByPotionType)
-            {
-                int matched = FindDropperIndexFor(type);
-                if (matched >= 0) return matched;
-            }
-
-            return slotIndex;
-        }
-
         private bool IsAllSlotsOccupied()
         {
             if (stagingSlots == null || stagingSlots.Length == 0) return false;
@@ -421,16 +443,6 @@ namespace PotionSystem
                 if (slot != null && slot.IsOccupied) count++;
             }
             return count;
-        }
-
-        private int FindDropperIndexFor(PotionType type)
-        {
-            for (int i = 0; i < droppers.Length; i++)
-            {
-                if (droppers[i] != null && droppers[i].CanAcceptPotion(type))
-                    return i;
-            }
-            return -1;
         }
 
         private PotionType ConvertToPotionType(PotionData potion)

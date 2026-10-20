@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// เครื่องปล่อยยาตามลำดับ (แทน PotionDropper ตัวเก่า):
@@ -16,10 +17,15 @@ public class PotionSequenceDropper : MonoBehaviour
     [Tooltip("ช่องใส่ยาเรียงตามลำดับที่จะปล่อย (ช่อง 1 ปล่อยก่อน)")]
     [SerializeField] private PotionSlot[] slots;
 
-    [Tooltip("สัตว์ทั้งหมดในด่าน ยาจะไปหาสัตว์ที่ Required Potion ตรงกับชนิดยา")]
-    [SerializeField] private TestAnimal[] animals;
+    [Tooltip("สัตว์ที่ปืนนี้ยิง (ช่อง 1 ยิงสัตว์ช่อง 1 ฯลฯ) ยิงตัวนี้เสมอไม่ว่าจะใส่ยาอะไร ถ้ายาไม่ตรงกับสัตว์ เข็มถึงตัวแล้วสัตว์ไม่ทำอะไร ว่าง = ไม่ยิง")]
+    [FormerlySerializedAs("boundAnimal")]
+    [FormerlySerializedAs("defaultComboAnimal")]
+    [SerializeField] private TestAnimal targetAnimal;
 
-    [Tooltip("ลาก Prefab ยาที่มี PotionProjectile.cs มาใส่")]
+    [Tooltip("ปืนยิงเข็ม (ใส่แล้วจะยิงเข็มแทนการปล่อยยาลอยจาก Potion Prefab)")]
+    [SerializeField] private DartGun dartGun;
+
+    [Tooltip("ลาก Prefab ยาที่มี PotionProjectile.cs มาใส่ (ใช้เมื่อไม่มีปืน)")]
     [SerializeField] private PotionProjectile potionPrefab;
 
     [Tooltip("จุดที่ยาโผล่ออกมา (ว่างไว้ = ตำแหน่งของเครื่องนี้)")]
@@ -45,6 +51,9 @@ public class PotionSequenceDropper : MonoBehaviour
 
     [Tooltip("รอสัตว์ทำเสร็จนานสุดกี่วินาที (กันค้าง ถ้าสัตว์ติดอะไรสักอย่าง)")]
     [SerializeField] private float finishTimeout = 20f;
+
+    [Tooltip("หลังเข็มถึงตัวสัตว์ รอต่อนานสุดกี่วินาทีแล้วถือว่าจบ (สัตว์ที่วิ่งไม่หยุดจะไม่ล็อกปืนไว้)")]
+    [SerializeField] private float afterHitTimeout = 4f;
     #endregion
 
     #region Switch Progression
@@ -70,6 +79,23 @@ public class PotionSequenceDropper : MonoBehaviour
     #endregion
 
     #region Unity Lifecycle
+    // ชื่อของสัตว์/สวิตช์ที่อ้างอิงไว้ ใช้ผูกใหม่หลังรีเซ็ตพัซเซิล (ของใหม่ชื่อเดิมแต่เป็นคนละตัว)
+    private string targetAnimalName, prerequisiteSwitchName, targetSwitchName;
+    private string[] targetSwitchNames;
+
+    private void Awake()
+    {
+        targetAnimalName = targetAnimal != null ? targetAnimal.name : null;
+        prerequisiteSwitchName = prerequisiteSwitch != null ? prerequisiteSwitch.name : null;
+        targetSwitchName = targetSwitch != null ? targetSwitch.name : null;
+        if (targetSwitches != null)
+        {
+            targetSwitchNames = new string[targetSwitches.Length];
+            for (int i = 0; i < targetSwitches.Length; i++)
+                targetSwitchNames[i] = targetSwitches[i] != null ? targetSwitches[i].name : null;
+        }
+    }
+
     private void OnEnable()
     {
         foreach (var s in slots)
@@ -86,6 +112,41 @@ public class PotionSequenceDropper : MonoBehaviour
 
         if (prerequisiteSwitch != null)
             prerequisiteSwitch.StateChanged -= OnPrerequisiteSwitchChanged;
+    }
+
+    /// <summary>รีเซ็ตพัซเซิล: หยุดการปล่อยที่ค้างอยู่ เคลียร์ช่อง และเก็บปืนกลับท่าเดิม</summary>
+    public void ResetState()
+    {
+        StopAllCoroutines();
+        IsDispensing = false;
+        foreach (var s in slots)
+            if (s != null) s.Clear();
+        if (dartGun != null) dartGun.ResetState();
+    }
+
+    /// <summary>หลังรีเซ็ตพัซเซิล สัตว์/สวิตช์ถูกสร้างใหม่ ผูกกลับด้วยชื่อเดิม</summary>
+    public void RebindTargets()
+    {
+        if (targetAnimalName != null) targetAnimal = FindByName<TestAnimal>(targetAnimalName);
+        if (prerequisiteSwitchName != null) prerequisiteSwitch = FindByName<FloorSwitch>(prerequisiteSwitchName);
+        if (targetSwitchName != null) targetSwitch = FindByName<FloorSwitch>(targetSwitchName);
+        if (targetSwitchNames != null)
+            for (int i = 0; i < targetSwitchNames.Length && i < targetSwitches.Length; i++)
+                if (targetSwitchNames[i] != null) targetSwitches[i] = FindByName<FloorSwitch>(targetSwitchNames[i]);
+
+        // ฟังสวิตช์เงื่อนไขตัวใหม่
+        if (prerequisiteSwitch != null)
+        {
+            prerequisiteSwitch.StateChanged -= OnPrerequisiteSwitchChanged;
+            prerequisiteSwitch.StateChanged += OnPrerequisiteSwitchChanged;
+        }
+    }
+
+    private static T FindByName<T>(string objectName) where T : Component
+    {
+        foreach (var c in FindObjectsByType<T>())
+            if (c.name == objectName) return c;
+        return null;
     }
 
     private void OnPrerequisiteSwitchChanged(FloorSwitch sw)
@@ -133,12 +194,14 @@ public class PotionSequenceDropper : MonoBehaviour
         if (IsDispensing) return;
         foreach (var s in slots)
             if (s != null) s.Clear();
+        if (dartGun != null) dartGun.Unload();
     }
     #endregion
 
     #region Logic
     private void OnSlotInserted(PotionSlot slot, PotionType potion)
     {
+        if (dartGun != null) dartGun.Load(potion); // เห็นปลายเข็มยื่นออกมาจากปากกระบอก
         if (!autoStartWhenFull || IsDispensing) return;
 
         foreach (var s in slots)
@@ -163,8 +226,6 @@ public class PotionSequenceDropper : MonoBehaviour
     public FloorSwitch PrerequisiteSwitch => prerequisiteSwitch;
     public FloorSwitch TargetSwitch => targetSwitch;
 
-    /// <summary>มีสัตว์ในเครื่องนี้ที่ต้องการยานี้หรือไม่</summary>
-    public bool CanAcceptPotion(PotionType type) => FindAnimalFor(type) != null;
     
     private IEnumerator DispenseRoutine(bool ignorePrerequisite = false)
     {
@@ -184,7 +245,7 @@ public class PotionSequenceDropper : MonoBehaviour
             if (slot == null || !slot.IsOccupied) continue;
 
             PotionType type = slot.StoredPotion;
-            TestAnimal animal = FindAnimalFor(type);
+            TestAnimal animal = targetAnimal;
 
             yield return new WaitForSeconds(dropInterval);
 
@@ -192,13 +253,24 @@ public class PotionSequenceDropper : MonoBehaviour
 
             if (animal == null)
             {
-                Debug.LogWarning($"[PotionSequenceDropper] ไม่มีสัตว์ที่ใช้ยา {type} ในลิสต์ Animals ยาเสียเปล่า");
+                Debug.LogWarning($"[PotionSequenceDropper] ปืนนี้ไม่มีสัตว์เป้าหมาย (Target Animal ว่าง) ยา {type} เสียเปล่า");
+                if (dartGun != null) dartGun.Unload();
                 continue;
             }
 
-            Vector3 pos = (dropPoint != null) ? dropPoint.position : transform.position;
-            PotionProjectile p = Instantiate(potionPrefab, pos, Quaternion.identity);
-            p.Init(type, animal, pathPoints, potionSpeed);
+            PotionProjectile p;
+            if (dartGun != null)
+            {
+                // ปืนหมุนไปเล็งสัตว์ แล้วยิงเข็ม (รอเล็งเสร็จก่อนค่อยไปต่อ)
+                yield return dartGun.AimAndFire(type, animal, potionSpeed);
+                p = dartGun.LastDart;
+            }
+            else
+            {
+                Vector3 pos = (dropPoint != null) ? dropPoint.position : transform.position;
+                p = Instantiate(potionPrefab, pos, Quaternion.identity);
+                p.Init(type, animal, pathPoints, potionSpeed);
+            }
 
             if (!waitForAnimalToFinish) continue;
 
@@ -216,7 +288,8 @@ public class PotionSequenceDropper : MonoBehaviour
                 : targetSwitch;
 
             float waitTimer = 0f;
-            float maxWait = (curTarget != null) ? switchWaitTimeout : finishTimeout;
+            // สัตว์บางตัววิ่งไม่หยุด จึงไม่รอเกิน afterHitTimeout หลังเข็มถึงตัว (ช่องจะได้ไม่ถูกล็อกนาน)
+            float maxWait = Mathf.Min(afterHitTimeout, (curTarget != null) ? switchWaitTimeout : finishTimeout);
 
             // รอให้สัตว์ทำงานเสร็จ หรือ สวิตช์เป้าหมายถูกกด (อย่างใดอย่างหนึ่งถึงก่อน จบการรอทันที)
             while (waitTimer < maxWait)
@@ -242,22 +315,7 @@ public class PotionSequenceDropper : MonoBehaviour
         IsDispensing = false;
     }
 
-    public TestAnimal FindAnimalFor(PotionType type)
-    {
-        // ยาผสม: สัตว์ทุกตัวรับได้ จึงส่งให้ตัวที่ผู้เล่นเลือกอยู่ (ถ้าอยู่ในลิสต์ของเครื่องนี้)
-        if (TestAnimal.IsComboPotion(type) && AnimalSelectionManager.Instance != null)
-        {
-            TestAnimal selected = AnimalSelectionManager.Instance.SelectedAnimal;
-            if (selected != null && selected.AcceptsPotion(type))
-            {
-                foreach (var a in animals)
-                    if (a == selected) return selected;
-            }
-        }
-
-        foreach (var a in animals)
-            if (a != null && a.AcceptsPotion(type)) return a;
-        return null;
-    }
+    /// <summary>สัตว์ที่ปืนนี้ยิง</summary>
+    public TestAnimal TargetAnimal => targetAnimal;
     #endregion
 }

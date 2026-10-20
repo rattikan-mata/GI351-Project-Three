@@ -68,6 +68,24 @@ public class AnimalSelectionManager : MonoBehaviour
             animals.AddRange(FindObjectsByType<TestAnimal>(FindObjectsSortMode.InstanceID));
         }
 
+        animalOrder.Clear();
+        foreach (var a in animals) if (a != null) animalOrder.Add(a.name);
+
+        if (selectFirstAnimalAtStart && animals.Count > 0) SelectAnimal(animals[0]);
+    }
+
+    private readonly List<string> animalOrder = new List<string>();
+
+    /// <summary>หลังรีเซ็ตพัซเซิล สัตว์ถูกสร้างใหม่ ผูกรายชื่อใหม่ตามลำดับเดิม (ปุ่ม 1-3 ยังตรงตัวเดิม)</summary>
+    public void RefreshAnimals()
+    {
+        SelectedAnimal = null;
+        var found = FindObjectsByType<TestAnimal>();
+        animals.Clear();
+        foreach (var n in animalOrder)
+            foreach (var a in found)
+                if (a.name == n) { animals.Add(a); break; }
+
         if (selectFirstAnimalAtStart && animals.Count > 0) SelectAnimal(animals[0]);
     }
 
