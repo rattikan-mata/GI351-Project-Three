@@ -5493,7 +5493,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1235492429}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 958260137}
+        m_TargetAssemblyTypeName: EndGameUIController, Assembly-CSharp
+        m_MethodName: OnClickNextLevel
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1235492429
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6869,7 +6881,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1461069112}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 958260137}
+        m_TargetAssemblyTypeName: EndGameUIController, Assembly-CSharp
+        m_MethodName: OnClickRestart
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1461069112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8672,7 +8696,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1872186786}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 958260137}
+        m_TargetAssemblyTypeName: EndGameUIController, Assembly-CSharp
+        m_MethodName: OnClickMainMenu
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: Main Menu
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1872186786
 MonoBehaviour:
   m_ObjectHideFlags: 0
