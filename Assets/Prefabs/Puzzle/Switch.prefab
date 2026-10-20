@@ -129,7 +129,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: -0.040797293, y: 0.043115735}
+  m_Offset: {x: -0.05748552, y: 0.043115735}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -139,7 +139,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1.1367096, y: 0.5506158}
+  m_Size: {x: 1.5973054, y: 0.5506158}
   m_EdgeRadius: 0
 --- !u!114 &4930466982352865732
 MonoBehaviour:
@@ -156,13 +156,13 @@ MonoBehaviour:
   triggeredByAnimals: 1
   triggeredByBoxes: 1
   triggeredByHairballs: 1
-  ignoreAirborneAnimals: 0
-  requiredWeight: 2
+  ignoreAirborneAnimals: 1
+  requiredWeight: 0
   spriteRenderer: {fileID: 0}
   offSprite: {fileID: 0}
   onSprite: {fileID: 0}
   buttonCap: {fileID: 3746269978601454642}
-  pressDepth: 0.1
+  pressDepth: 0.2
   animationDuration: 0.14
   animMode: 0
 --- !u!1 &3900320776374891711
