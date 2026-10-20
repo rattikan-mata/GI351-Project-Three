@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &769295378136581997
+--- !u!1 &2425736448190668607
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,86 +8,71 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 7718958700921870193}
-  - component: {fileID: 5630723766075947752}
+  - component: {fileID: 8486368369734350711}
   m_Layer: 0
-  m_Name: Slot
+  m_Name: AimPivot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &7718958700921870193
+--- !u!4 &8486368369734350711
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 769295378136581997}
+  m_GameObject: {fileID: 2425736448190668607}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -5.5609503, y: -1.1349902, z: 0}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.335, y: 0.4, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1332093866600024743}
+  - {fileID: 3065500556307223505}
+  m_Father: {fileID: 933508098669339014}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2446640435087110949
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1332093866600024743}
+  - component: {fileID: 6839753764288204652}
+  m_Layer: 0
+  m_Name: Barrel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1332093866600024743
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2446640435087110949}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.2747019, y: -0.5891, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 6546897691587340495}
+  m_Father: {fileID: 8486368369734350711}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5630723766075947752
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 769295378136581997}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0a323916f96061d43ab226a790fd01b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PotionSlot
-  spriteRenderer: {fileID: 0}
-  emptySprite: {fileID: 0}
-  filledSprite: {fileID: 0}
-  testClickPotion: 0
---- !u!1 &4747941540156731645
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 8656021130569626636}
-  - component: {fileID: 3348627738034921733}
-  m_Layer: 0
-  m_Name: leg
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &8656021130569626636
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4747941540156731645}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.7519939, w: 0.6591701}
-  m_LocalPosition: {x: 0.59, y: 0.98, z: 0}
-  m_LocalScale: {x: 0.94697, y: 0.94697, z: 0.94697}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6546897691587340495}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 97.527}
---- !u!212 &3348627738034921733
+--- !u!212 &6839753764288204652
 SpriteRenderer:
   serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4747941540156731645}
+  m_GameObject: {fileID: 2446640435087110949}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -127,20 +112,20 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 6
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: ec9b433760957024180cc329d2d5069e, type: 3}
+  m_Sprite: {fileID: 7837663538633633740, guid: 4fbd9b95b5e6c224fa8057c8c819653c, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1.53, y: 1.76}
+  m_Size: {x: 1.05, y: 1.31}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!1 &6683032241548666324
+--- !u!1 &3017999719174283176
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -148,42 +133,69 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6546897691587340495}
-  - component: {fileID: 6684852504768843942}
-  - component: {fileID: 7709344978630389993}
+  - component: {fileID: 3065500556307223505}
   m_Layer: 0
-  m_Name: Dropper_1
+  m_Name: Muzzle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6546897691587340495
+--- !u!4 &3065500556307223505
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6683032241548666324}
+  m_GameObject: {fileID: 3017999719174283176}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.39, y: -6.9, z: 0}
-  m_LocalScale: {x: 0.4752686, y: 0.4752686, z: 0.4752686}
-  m_ConstrainProportionsScale: 1
-  m_Children:
-  - {fileID: 2062447501370130833}
-  - {fileID: 7718958700921870193}
-  - {fileID: 8656021130569626636}
-  m_Father: {fileID: 0}
+  m_LocalPosition: {x: -0.63392746, y: -1.3594617, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8486368369734350711}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &6684852504768843942
+--- !u!1 &6228755609503734176
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6902285466360088391}
+  - component: {fileID: 107163203685928395}
+  m_Layer: 0
+  m_Name: Legs
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6902285466360088391
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6228755609503734176}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 933508098669339014}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!212 &107163203685928395
 SpriteRenderer:
   serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6683032241548666324}
+  m_GameObject: {fileID: 6228755609503734176}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -223,49 +235,20 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 5
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 685c52704ab791141bf679a2b42f5943, type: 3}
-  m_Color: {r: 0.9716981, g: 0.9716981, b: 0.9716981, a: 1}
+  m_Sprite: {fileID: 4871561988926025931, guid: c16495ee581aa26408e20934eadbd8d2, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 1.11, y: 1.16}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!114 &7709344978630389993
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6683032241548666324}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0512ffcbed15ddc4ab3b1a152c02bbf7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PotionSequenceDropper
-  slots:
-  - {fileID: 5630723766075947752}
-  animals:
-  - {fileID: 0}
-  potionPrefab: {fileID: 2323966033708780553, guid: a96895b5b8d079948adcaf8f82576d71, type: 3}
-  dropPoint: {fileID: 2062447501370130833}
-  pathPoints: []
-  autoStartWhenFull: 0
-  dropInterval: 0.5
-  potionSpeed: 4
-  waitForAnimalToFinish: 1
-  finishTimeout: 20
-  prerequisiteSwitch: {fileID: 0}
-  autoStartOnPrerequisiteSwitch: 1
-  targetSwitch: {fileID: 0}
-  targetSwitches: []
-  switchWaitTimeout: 8
---- !u!1 &8135946125441180926
+--- !u!1 &7044527757367229792
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -273,26 +256,67 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2062447501370130833}
+  - component: {fileID: 933508098669339014}
+  - component: {fileID: 8092688935999135}
   m_Layer: 0
-  m_Name: Drop point
+  m_Name: DartGun_Dropper_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2062447501370130833
+--- !u!4 &933508098669339014
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8135946125441180926}
+  m_GameObject: {fileID: 7044527757367229792}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.021949768, y: 0.31, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: -6.55, y: 0.14, z: 0}
+  m_LocalScale: {x: 0.55, y: 0.55, z: 0.55}
   m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6546897691587340495}
+  m_Children:
+  - {fileID: 6902285466360088391}
+  - {fileID: 8486368369734350711}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8092688935999135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7044527757367229792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d9788470529bbe429bba434b0fcd830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DartGun
+  aimPivot: {fileID: 8486368369734350711}
+  barrelRenderer: {fileID: 6839753764288204652}
+  muzzle: {fileID: 3065500556307223505}
+  spriteForwardAngle: -115
+  aimSpeed: 260
+  fireAngleTolerance: 3
+  aimTimeout: 3
+  fireDelay: 0.12
+  recoilDistance: 0.12
+  dartSprites:
+  - type: 2
+    sprite: {fileID: -1168032209424440317, guid: 0fc6651305f2b1d44a12439c4ca44f8e, type: 3}
+  - type: 1
+    sprite: {fileID: -3687070032610089405, guid: 80501e96bae76fc4a88483ea9993f7b5, type: 3}
+  - type: 3
+    sprite: {fileID: 8499828324219770142, guid: 56d1dc5dad0267e4ea545c1b6a56b249, type: 3}
+  - type: 4
+    sprite: {fileID: 8350685085519886451, guid: 00af5bb37e9cb4743933d985be6d47c3, type: 3}
+  - type: 5
+    sprite: {fileID: -6376479211592341688, guid: ef1046a9f37bd7b4f8417afb77743973, type: 3}
+  - type: 6
+    sprite: {fileID: -6525973911715556732, guid: a493c6f690d259e4bb1faa3bb4e41859, type: 3}
+  dartSpriteForwardAngle: -115
+  dartScale: 0.5
+  dartArriveDistance: 0.3
+  needleProtrusion: 0.7
