@@ -148,7 +148,7 @@ MonoBehaviour:
   openOffset: {x: 0, y: 0}
   slideSpeed: 4
   disableColliderWhenOpen: 1
-  isBreakable: 1
+  isBreakable: 0
   breakOnSwitch: 0
   breakOnCollision: 1
   requirePoweredAnimal: 1
