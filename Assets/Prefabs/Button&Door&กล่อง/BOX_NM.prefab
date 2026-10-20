@@ -28,9 +28,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 754111152915658160}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -1.21, y: 4.09, z: 0}
-  m_LocalScale: {x: 0.85858, y: 0.85858, z: 0.85858}
+  m_LocalScale: {x: 0.33817396, y: 0.33817396, z: 0.33817396}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -84,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fae428efdf0628f4db2a35ba220236a5, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -129,17 +129,17 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0.026383877, y: -0.03957534}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1, y: 1}
+    oldSize: {x: 2.91, y: 2.91}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 2.3191772, y: 2.240027}
   m_EdgeRadius: 0
 --- !u!50 &1894637138951217056
 Rigidbody2D:
@@ -185,13 +185,18 @@ MonoBehaviour:
     m_Bits: 128
   skinWidth: 0.02
   minPushDistance: 0.05
-  isDestructible: 0
+  isDestructible: 1
   hitsToBreak: 3
   breakOnlyWhenBlocked: 0
   recoilDistance: 1.3
   recoilSpeed: 6
   chargeSpeed: 9
   pauseBeforeCharge: 0.25
+  canBeDestroyedByPusher: 1
+  canBeDestroyedByFlyer: 0
+  canBeDestroyedByHairball: 0
+  canBeDestroyedByOthers: 0
+  requirePoweredAnimal: 0
   brokenSprite: {fileID: 0}
   breakEffectPrefab: {fileID: 0}
   hitEffectPrefab: {fileID: 0}
@@ -200,3 +205,4 @@ MonoBehaviour:
   useGravity: 1
   gravityScale: 3
   maxFallSpeed: 20
+  mass: 2

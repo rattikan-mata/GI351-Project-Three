@@ -118,8 +118,9 @@ namespace PotionSystem
 
                 if (dropper.TryAddPotion(pType))
                 {
-                    // ส่งยาออกไปทันที โดยข้ามการเช็ค prerequisiteSwitch เพื่อให้ทำงานทันทีแม้สวิตช์ก่อนหน้ายังไม่ติด
-                    dropper.StartDispensing(ignorePrerequisite: true);
+                    // ถ้า Dropper มีสวิตช์เงื่อนไข และสวิตช์ยังไม่ติด ให้ใส่ยาไว้ในช่องแล้วรอสวิตช์ (ignorePrerequisite: false)
+                    bool canDispenseNow = dropper.IsPrerequisiteMet;
+                    dropper.StartDispensing(ignorePrerequisite: canDispenseNow);
                     slot.Clear();
                     sentAny = true;
                 }
@@ -204,6 +205,29 @@ namespace PotionSystem
                         if (target.IsActive) triggeredSwitches.Add(target);
                     }
 
+                    // 2.5 ถ้า Dropper ตัวนี้มีสวิตช์เงื่อนไข (PrerequisiteSwitch) ที่ยังไม่ถูกกด ให้รอจนกว่าสวิตช์เงื่อนไขจะถูกกดก่อน
+                    if (dropper.PrerequisiteSwitch != null && !dropper.PrerequisiteSwitch.IsActive && !triggeredSwitches.Contains(dropper.PrerequisiteSwitch))
+                    {
+                        if (!watchedSwitches.Contains(dropper.PrerequisiteSwitch))
+                        {
+                            watchedSwitches.Add(dropper.PrerequisiteSwitch);
+                            dropper.PrerequisiteSwitch.StateChanged += onSwitchChanged;
+                        }
+
+                        Debug.Log($"[PotionStagingManager] ขั้นตอนที่ {i + 1} ({dropper.name}) กำลังรอสวิตช์เงื่อนไข {dropper.PrerequisiteSwitch.name}...");
+                        float prereqTimer = 0f;
+                        while (prereqTimer < stageTimeout)
+                        {
+                            if (dropper.PrerequisiteSwitch.IsActive || triggeredSwitches.Contains(dropper.PrerequisiteSwitch))
+                            {
+                                Debug.Log($"[PotionStagingManager] สวิตช์เงื่อนไข {dropper.PrerequisiteSwitch.name} ถูกกดแล้ว! ปลดล็อคให้ {dropper.name} ปล่อยยาได้");
+                                break;
+                            }
+                            prereqTimer += Time.deltaTime;
+                            yield return null;
+                        }
+                    }
+
                     // 3. ใส่ยาเข้า Dropper
                     bool added = dropper.TryAddPotion(pType);
                     if (!added)
@@ -214,8 +238,9 @@ namespace PotionSystem
 
                     if (added)
                     {
-                        // สั่งปล่อยยา โดยสั่งข้าม prerequisite ของตัว Dropper เอง (เพราะ Manager เป็นคนคุมจังหวะให้แล้ว)
-                        dropper.StartDispensing(ignorePrerequisite: true);
+                        // ปล่อยยา (ถ้าสวิตช์เงื่อนไขยังไม่ติด ให้รอสวิตช์ ไม่สั่งข้าม)
+                        bool canDispense = dropper.IsPrerequisiteMet || (dropper.PrerequisiteSwitch != null && triggeredSwitches.Contains(dropper.PrerequisiteSwitch));
+                        dropper.StartDispensing(ignorePrerequisite: canDispense);
                         slot.Clear();
                         sentAny = true;
 
