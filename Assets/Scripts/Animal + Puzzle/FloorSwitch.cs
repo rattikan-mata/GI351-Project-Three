@@ -32,12 +32,12 @@ public class FloorSwitch : MonoBehaviour
 
     public enum ButtonAnimMode
     {
+        [Tooltip("ยุบค้างเฉพาะตอนที่มีของเหยียบทับอยู่ พอเดินออกจะเด้งกลับขึ้นมา (แนะนำเป็นค่าเริ่มต้นสำหรับปุ่มเหยียบ)")]
+        HoldWhilePressed = 0,
         [Tooltip("กดแล้วยุบลงแล้วเด้งกลับขึ้นมาทันที (Press & Bounce)")]
-        Bounce,
+        Bounce = 1,
         [Tooltip("ถ้าเปิดสวิตช์ (Active) จะยุบค้างไว้ ถ้าปิดสวิตช์จะเด้งกลับ")]
-        StayWhileActive,
-        [Tooltip("ยุบค้างเฉพาะตอนที่มีของเหยียบทับอยู่ พอเดินออกจะเด้งกลับขึ้นมา")]
-        HoldWhilePressed
+        StayWhileActive = 2
     }
 
     #region Visual
@@ -47,17 +47,17 @@ public class FloorSwitch : MonoBehaviour
     [SerializeField] private Sprite onSprite;
 
     [Header("Button Press Animation (การกดยุบของปุ่ม)")]
-    [Tooltip("Transform ของตัวหัวปุ่ม (ปุ่มสีแดง) ที่จะให้ยุบลง (ถ้าเว้นว่างจะค้นหาลูกชื่อ Button / 1button ให้อัตโนมัติ)")]
+    [Tooltip("Transform ของตัวหัวปุ่ม (ปุ่มสีแดง) ที่จะให้ยุบลง (ถ้าเว้นว่างจะค้นหาลูกชื่อ button / Button / Cap ให้อัตโนมัติ)")]
     [SerializeField] private Transform buttonCap;
 
-    [Tooltip("ระยะที่ปุ่มยุบลงตามแกน Y (หน่วย local) เช่น 0.08 ถึง 0.15")]
-    [SerializeField] private float pressDepth = 0.1f;
+    [Tooltip("ระยะที่ปุ่มยุบลงตามแกน Y (หน่วย local) เช่น 0.08 ถึง 0.2")]
+    [SerializeField] private float pressDepth = 0.2f;
 
     [Tooltip("เวลาในการยุบลงและเด้งกลับ (วินาที)")]
     [SerializeField] private float animationDuration = 0.14f;
 
-    [Tooltip("รูปแบบการเคลื่อนไหว:\n- Bounce: กดแล้วยุบลงแล้วเด้งกลับทันที\n- StayWhileActive: ยุบค้างไว้ตอนเปิดสวิตช์\n- HoldWhilePressed: ยุบค้างเฉพาะตอนมีของเหยียบทับ")]
-    [SerializeField] private ButtonAnimMode animMode = ButtonAnimMode.Bounce;
+    [Tooltip("รูปแบบการเคลื่อนไหว:\n- HoldWhilePressed: ยุบค้างตอนมีของเหยียบทับ พอเดินออกจะเด้งกลับ (แนะนำ)\n- Bounce: ยุบลงแล้วเด้งกลับทันที (ถ้าไม่มีของค้าง)\n- StayWhileActive: ยุบค้างไว้ตอนเปิดสวิตช์")]
+    [SerializeField] private ButtonAnimMode animMode = ButtonAnimMode.HoldWhilePressed;
     #endregion
 
     #region State
@@ -79,18 +79,28 @@ public class FloorSwitch : MonoBehaviour
     private void Awake()
     {
         Collider2D col = GetComponent<Collider2D>();
-        col.isTrigger = true;
+        if (col != null) col.isTrigger = true;
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
 
         EnsureButtonCap();
         ApplyVisual();
     }
 
+    private void Start()
+    {
+        EnsureButtonCap();
+    }
+
+    private void OnEnable()
+    {
+        EnsureButtonCap();
+    }
+
     private void EnsureButtonCap()
     {
         if (buttonCap == null)
         {
-            buttonCap = transform.Find("Button") ?? transform.Find("ButtonCap") ?? transform.Find("1button") ?? transform.Find("Cap");
+            buttonCap = transform.Find("button") ?? transform.Find("Button") ?? transform.Find("ButtonCap") ?? transform.Find("1button") ?? transform.Find("Cap");
         }
 
         if (buttonCap != null && !initialPosSaved)
@@ -111,6 +121,7 @@ public class FloorSwitch : MonoBehaviour
         {
             buttonCap.localPosition = initialCapLocalPos;
         }
+        pressers.Clear();
     }
 
     // ทำงานทันทีเมื่อมีวัตถุเดินเข้ามาชน/ทับครั้งแรก (Trigger รอบเดียว)
@@ -118,15 +129,17 @@ public class FloorSwitch : MonoBehaviour
     {
         if (!IsValidPresser(other)) return;
 
+        bool wasEmpty = pressers.Count == 0;
         pressers.Add(other);
 
         if (requiredWeight <= 0f)
         {
-            ToggleSwitch();
-            if (animMode == ButtonAnimMode.HoldWhilePressed)
+            // ทำงานเฉพาะตอนที่มีสิ่งของเหยียบเข้ามาใหม่เป็นตัวแรก
+            if (wasEmpty)
             {
-                AnimateTo(initialCapLocalPos - new Vector3(0f, pressDepth, 0f));
+                ToggleSwitch();
             }
+            UpdateCapPosition();
             return;
         }
 
@@ -137,35 +150,45 @@ public class FloorSwitch : MonoBehaviour
     {
         pressers.Remove(other);
 
-        if (animMode == ButtonAnimMode.HoldWhilePressed && pressers.Count == 0)
+        if (requiredWeight <= 0f)
         {
-            AnimateTo(initialCapLocalPos);
+            UpdateCapPosition();
+            return;
         }
 
-        if (requiredWeight <= 0f) return;
         EvaluateWeight();
     }
 
     private void Update()
     {
-        if (requiredWeight <= 0f || pressers.Count == 0) return;
+        if (pressers.Count == 0) return;
 
         // ก้อนขนที่ถูกทำลาย/สัตว์ที่ลอยขึ้น จะไม่ส่ง TriggerExit เสมอไป จึงตรวจเองทุกเฟรม
         bool changed = pressers.RemoveWhere(c => c == null || !c.enabled || !c.gameObject.activeInHierarchy || !IsValidPresser(c)) > 0;
         if (changed)
         {
-            if (animMode == ButtonAnimMode.HoldWhilePressed && pressers.Count == 0)
+            if (requiredWeight > 0f)
             {
-                AnimateTo(initialCapLocalPos);
+                EvaluateWeight();
             }
-            EvaluateWeight();
+            else
+            {
+                UpdateCapPosition();
+            }
         }
     }
     #endregion
 
     #region Logic
     /// <summary>กดสวิตช์จากระยะไกล (เช่น เลเซอร์ของแพะ)</summary>
-    public void RemoteToggle() => ToggleSwitch();
+    public void RemoteToggle()
+    {
+        ToggleSwitch();
+        if (pressers.Count == 0 && animMode != ButtonAnimMode.StayWhileActive)
+        {
+            AnimateBounce();
+        }
+    }
 
     private void ToggleSwitch()
     {
@@ -173,17 +196,39 @@ public class FloorSwitch : MonoBehaviour
         IsActive = !IsActive;
         ApplyVisual();
 
-        if (animMode == ButtonAnimMode.Bounce)
+        UpdateCapPosition();
+        StateChanged?.Invoke(this);
+    }
+
+    private void UpdateCapPosition()
+    {
+        if (buttonCap == null) return;
+        EnsureButtonCap();
+
+        Vector3 downPos = initialCapLocalPos - new Vector3(0f, pressDepth, 0f);
+
+        if (animMode == ButtonAnimMode.HoldWhilePressed)
         {
-            AnimateBounce();
+            bool isHeldDown = (requiredWeight > 0f) ? weightSatisfied : (pressers.Count > 0);
+            Vector3 target = isHeldDown ? downPos : initialCapLocalPos;
+            AnimateTo(target);
         }
         else if (animMode == ButtonAnimMode.StayWhileActive)
         {
-            Vector3 target = IsActive ? (initialCapLocalPos - new Vector3(0f, pressDepth, 0f)) : initialCapLocalPos;
+            Vector3 target = IsActive ? downPos : initialCapLocalPos;
             AnimateTo(target);
         }
-
-        StateChanged?.Invoke(this);
+        else if (animMode == ButtonAnimMode.Bounce)
+        {
+            if (pressers.Count > 0)
+            {
+                AnimateTo(downPos);
+            }
+            else
+            {
+                AnimateBounce();
+            }
+        }
     }
 
     private void AnimateBounce()
@@ -210,6 +255,12 @@ public class FloorSwitch : MonoBehaviour
             yield return null;
         }
         buttonCap.localPosition = downPos;
+
+        // รอจนกว่าจะไม่มีใครเหยียบทับอยู่ ถึงจะเด้งกลับขึ้นมา
+        while (pressers.Count > 0)
+        {
+            yield return null;
+        }
 
         // 2. เด้งกลับ (Ease-out spring)
         elapsed = 0f;
@@ -266,11 +317,7 @@ public class FloorSwitch : MonoBehaviour
         if (satisfied && !weightSatisfied) ToggleSwitch();
         weightSatisfied = satisfied;
 
-        if (animMode == ButtonAnimMode.HoldWhilePressed)
-        {
-            Vector3 target = satisfied ? (initialCapLocalPos - new Vector3(0f, pressDepth, 0f)) : initialCapLocalPos;
-            AnimateTo(target);
-        }
+        UpdateCapPosition();
     }
 
     private bool TryGetOwner(Collider2D c, out Component owner, out float weight)
