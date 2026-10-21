@@ -35,17 +35,42 @@ public class PusherAnimal : TestAnimal
     private enum GoatMode { Push, Laser, Havoc, Ceiling }
     private enum CeilingState { Floor, Rising, OnCeiling, Falling }
 
-    [Header("Skyward (เขียว+ฟ้า): เสกลำแสงเลเซอร์")]
-    [Tooltip("ระยะยิงเลเซอร์ (สลับประตู ทำลายกล่องที่พังได้ ดันกล่องที่พังไม่ได้ กดปุ่ม/สวิตช์ 1 ครั้งต่อนัด)")]
-    [SerializeField] private float laserRange = 12f;
+    [Header("Skyward / Green (เลเซอร์ระยะไกล)")]
+    [Tooltip("Prefab สำหรับลำแสงเลเซอร์ระยะไกล (ถ้าใส่สคริปต์ GoatLaserBeam หรือ LineRenderer/SpriteRenderer จะทำงานอัตโนมัติ / ถ้าเว้นว่างจะวาดด้วยโค้ด)")]
+    [SerializeField] private GameObject laserPrefab;
+
+    [Tooltip("จุดที่ลำแสงเลเซอร์พุ่งออกมา (เช่น ปาก/เขา/ตาแพะ) ถ้าเว้นว่างจะยิงจากกลางตัว")]
+    [SerializeField] private Transform laserFirePoint;
+
+    [Tooltip("Prefab ประกายไฟ/เอฟเฟกต์ระเบิดตรงจุดที่เลเซอร์ชนโดน (Hit Impact)")]
+    [SerializeField] private GameObject laserHitPrefab;
+
+    [Tooltip("Prefab ประกายไฟตรงจุดยิง (Muzzle Flash)")]
+    [SerializeField] private GameObject laserMuzzlePrefab;
+
+    [Tooltip("ระยะยิงเลเซอร์ระยะไกล (ทำลายกล่องที่พังได้ ดันกล่องที่พังไม่ได้ กดปุ่ม/สวิตช์ 1 ครั้งต่อนัด)")]
+    [SerializeField] private float laserRange = 30f;
+
+    [Tooltip("ให้เลเซอร์เปิด/ปิดประตูธรรมดาได้หรือไม่ (ปกติ false: ประตูธรรมดาต้องเปิดด้วยสวิตช์เท่านั้น ไม่เปิดด้วยเลเซอร์)")]
+    [SerializeField] private bool laserCanToggleDoors = false;
 
     [Tooltip("Layer ที่ทำให้เลเซอร์หยุดทันที (เช่น กำแพง พื้น ประตู กล่อง) เว้นว่าง = ทะลุทุกอย่าง")]
     [SerializeField] private LayerMask laserBlockLayers;
 
+    [Tooltip("สีของเลเซอร์ (ใช้กรณีวาดด้วยโค้ดหรือย้อมสี)")]
     [SerializeField] private Color laserColor = new Color(0.4f, 0.9f, 1f);
+
+    [Tooltip("ความหนาของลำแสงเลเซอร์ (กรณีวาดด้วยโค้ด)")]
+    [SerializeField] private float laserWidth = 0.18f;
 
     [Tooltip("เลเซอร์ค้างให้เห็นกี่วินาที")]
     [SerializeField] private float laserDisplaySeconds = 0.3f;
+
+    [Tooltip("เสียงเอฟเฟกต์ตอนยิงเลเซอร์ (Optional)")]
+    [SerializeField] private AudioClip laserSound;
+
+    [Tooltip("ให้ยาเขียว (Vomit) ทำให้แพะยิงเลเซอร์ได้ด้วย (ตามดีไซน์: สีเขียว = แพะยิงเลเซอร์)")]
+    [SerializeField] private bool allowGreenPotionLaser = true;
 
     [Header("Surge (ฟ้า+ส้ม): ยากราวิตี้ กระโดดแตะเพดานแล้วเดินบนเพดาน")]
     [Tooltip("Layer ของพื้น/เพดาน ใช้หาเพดานที่จะกระโดดไปแตะ และหาพื้นตอนกลับลง เว้นว่าง = ทุก Layer ที่ไม่ใช่ Trigger")]
@@ -178,6 +203,7 @@ public class PusherAnimal : TestAnimal
     public override bool AcceptsPotion(PotionType potion)
     {
         if (potion == PotionType.None) return false;
+        if (allowGreenPotionLaser && potion == PotionType.Vomit) return true;
         return potion == pushPotion || (IsDualMode && potion == smashPotion) || IsComboPotion(potion);
     }
 
@@ -185,7 +211,10 @@ public class PusherAnimal : TestAnimal
     {
         switch (potion)
         {
-            case PotionType.Skyward: comboMode = GoatMode.Laser; break;
+            case PotionType.Skyward:
+            case PotionType.Vomit: // สีเขียว = แพะยิงเลเซอร์ ตามดีไซน์
+                comboMode = GoatMode.Laser;
+                break;
             case PotionType.Havoc: comboMode = GoatMode.Havoc; break;
             case PotionType.Surge: comboMode = GoatMode.Ceiling; break;
             default: comboMode = GoatMode.Push; break;
@@ -401,12 +430,14 @@ public class PusherAnimal : TestAnimal
     }
 
     #region Laser
-    /// <summary>Skyward: ยิงเลเซอร์ตามแนวตรง สลับประตู/ทำลายหรือดันกล่อง/กดปุ่มสวิตช์ (สลับสถานะ 1 ครั้งต่อนัด) และหยุดเมื่อชน Laser Block Layers</summary>
+    /// <summary>ยิงเลเซอร์ระยะไกล สลับประตู/ทำลายหรือดันกล่อง/กดปุ่มสวิตช์ (สลับสถานะ 1 ครั้งต่อนัด) และหยุดเมื่อชน Laser Block Layers</summary>
     private bool FireLaser(Vector2 dir)
     {
         StopMoving();
-        Vector2 origin = rb.position;
+        Vector2 origin = (laserFirePoint != null) ? (Vector2)laserFirePoint.position : (rb.position + (Vector2)transform.up * 0.15f);
         Vector2 end = origin + dir * laserRange;
+        RaycastHit2D targetHit = default;
+        bool hasHit = false;
 
         RaycastHit2D[] hits = Physics2D.RaycastAll(origin, dir, laserRange);
         System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
@@ -433,11 +464,32 @@ public class PusherAnimal : TestAnimal
             }
 
             var door = hit.collider.GetComponentInParent<Door>();
-            if (door != null && !handledDoors.Contains(door))
+            if (door != null)
             {
-                handledDoors.Add(door);
-                if (door.IsBreakable) door.BreakDoor();
-                else door.RemoteToggle();
+                if (!handledDoors.Contains(door))
+                {
+                    handledDoors.Add(door);
+                    if (door.IsBreakable)
+                    {
+                        door.BreakDoor(); // ประตูไม้พังได้ -> ทำลาย
+                    }
+                    else if (laserCanToggleDoors)
+                    {
+                        door.RemoteToggle(); // ประตูธรรมดาเปิดได้เฉพาะเมื่อเปิดออปชันไว้
+                    }
+                }
+
+                // ถ้าประตูยังปิดอยู่ (ไม่ได้เปิดและไม่ได้พัง) ให้เลเซอร์หยุดตรงนี้ ไม่ทะลุผ่าน
+                if (!door.IsOpen && !door.IsBroken)
+                {
+                    end = hit.point;
+                    targetHit = hit;
+                    hasHit = true;
+                    break;
+                }
+
+                // ถ้าประตูเปิดอยู่ หรือพังแล้ว เลเซอร์จะทะลุผ่านช่องเปิดไปต่อได้
+                continue;
             }
 
             var box = hit.collider.GetComponentInParent<PushableBox>();
@@ -445,31 +497,116 @@ public class PusherAnimal : TestAnimal
             {
                 handledBoxes.Add(box);
                 if (box.IsDestructible && !box.IsBroken)
-                    box.BreakBox();                                   // กล่องพังได้ -> ทำลาย (เหมือน Havoc ไม่เช็กสิทธิ์ของแมวชนิดนี้)
+                    box.BreakBox();                                   // กล่องพังได้ -> ทำลาย
                 else
                     box.TryPush(dir, pushDistance, pushSpeed, null);  // กล่องพังไม่ได้ -> ดัน
             }
 
             // ชนกำแพง/พื้น/ประตู/กล่อง ใน Layer ที่ตั้งไว้ -> เลเซอร์หยุดตรงนี้
-            if ((laserBlockLayers.value & (1 << hit.collider.gameObject.layer)) != 0)
+            if (laserBlockLayers.value != 0 && (laserBlockLayers.value & (1 << hit.collider.gameObject.layer)) != 0)
             {
                 end = hit.point;
+                targetHit = hit;
+                hasHit = true;
                 break;
             }
         }
 
-        DrawLaser(origin, end);
+        SpawnLaserVisual(origin, end, dir, hasHit, targetHit);
         return true;
     }
 
-    private void DrawLaser(Vector2 from, Vector2 to)
+    private void SpawnLaserVisual(Vector2 from, Vector2 to, Vector2 dir, bool hasHit, RaycastHit2D hitInfo)
+    {
+        if (laserSound != null)
+        {
+            AudioSource.PlayClipAtPoint(laserSound, from);
+        }
+
+        // เอฟเฟกต์ตรงปากกระบอก/จุดยิง (Muzzle Flash)
+        if (laserMuzzlePrefab != null)
+        {
+            Quaternion mRot = Quaternion.Euler(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
+            Instantiate(laserMuzzlePrefab, from, mRot);
+        }
+
+        // เอฟเฟกต์ตรงจุดที่ชนโดนสิ่งกีดขวาง (Hit Impact)
+        if (hasHit && laserHitPrefab != null)
+        {
+            Quaternion hRot = (hitInfo.collider != null && hitInfo.normal != Vector2.zero)
+                ? Quaternion.FromToRotation(Vector2.up, hitInfo.normal)
+                : Quaternion.Euler(0, 0, Mathf.Atan2(-dir.y, -dir.x) * Mathf.Rad2Deg);
+            Instantiate(laserHitPrefab, to, hRot);
+        }
+
+        // แสดงผลลำแสงเลเซอร์
+        if (laserPrefab != null)
+        {
+            GameObject go = Instantiate(laserPrefab, from, Quaternion.identity);
+
+            // 1. ถ้ามี GoatLaserBeam component
+            if (go.TryGetComponent<GoatLaserBeam>(out var beam))
+            {
+                beam.Setup(from, to, dir, hitInfo);
+                return;
+            }
+
+            // 2. ถ้ามี LineRenderer ในตัว
+            var lr = go.GetComponentInChildren<LineRenderer>();
+            if (lr != null)
+            {
+                lr.useWorldSpace = true;
+                lr.positionCount = 2;
+                lr.SetPosition(0, from);
+                lr.SetPosition(1, to);
+                Destroy(go, laserDisplaySeconds);
+                return;
+            }
+
+            // 3. ถ้ามี SpriteRenderer ในตัว (ขยายความยาวสไปรต์)
+            var sr = go.GetComponentInChildren<SpriteRenderer>();
+            if (sr != null)
+            {
+                float dist = Vector2.Distance(from, to);
+                float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+                go.transform.position = (from + to) * 0.5f;
+                go.transform.rotation = Quaternion.Euler(0, 0, angle);
+
+                if (sr.drawMode == SpriteDrawMode.Tiled || sr.drawMode == SpriteDrawMode.Sliced)
+                {
+                    sr.size = new Vector2(dist, sr.size.y);
+                }
+                else
+                {
+                    float spriteWidth = (sr.sprite != null && sr.sprite.rect.width > 0f)
+                        ? sr.sprite.rect.width / sr.sprite.pixelsPerUnit
+                        : 1f;
+                    Vector3 scale = go.transform.localScale;
+                    scale.x = dist / Mathf.Max(0.01f, spriteWidth);
+                    go.transform.localScale = scale;
+                }
+
+                Destroy(go, laserDisplaySeconds);
+                return;
+            }
+
+            Destroy(go, laserDisplaySeconds);
+        }
+        else
+        {
+            // ถ้ายังไม่ได้ใส่ Prefab ให้วาดด้วย LineRenderer อัตโนมัติ
+            DrawProceduralLaser(from, to);
+        }
+    }
+
+    private void DrawProceduralLaser(Vector2 from, Vector2 to)
     {
         GameObject go = new GameObject("GoatLaser");
         var lr = go.AddComponent<LineRenderer>();
         lr.positionCount = 2;
         lr.SetPosition(0, from);
         lr.SetPosition(1, to);
-        lr.startWidth = lr.endWidth = 0.12f;
+        lr.startWidth = lr.endWidth = laserWidth;
         lr.material = new Material(Shader.Find("Sprites/Default"));
         lr.startColor = lr.endColor = laserColor;
         lr.sortingOrder = 50;
