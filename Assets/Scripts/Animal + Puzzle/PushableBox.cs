@@ -409,7 +409,17 @@ public class PushableBox : MonoBehaviour
         while (moved < distance)
         {
             float step = Mathf.Min(speed * Time.fixedDeltaTime, distance - moved);
-            ApplyMove(direction * step + GravityDelta());
+            Vector2 gravity = GravityDelta();
+
+            // ผลักไปทางซ้าย/ขวาแล้วพ้นขอบพื้น (ไม่มีอะไรรองรับใต้กล่อง) = หยุดเลื่อนข้างแล้วตกลงไปตรงๆ
+            // ไม่ให้พุ่งข้ามหลุมด้วยแรงเฉื่อย (ถ้าสะพานปิดหลุมอยู่ ใต้กล่องมีของรองรับ ก็ไม่ตกและเลื่อนต่อได้)
+            if (Mathf.Abs(direction.x) > 0.5f && gravity.y < -0.0001f)
+            {
+                ApplyMove(gravity);
+                break;
+            }
+
+            ApplyMove(direction * step + gravity);
             moved += step;
             yield return new WaitForFixedUpdate();
         }
