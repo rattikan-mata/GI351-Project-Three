@@ -38,6 +38,15 @@ public class HairballAnimal : TestAnimal
 
     #region Combo Settings
     [Header("Skyward (เขียว+ฟ้า): อ้วกลอยขึ้นข้างบน")]
+    [Tooltip("ลาก Prefab ก้อนขน/กระสุนแยกเฉพาะสำหรับ Skyward (อ้วกลอยขึ้นข้างบน) ถ้าเว้นว่างจะค้นหา Prefab ให้อัตโนมัติ หรือใช้ Hairball Prefab ปกติ")]
+    [SerializeField] private GameObject skywardHairballPrefab;
+
+    [Tooltip("รูปสไปรต์ตัวแมวเมื่อได้ยา Skyward (ถ้าเว้นว่างจะใช้ Powered Up Sprite ปกติ)")]
+    [SerializeField] private Sprite skywardCatSprite;
+
+    [Tooltip("รูปสไปรต์ก้อนขนตอนใช้ Skyward (กรณีไม่ได้แยก Prefab แต่อยากเปลี่ยนรูปสไปรต์ก้อนขน)")]
+    [SerializeField] private Sprite skywardHairballSprite;
+
     [Tooltip("ระยะที่ก้อนขนลอยขึ้นไปข้างบน")]
     [SerializeField] private float skywardRange = 4f;
 
@@ -50,6 +59,12 @@ public class HairballAnimal : TestAnimal
     [SerializeField] private float giantMass = 3f;
 
     [Header("Havoc (เขียว+ส้ม): กระหน่ำกระสุนอ้วก")]
+    [Tooltip("Prefab ก้อนขนแยกเฉพาะสำหรับ Havoc (กระหน่ำกระสุน) ถ้าเว้นว่างจะใช้ Hairball Prefab ปกติ")]
+    [SerializeField] private GameObject barrageHairballPrefab;
+
+    [Tooltip("รูปสไปรต์ตัวแมวเมื่อได้ยา Havoc (ถ้าเว้นว่างจะใช้ Powered Up Sprite ปกติ)")]
+    [SerializeField] private Sprite barrageCatSprite;
+
     [Tooltip("จำนวนก้อนขนที่กระหน่ำออกไป")]
     [SerializeField] private int barrageCount = 5;
 
@@ -63,6 +78,12 @@ public class HairballAnimal : TestAnimal
     [SerializeField] private float barrageLingerSeconds = 3f;
 
     [Header("Surge (ฟ้า+ส้ม): อ้วกเป็นก้อนใหญ่ยักษ์")]
+    [Tooltip("Prefab ก้อนขนแยกเฉพาะสำหรับ Surge (อ้วกยักษ์) ถ้าเว้นว่างจะใช้ Hairball Prefab ปกติ")]
+    [SerializeField] private GameObject giantHairballPrefab;
+
+    [Tooltip("รูปสไปรต์ตัวแมวเมื่อได้ยา Surge (ถ้าเว้นว่างจะใช้ Powered Up Sprite ปกติ)")]
+    [SerializeField] private Sprite giantCatSprite;
+
     [Tooltip("ขยายขนาดก้อนขนกี่เท่า")]
     [SerializeField] private float giantScale = 2.5f;
 
@@ -113,6 +134,29 @@ public class HairballAnimal : TestAnimal
         return potion == PotionType.Vomit || IsComboPotion(potion);
     }
 
+    protected override void Awake()
+    {
+        base.Awake();
+        EnsureSkywardHairballPrefab();
+    }
+
+    private void EnsureSkywardHairballPrefab()
+    {
+        if (skywardHairballPrefab == null)
+        {
+#if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("Hairball Skyward t:Prefab");
+            if (guids == null || guids.Length == 0)
+                guids = UnityEditor.AssetDatabase.FindAssets("Vomit Skyward t:Prefab");
+            if (guids != null && guids.Length > 0)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                skywardHairballPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+#endif
+        }
+    }
+
     protected override void OnPotionDrunk(PotionType potion)
     {
         switch (potion)
@@ -124,14 +168,26 @@ public class HairballAnimal : TestAnimal
         }
         Debug.Log($"[{animalName}] โหมดอ้วก: {mode}");
     }
+
+    protected override Sprite GetCustomPoweredUpSprite(PotionType potion)
+    {
+        switch (potion)
+        {
+            case PotionType.Skyward: return skywardCatSprite;
+            case PotionType.Havoc: return barrageCatSprite;
+            case PotionType.Surge: return giantCatSprite;
+            default: return null;
+        }
+    }
     #endregion
 
     #region Ability
     protected override bool PerformAbility(Vector2 aimWorldPoint)
     {
-        if (hairballPrefab == null)
+        GameObject activePrefab = GetActivePrefabForMode(mode);
+        if (activePrefab == null)
         {
-            Debug.LogWarning($"[{animalName}] ยังไม่ได้ลาก Hairball Prefab ใส่ช่อง Hairball Prefab");
+            Debug.LogWarning($"[{animalName}] ยังไม่ได้ลาก Hairball Prefab ใส่ช่อง Hairball Prefab หรือ Skyward Prefab");
             return false;
         }
 
@@ -146,7 +202,7 @@ public class HairballAnimal : TestAnimal
         switch (mode)
         {
             case VomitMode.Skyward:
-                SpawnHairball(dir, skywardSpeed, skywardRange, hairballLingerSeconds, 1f, normalMass, false, skywardGravityScale);
+                SpawnHairball(activePrefab, skywardHairballSprite, dir, skywardSpeed, skywardRange, hairballLingerSeconds, 1f, normalMass, false, skywardGravityScale);
                 break;
 
             case VomitMode.Barrage:
@@ -156,23 +212,42 @@ public class HairballAnimal : TestAnimal
                     float t = (count == 1) ? 0.5f : (float)i / (count - 1);
                     float angle = Mathf.Lerp(-barrageSpreadAngle * 0.5f, barrageSpreadAngle * 0.5f, t);
                     Vector2 d = Quaternion.Euler(0f, 0f, angle) * dir;
-                    SpawnHairball(d, hairballSpeed, barrageRange, barrageLingerSeconds, 1f, barrageMass, false, defaultGravityScale);
+                    SpawnHairball(activePrefab, null, d, hairballSpeed, barrageRange, barrageLingerSeconds, 1f, barrageMass, false, defaultGravityScale);
                 }
                 break;
 
             case VomitMode.Giant:
-                SpawnHairball(dir, giantSpeed, hairballRange, giantLingerSeconds, giantScale, giantMass, giantBreaksObstacles, defaultGravityScale);
+                SpawnHairball(activePrefab, null, dir, giantSpeed, hairballRange, giantLingerSeconds, giantScale, giantMass, giantBreaksObstacles, defaultGravityScale);
                 break;
 
             default:
-                SpawnHairball(dir, hairballSpeed, hairballRange, hairballLingerSeconds, 1f, normalMass, false, defaultGravityScale);
+                SpawnHairball(activePrefab, null, dir, hairballSpeed, hairballRange, hairballLingerSeconds, 1f, normalMass, false, defaultGravityScale);
                 break;
         }
         return true;
     }
 
-    private void SpawnHairball(Vector2 dir, float speed, float range, float linger, float scale, float ballMass, bool canBreak = false, float gravScale = 1f)
+    private GameObject GetActivePrefabForMode(VomitMode m)
     {
+        switch (m)
+        {
+            case VomitMode.Skyward:
+                if (skywardHairballPrefab != null) return skywardHairballPrefab;
+                break;
+            case VomitMode.Barrage:
+                if (barrageHairballPrefab != null) return barrageHairballPrefab;
+                break;
+            case VomitMode.Giant:
+                if (giantHairballPrefab != null) return giantHairballPrefab;
+                break;
+        }
+        return hairballPrefab != null ? hairballPrefab.gameObject : null;
+    }
+
+    private void SpawnHairball(GameObject prefabToUse, Sprite customSprite, Vector2 dir, float speed, float range, float linger, float scale, float ballMass, bool canBreak = false, float gravScale = 1f)
+    {
+        if (prefabToUse == null) return;
+
         float forwardDist = mouthDistance;
         float heightOffset = 0f;
 
@@ -196,8 +271,20 @@ public class HairballAnimal : TestAnimal
         }
 
         Vector2 spawnPos = rb.position + spawnOffset;
-        Hairball ball = Instantiate(hairballPrefab, spawnPos, Quaternion.identity);
-        if (!Mathf.Approximately(scale, 1f)) ball.transform.localScale *= scale;
+        GameObject go = Instantiate(prefabToUse, spawnPos, Quaternion.identity);
+
+        if (!go.TryGetComponent<Hairball>(out var ball))
+        {
+            ball = go.AddComponent<Hairball>();
+        }
+
+        if (customSprite != null)
+        {
+            var sr = go.GetComponentInChildren<SpriteRenderer>();
+            if (sr != null) sr.sprite = customSprite;
+        }
+
+        if (!Mathf.Approximately(scale, 1f)) go.transform.localScale *= scale;
         ball.Mass = ballMass;
         ball.CanBreakObstacles = canBreak;
         ball.Init(dir, speed, range, linger, gravScale);
