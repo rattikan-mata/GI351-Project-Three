@@ -192,15 +192,22 @@ MonoBehaviour:
   hairballRange: 5
   hairballLingerSeconds: 6
   stopMovingWhenVomiting: 1
+  skywardHairballPrefab: {fileID: 6585422362421399681, guid: fb9d392248aee524ba5ca57ba761680b, type: 3}
+  skywardCatSprite: {fileID: 0}
+  skywardHairballSprite: {fileID: 0}
   skywardRange: 4
   skywardSpeed: 4
   normalMass: 1
   barrageMass: 0.5
   giantMass: 3
+  barrageHairballPrefab: {fileID: 0}
+  barrageCatSprite: {fileID: 0}
   barrageCount: 7
   barrageSpreadAngle: 39.5
   barrageRange: 100
   barrageLingerSeconds: 3.4
+  giantHairballPrefab: {fileID: 0}
+  giantCatSprite: {fileID: 0}
   giantScale: 3
   giantSpeed: 10
   giantLingerSeconds: 12
