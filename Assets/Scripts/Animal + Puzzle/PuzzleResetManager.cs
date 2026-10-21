@@ -26,6 +26,9 @@ public class PuzzleResetManager : MonoBehaviour
 
     public bool IsResetting => resetting;
 
+    /// <summary>จำนวนครั้งที่กดรีเซ็ตพัซเซิลในรอบนี้ (WinZone ใช้นับจำนวนครั้งที่ลองไว้คิดดาว)</summary>
+    public int ResetCount { get; private set; }
+
     #region Setup
     private void Awake()
     {
@@ -62,6 +65,7 @@ public class PuzzleResetManager : MonoBehaviour
     public void ResetPuzzle()
     {
         if (resetting) return;
+        ResetCount++;
         StartCoroutine(ResetRoutine());
     }
     #endregion
