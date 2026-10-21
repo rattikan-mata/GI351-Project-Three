@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Havoc Potion
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionData
   displayName: Havoc Potion
-  icon: {fileID: 21300000, guid: 13f577a6864fe4f41a21aa1bfdb6cad8, type: 3}
+  icon: {fileID: 21300000, guid: c96d69ca9e4bf1f41a3c2f61ea560380, type: 3}
   description: 
   kind: 4
