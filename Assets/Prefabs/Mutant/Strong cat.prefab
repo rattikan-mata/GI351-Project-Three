@@ -194,12 +194,39 @@ MonoBehaviour:
   pushSpeed: 6
   snapToCardinalDirections: 1
   aimAlignment: 0.5
+  laserPrefab: {fileID: 0}
+  laserFirePoint: {fileID: 0}
+  laserHitPrefab: {fileID: 0}
+  laserMuzzlePrefab: {fileID: 0}
   laserRange: 12
+  laserCanToggleDoors: 0
   laserBlockLayers:
     serializedVersion: 2
     m_Bits: 128
   laserColor: {r: 1, g: 0, b: 0.11646581, a: 1}
+  laserWidth: 0.18
   laserDisplaySeconds: 0.3
+  laserSound: {fileID: 0}
+  allowGreenPotionLaser: 1
+  skywardLaserPrefab: {fileID: 7499313619155134211, guid: 2c132e66f0375104e9a502a85b74eddd, type: 3}
+  skyLaserHeight: 15
+  skywardHitPrefab: {fileID: 0}
+  skywardSound: {fileID: 0}
+  skywardLaserColor: {r: 0.3, g: 1, b: 0.85, a: 1}
+  skywardLaserWidth: 0.25
+  skywardDisplaySeconds: 0.35
+  skywardAutoSearchRadius: 50
+  skywardPierceWalls: 1
+  skywardBlockLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  skywardCanToggleDoors: 0
+  skywardPierceBreakableBoxes: 1
+  skywardPierceSolidBoxes: 0
+  skywardPierceSwitches: 1
+  skywardPierceOpenDoors: 1
+  skywardBlockedByClosedDoors: 0
+  skywardMaxPierceCount: 99
   ceilingLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -211,7 +238,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   ceilingAutoWalkDistance: 6
-  pushDirection: 0
+  pushDirection: 1
   autoSearchRadius: 20
   autoPushCount: 1
   standOffset: 1

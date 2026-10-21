@@ -284,6 +284,11 @@ public class PusherAnimal : TestAnimal
 
         Debug.Log($"[{animalName}] โหมด: {(smashMode ? "ทำลายกล่อง" : "ดันกล่อง")}");
     }
+
+    protected override Sprite GetCustomPoweredUpSprite(PotionType potion)
+    {
+        return smashMode ? smashFormSprite : pushFormSprite;
+    }
     #endregion
 
     #region Ability
