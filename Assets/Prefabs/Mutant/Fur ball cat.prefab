@@ -30,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -2.83, y: 0.52, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.8409, y: 0.8409, z: 0.8409}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -84,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 9ef51909d734f9642a2a063a53164043, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -171,22 +171,42 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HairballAnimal
   animalName: Animal
-  autoMode: 0
-  autoStartDelay: 0.5
+  mass: 1
+  autoMode: 1
+  autoStartDelay: 1
   moveSpeed: 0
   stopDistance: 0.1
   stuckTimeout: 0.5
   stuckMinProgress: 0.1
+  defaultCatSprite: {fileID: 0}
+  poweredUpSprite: {fileID: 0}
   selectionIndicator: {fileID: 0}
   flipSpriteByDirection: 1
   spriteFacesRight: 1
   abilityCooldown: 1
-  requirePotion: 0
+  requirePotion: 1
   potionEffectDuration: 0
-  hairballPrefab: {fileID: 0}
+  hairballPrefab: {fileID: 3648913693340859227, guid: 37364e93fb8f938448cc53381848608e, type: 3}
   mouthDistance: 0.6
   hairballSpeed: 8
   hairballRange: 5
   hairballLingerSeconds: 6
   stopMovingWhenVomiting: 1
+  skywardRange: 4
+  skywardSpeed: 4
+  normalMass: 1
+  barrageMass: 0.5
+  giantMass: 3
+  barrageCount: 7
+  barrageSpreadAngle: 39.5
+  barrageRange: 100
+  barrageLingerSeconds: 3.4
+  giantScale: 3
+  giantSpeed: 10
+  giantLingerSeconds: 12
+  giantBreaksObstacles: 1
+  giantSpawnHeightOffset: 0.38
+  giantSpawnForwardOffset: 0.5
+  defaultGravityScale: 1
+  skywardGravityScale: 0
   vomitDirection: 0

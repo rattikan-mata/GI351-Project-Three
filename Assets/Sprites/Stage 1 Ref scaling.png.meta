@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 8e5a009f7fce26841ad3012423bb9ac3
+guid: 52249cbcdf37e4d46ab50dd66c1618fb
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 3750295945752158421
-    second: Cage botton REF_0
+      213: -4838128288980941524
+    second: Stage 1 Ref scaling_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -75,7 +75,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Cage botton REF_0
+      name: Stage 1 Ref scaling_0
       rect:
         serializedVersion: 2
         x: 138
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5d02521fa4abb0430800000000000000
-      internalID: 3750295945752158421
+      spriteID: c25c58564f38bdcb0800000000000000
+      internalID: -4838128288980941524
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Cage botton REF_0: 3750295945752158421
+      Stage 1 Ref scaling_0: -4838128288980941524
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

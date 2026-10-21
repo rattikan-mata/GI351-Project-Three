@@ -192,6 +192,11 @@ MonoBehaviour:
   recoilSpeed: 6
   chargeSpeed: 9
   pauseBeforeCharge: 0.25
+  canBeDestroyedByPusher: 1
+  canBeDestroyedByFlyer: 0
+  canBeDestroyedByHairball: 0
+  canBeDestroyedByOthers: 0
+  requirePoweredAnimal: 0
   brokenSprite: {fileID: 0}
   breakEffectPrefab: {fileID: 0}
   hitEffectPrefab: {fileID: 0}
@@ -200,3 +205,4 @@ MonoBehaviour:
   useGravity: 1
   gravityScale: 3
   maxFallSpeed: 20
+  mass: 2
