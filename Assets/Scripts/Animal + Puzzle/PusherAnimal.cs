@@ -36,7 +36,7 @@ public class PusherAnimal : TestAnimal
     private enum CeilingState { Floor, Rising, OnCeiling, Falling }
 
     [Header("Skyward (เขียว+ฟ้า): เสกลำแสงเลเซอร์")]
-    [Tooltip("ระยะยิงเลเซอร์ (สลับประตู ทำลายกล่องที่พังได้ ดันกล่องที่พังไม่ได้ ไม่กดปุ่ม/สวิตช์)")]
+    [Tooltip("ระยะยิงเลเซอร์ (สลับประตู ทำลายกล่องที่พังได้ ดันกล่องที่พังไม่ได้ กดปุ่ม/สวิตช์ 1 ครั้งต่อนัด)")]
     [SerializeField] private float laserRange = 12f;
 
     [Tooltip("Layer ที่ทำให้เลเซอร์หยุดทันที (เช่น กำแพง พื้น ประตู กล่อง) เว้นว่าง = ทะลุทุกอย่าง")]
@@ -397,7 +397,7 @@ public class PusherAnimal : TestAnimal
     }
 
     #region Laser
-    /// <summary>Skyward: ยิงเลเซอร์ตามแนวตรง สลับประตู/ทำลายหรือดันกล่อง (ไม่กดปุ่ม/สวิตช์) และหยุดเมื่อชน Laser Block Layers</summary>
+    /// <summary>Skyward: ยิงเลเซอร์ตามแนวตรง สลับประตู/ทำลายหรือดันกล่อง/กดปุ่มสวิตช์ (สลับสถานะ 1 ครั้งต่อนัด) และหยุดเมื่อชน Laser Block Layers</summary>
     private bool FireLaser(Vector2 dir)
     {
         StopMoving();
@@ -409,14 +409,24 @@ public class PusherAnimal : TestAnimal
 
         var handledDoors = new List<Door>();
         var handledBoxes = new List<PushableBox>();
+        var handledSwitches = new List<FloorSwitch>();
 
         foreach (var hit in hits)
         {
             if (hit.collider == null) continue;
             if (hit.collider.GetComponentInParent<TestAnimal>() == this) continue;
 
-            // ข้าม FloorSwitch เลเซอร์จะไม่กดปุ่ม/สวิตช์
-            if (hit.collider.GetComponentInParent<FloorSwitch>() != null) continue;
+            // FloorSwitch: เลเซอร์นับเป็นการกดปุ่ม 1 ครั้งต่อนัด (สลับสถานะ ปุ่มยุบแล้วเด้งกลับ) แล้วทะลุผ่านไปต่อ
+            var sw = hit.collider.GetComponentInParent<FloorSwitch>();
+            if (sw != null)
+            {
+                if (!handledSwitches.Contains(sw))
+                {
+                    handledSwitches.Add(sw);
+                    sw.RemoteToggle();
+                }
+                continue;
+            }
 
             var door = hit.collider.GetComponentInParent<Door>();
             if (door != null && !handledDoors.Contains(door))
