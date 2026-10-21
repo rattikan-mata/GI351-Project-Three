@@ -254,13 +254,6 @@ public class Door : MonoBehaviour
             BreakDoor();
             return;
         }
-
-        Hairball hairball = hitObj.GetComponentInParent<Hairball>();
-        if (hairball != null && hairball.CanBreakObstacles)
-        {
-            BreakDoor();
-            return;
-        }
     }
 
     /// <summary>
