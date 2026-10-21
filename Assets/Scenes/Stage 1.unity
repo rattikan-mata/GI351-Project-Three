@@ -352,6 +352,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8775481440192107653, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}
+      propertyPath: 'switches.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2039150845}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -365,6 +369,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1424346890}
     m_Modifications:
+    - target: {fileID: 575727271890621168, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
+      propertyPath: 'switches.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1130578640}
     - target: {fileID: 7114030222196000817, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
       propertyPath: m_Name
       value: Door_Wood
@@ -489,6 +497,69 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 135851007}
   m_CullTransparentMesh: 1
+--- !u!1 &136689574
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 136689575}
+  - component: {fileID: 136689576}
+  m_Layer: 0
+  m_Name: Dropper_1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &136689575
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136689574}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -3.08769, y: 1.75593, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 574911364}
+  m_Father: {fileID: 507871244}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &136689576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136689574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0512ffcbed15ddc4ab3b1a152c02bbf7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PotionSequenceDropper
+  slots:
+  - {fileID: 574911365}
+  targetAnimal: {fileID: 207957489}
+  dartGun: {fileID: 5068469712058467870}
+  potionPrefab: {fileID: 0}
+  dropPoint: {fileID: 136689575}
+  pathPoints: []
+  autoStartWhenFull: 0
+  dropInterval: 0.5
+  potionSpeed: 4
+  waitForAnimalToFinish: 1
+  finishTimeout: 20
+  afterHitTimeout: 4
+  prerequisiteSwitch: {fileID: 0}
+  autoStartOnPrerequisiteSwitch: 0
+  targetSwitch: {fileID: 0}
+  targetSwitches: []
+  switchWaitTimeout: 8
 --- !u!1 &151088719
 GameObject:
   m_ObjectHideFlags: 0
@@ -626,6 +697,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
+--- !u!114 &207957489 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6981963038372988400, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
+  m_PrefabInstance: {fileID: 207957488}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9875b8146b7b17e4fab2d63c365828e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlyingAnimal
 --- !u!1 &248470542
 GameObject:
   m_ObjectHideFlags: 0
@@ -726,6 +808,69 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 9136234069653308662, guid: 7bfd17cbf9c5b924aa5f880ffbb7e948, type: 3}
   m_PrefabInstance: {fileID: 2024664489696534612}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &261405670
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 261405671}
+  - component: {fileID: 261405672}
+  m_Layer: 0
+  m_Name: Dropper_3
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &261405671
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261405670}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 4.0923104, y: 4.96593, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1955982535}
+  m_Father: {fileID: 507871244}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &261405672
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261405670}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0512ffcbed15ddc4ab3b1a152c02bbf7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PotionSequenceDropper
+  slots:
+  - {fileID: 1955982536}
+  targetAnimal: {fileID: 1676219455}
+  dartGun: {fileID: 2024664489696534613}
+  potionPrefab: {fileID: 0}
+  dropPoint: {fileID: 261405671}
+  pathPoints: []
+  autoStartWhenFull: 0
+  dropInterval: 0.5
+  potionSpeed: 4
+  waitForAnimalToFinish: 1
+  finishTimeout: 20
+  afterHitTimeout: 4
+  prerequisiteSwitch: {fileID: 0}
+  autoStartOnPrerequisiteSwitch: 0
+  targetSwitch: {fileID: 0}
+  targetSwitches: []
+  switchWaitTimeout: 8
 --- !u!1 &362129467
 GameObject:
   m_ObjectHideFlags: 0
@@ -844,6 +989,40 @@ Transform:
   - {fileID: 1556225878}
   - {fileID: 1680779163}
   - {fileID: 166397136}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &507871243
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 507871244}
+  m_Layer: 0
+  m_Name: Droppers
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &507871244
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 507871243}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 136689575}
+  - {fileID: 2037138357}
+  - {fileID: 261405671}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &507904256 stripped
@@ -1180,6 +1359,54 @@ Transform:
   - {fileID: 253967811}
   m_Father: {fileID: 1424346890}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &574911363
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 574911364}
+  - component: {fileID: 574911365}
+  m_Layer: 0
+  m_Name: PotionSlot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &574911364
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 574911363}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 136689575}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &574911365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 574911363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a323916f96061d43ab226a790fd01b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PotionSlot
+  spriteRenderer: {fileID: 0}
+  emptySprite: {fileID: 0}
+  filledSprite: {fileID: 0}
+  testClickPotion: 0
 --- !u!1 &584261939
 GameObject:
   m_ObjectHideFlags: 0
@@ -1335,6 +1562,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2471f67dbea11a34f9932526f5b2465c, type: 3}
+--- !u!114 &780826252 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 638540066612953218, guid: 2471f67dbea11a34f9932526f5b2465c, type: 3}
+  m_PrefabInstance: {fileID: 780826251}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63a5e785fbbebe84b90cda482d5e922b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PusherAnimal
 --- !u!1001 &838568562
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1606,7 +1844,7 @@ PrefabInstance:
     - target: {fileID: 6501434910599268160, guid: 64dcc0cb096dc124e8bc87b8dd6cc58a, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1680779164}
     - target: {fileID: 6501434910599268160, guid: 64dcc0cb096dc124e8bc87b8dd6cc58a, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -1807,11 +2045,26 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 90
       objectReference: {fileID: 0}
+    - target: {fileID: 4930466982352865732, guid: 1ed8675ff5e65534f8e444c7d23b625a, type: 3}
+      propertyPath: ignoreAirborneAnimals
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1ed8675ff5e65534f8e444c7d23b625a, type: 3}
+--- !u!114 &1130578640 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4930466982352865732, guid: 1ed8675ff5e65534f8e444c7d23b625a, type: 3}
+  m_PrefabInstance: {fileID: 1130578639}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24f532bd3c50c504facd8041b6da7310, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FloorSwitch
 --- !u!1 &1140353534
 GameObject:
   m_ObjectHideFlags: 0
@@ -1898,6 +2151,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1424346890}
     m_Modifications:
+    - target: {fileID: 575727271890621168, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: 'switches.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1451202400}
     - target: {fileID: 7114030222196000817, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
       propertyPath: m_Name
       value: Door_Steel 2
@@ -2063,6 +2320,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1424346890}
     m_Modifications:
+    - target: {fileID: 575727271890621168, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: switches.Array.size
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7114030222196000817, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
       propertyPath: m_Name
       value: Door_Steel 1
@@ -2249,6 +2510,54 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1260111620
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1260111621}
+  - component: {fileID: 1260111622}
+  m_Layer: 0
+  m_Name: PotionSlot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1260111621
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260111620}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2037138357}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1260111622
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1260111620}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a323916f96061d43ab226a790fd01b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PotionSlot
+  spriteRenderer: {fileID: 0}
+  emptySprite: {fileID: 0}
+  filledSprite: {fileID: 0}
+  testClickPotion: 0
 --- !u!1 &1267366607
 GameObject:
   m_ObjectHideFlags: 0
@@ -3000,11 +3309,26 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 180
       objectReference: {fileID: 0}
+    - target: {fileID: 4930466982352865732, guid: 1ed8675ff5e65534f8e444c7d23b625a, type: 3}
+      propertyPath: ignoreAirborneAnimals
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1ed8675ff5e65534f8e444c7d23b625a, type: 3}
+--- !u!114 &1451202400 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4930466982352865732, guid: 1ed8675ff5e65534f8e444c7d23b625a, type: 3}
+  m_PrefabInstance: {fileID: 1451202399}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24f532bd3c50c504facd8041b6da7310, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FloorSwitch
 --- !u!1 &1556225876
 GameObject:
   m_ObjectHideFlags: 0
@@ -3035,15 +3359,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionStagingManager
   stagingSlots:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 5656584273445553658}
+  - {fileID: 5656584273445553657}
+  - {fileID: 5656584273445553656}
   droppers:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 136689576}
+  - {fileID: 2037138358}
+  - {fileID: 261405672}
   redMapping: 3
   blueMapping: 2
   greenMapping: 1
@@ -3215,6 +3537,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ca9f6800a73c829429dc1b3828c985e9, type: 3}
+--- !u!114 &1676219455 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7600626584680777127, guid: ca9f6800a73c829429dc1b3828c985e9, type: 3}
+  m_PrefabInstance: {fileID: 1676219454}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d887b7ada62410489602b7402022694, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HairballAnimal
 --- !u!1 &1680779162
 GameObject:
   m_ObjectHideFlags: 0
@@ -3260,14 +3593,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleResetManager
   puzzleRoots:
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 1424346890}
   stagingManager: {fileID: 1556225877}
   droppers:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 136689576}
+  - {fileID: 2037138358}
+  - {fileID: 261405672}
 --- !u!1001 &1746194500
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3287,7 +3618,7 @@ PrefabInstance:
     - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1556225877}
     - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -3541,6 +3872,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8775481440192107653, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}
+      propertyPath: 'switches.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2039150845}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3551,6 +3886,54 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1543710547481088844, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
   m_PrefabInstance: {fileID: 207957488}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1955982534
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1955982535}
+  - component: {fileID: 1955982536}
+  m_Layer: 0
+  m_Name: PotionSlot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1955982535
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1955982534}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 261405671}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1955982536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1955982534}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a323916f96061d43ab226a790fd01b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PotionSlot
+  spriteRenderer: {fileID: 0}
+  emptySprite: {fileID: 0}
+  filledSprite: {fileID: 0}
+  testClickPotion: 0
 --- !u!1 &2023201481
 GameObject:
   m_ObjectHideFlags: 0
@@ -3626,6 +4009,69 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2023201481}
   m_CullTransparentMesh: 1
+--- !u!1 &2037138356
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2037138357}
+  - component: {fileID: 2037138358}
+  m_Layer: 0
+  m_Name: Dropper_2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2037138357
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2037138356}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -3.0976899, y: 5.00593, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1260111621}
+  m_Father: {fileID: 507871244}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2037138358
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2037138356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0512ffcbed15ddc4ab3b1a152c02bbf7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PotionSequenceDropper
+  slots:
+  - {fileID: 1260111622}
+  targetAnimal: {fileID: 780826252}
+  dartGun: {fileID: 436789490442212075}
+  potionPrefab: {fileID: 0}
+  dropPoint: {fileID: 2037138357}
+  pathPoints: []
+  autoStartWhenFull: 0
+  dropInterval: 0.5
+  potionSpeed: 4
+  waitForAnimalToFinish: 1
+  finishTimeout: 20
+  afterHitTimeout: 4
+  prerequisiteSwitch: {fileID: 0}
+  autoStartOnPrerequisiteSwitch: 0
+  targetSwitch: {fileID: 0}
+  targetSwitches: []
+  switchWaitTimeout: 8
 --- !u!1001 &2039150844
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3678,11 +4124,26 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 90
       objectReference: {fileID: 0}
+    - target: {fileID: 4930466982352865732, guid: 1ed8675ff5e65534f8e444c7d23b625a, type: 3}
+      propertyPath: ignoreAirborneAnimals
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1ed8675ff5e65534f8e444c7d23b625a, type: 3}
+--- !u!114 &2039150845 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4930466982352865732, guid: 1ed8675ff5e65534f8e444c7d23b625a, type: 3}
+  m_PrefabInstance: {fileID: 2039150844}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24f532bd3c50c504facd8041b6da7310, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FloorSwitch
 --- !u!1 &2052483279
 GameObject:
   m_ObjectHideFlags: 0
@@ -3820,6 +4281,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8208cd9191a32914a9219ede6c507f04, type: 3}
+--- !u!114 &436789490442212075 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3963246670944336912, guid: 8208cd9191a32914a9219ede6c507f04, type: 3}
+  m_PrefabInstance: {fileID: 436789490442212074}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d9788470529bbe429bba434b0fcd830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DartGun
 --- !u!1001 &2024664489696534612
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3877,6 +4349,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7bfd17cbf9c5b924aa5f880ffbb7e948, type: 3}
+--- !u!114 &2024664489696534613 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1599849528295910078, guid: 7bfd17cbf9c5b924aa5f880ffbb7e948, type: 3}
+  m_PrefabInstance: {fileID: 2024664489696534612}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d9788470529bbe429bba434b0fcd830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DartGun
 --- !u!1001 &5068469712058467869
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3934,6 +4417,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bc8df449714d2fd40beccb8bb9196a94, type: 3}
+--- !u!114 &5068469712058467870 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8092688935999135, guid: bc8df449714d2fd40beccb8bb9196a94, type: 3}
+  m_PrefabInstance: {fileID: 5068469712058467869}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d9788470529bbe429bba434b0fcd830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DartGun
 --- !u!1001 &5656584273445553655
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4000,6 +4494,39 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 560394c8d7810524ca5767275c7e555e, type: 3}
+--- !u!114 &5656584273445553656 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2957693696411431441, guid: 560394c8d7810524ca5767275c7e555e, type: 3}
+  m_PrefabInstance: {fileID: 5656584273445553655}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4af9a29983fd1c54dac0bf876a5fb68a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionStagingSlot2D
+--- !u!114 &5656584273445553657 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8767201782041272090, guid: 560394c8d7810524ca5767275c7e555e, type: 3}
+  m_PrefabInstance: {fileID: 5656584273445553655}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4af9a29983fd1c54dac0bf876a5fb68a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionStagingSlot2D
+--- !u!114 &5656584273445553658 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6261217208477243771, guid: 560394c8d7810524ca5767275c7e555e, type: 3}
+  m_PrefabInstance: {fileID: 5656584273445553655}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4af9a29983fd1c54dac0bf876a5fb68a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionStagingSlot2D
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -4010,3 +4537,4 @@ SceneRoots:
   - {fileID: 485613098}
   - {fileID: 362129470}
   - {fileID: 1424346890}
+  - {fileID: 507871244}

@@ -80,12 +80,13 @@ public class PotionSequenceDropper : MonoBehaviour
 
     #region Unity Lifecycle
     // ชื่อของสัตว์/สวิตช์ที่อ้างอิงไว้ ใช้ผูกใหม่หลังรีเซ็ตพัซเซิล (ของใหม่ชื่อเดิมแต่เป็นคนละตัว)
-    private string targetAnimalName, prerequisiteSwitchName, targetSwitchName;
+    private string targetAnimalName, dartGunName, prerequisiteSwitchName, targetSwitchName;
     private string[] targetSwitchNames;
 
     private void Awake()
     {
         targetAnimalName = targetAnimal != null ? targetAnimal.name : null;
+        dartGunName = dartGun != null ? dartGun.name : null;
         prerequisiteSwitchName = prerequisiteSwitch != null ? prerequisiteSwitch.name : null;
         targetSwitchName = targetSwitch != null ? targetSwitch.name : null;
         if (targetSwitches != null)
@@ -128,6 +129,7 @@ public class PotionSequenceDropper : MonoBehaviour
     public void RebindTargets()
     {
         if (targetAnimalName != null) targetAnimal = FindByName<TestAnimal>(targetAnimalName);
+        if (dartGunName != null) dartGun = FindByName<DartGun>(dartGunName);
         if (prerequisiteSwitchName != null) prerequisiteSwitch = FindByName<FloorSwitch>(prerequisiteSwitchName);
         if (targetSwitchName != null) targetSwitch = FindByName<FloorSwitch>(targetSwitchName);
         if (targetSwitchNames != null)
