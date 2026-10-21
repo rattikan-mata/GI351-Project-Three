@@ -27,6 +27,11 @@ namespace PotionSystem
         private readonly SpriteRenderer[] icons = new SpriteRenderer[MaterialCount];
         private RadialFillRing ring;
 
+        private Sprite fallbackSprite;
+        private bool customArt;
+        private SpriteMask iconMask;
+        private SpriteRenderer aura;
+        private int orderOffset;
         private Vector2 size;
         private float iconScale;
         private int baseOrder;
@@ -56,19 +61,16 @@ namespace PotionSystem
 
             col.size = size;
 
+            fallbackSprite = backgroundSprite;
             var bgGo = new GameObject("BG");
             bgGo.transform.SetParent(transform, false);
             background = bgGo.AddComponent<SpriteRenderer>();
-            background.sprite = backgroundSprite != null ? backgroundSprite : CraftingSprites2D.Square;
-            Vector3 b = background.sprite.bounds.size;
-            bgGo.transform.localScale = new Vector3(size.x / b.x, size.y / b.y, 1f);
             background.sortingOrder = baseOrder;
 
             for (int i = 0; i < MaterialCount; i++)
             {
                 var go = new GameObject("Item_" + i);
                 go.transform.SetParent(transform, false);
-                go.transform.localPosition = new Vector3((i - (MaterialCount - 1) * 0.5f) * (size.x / MaterialCount), 0f, 0f);
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sortingOrder = baseOrder + 1;
                 icons[i] = sr;
@@ -188,17 +190,119 @@ namespace PotionSystem
 
         private void SetOrderOffset(int offset)
         {
-            if (background == null) return;
-            background.sortingOrder = baseOrder + offset;
-            for (int i = 0; i < icons.Length; i++)
-                if (icons[i] != null) icons[i].sortingOrder = baseOrder + offset + 1;
-            if (ring != null) ring.SetSortingOrder(baseOrder + offset + 3);
+            orderOffset = offset;
+            ApplyOrders();
         }
 
         // ---------- Visual ----------
 
+        /// <summary>
+        /// ตั้งรูปพื้นหลังถาด: ถ้าสูตรมีรูปถาดเฉพาะ (จาก Manager) ใช้รูปนั้นโดยคงสัดส่วน กว้างเท่า Tray Size X
+        /// ไม่มี = ใช้รูปรวม/สี่เหลี่ยมเรียบแบบเดิม (ยืดตาม Tray Size)
+        /// </summary>
+        private void ApplyBackground(Sprite art)
+        {
+            customArt = art != null;
+            var sprite = art != null ? art : (fallbackSprite != null ? fallbackSprite : CraftingSprites2D.Square);
+            background.sprite = sprite;
+
+            Vector3 b = sprite.bounds.size;
+            Vector2 drawSize = customArt ? new Vector2(size.x, size.x * b.y / b.x) : size;
+            background.transform.localScale = new Vector3(drawSize.x / b.x, drawSize.y / b.y, 1f);
+            col.size = drawSize;
+
+            // ไอคอนวัตถุดิบ: รูปถาดเฉพาะ = วางตามสัดส่วนที่ตั้งใน Manager / แบบเดิม = เรียงเท่าๆ กันทั้งความกว้าง
+            Vector2 offsetRatio = customArt && manager != null ? manager.IconOffsetRatio : Vector2.zero;
+            float spacing = customArt && manager != null ? drawSize.x * manager.IconSpacingRatio : size.x / MaterialCount;
+            for (int i = 0; i < icons.Length; i++)
+            {
+                if (icons[i] == null) continue;
+                icons[i].transform.localPosition = new Vector3(
+                    (i - (MaterialCount - 1) * 0.5f) * spacing + drawSize.x * offsetRatio.x,
+                    drawSize.y * offsetRatio.y,
+                    0f);
+            }
+
+            ApplyIconMask(drawSize);
+            ApplyAura(drawSize);
+            ApplyOrders();
+        }
+
+        /// <summary>ออร่าเรืองหลังชุดยา: ยาผสม = สีฟ้า / ยาพื้นฐาน = สีเทา (รูปตั้งใน Manager) อยู่หลังทุกอย่างของถาด</summary>
+        private void ApplyAura(Vector2 drawSize)
+        {
+            Sprite art = manager != null ? manager.GetAuraSprite(Blueprint) : null;
+            if (art == null)
+            {
+                if (aura != null) aura.enabled = false;
+                return;
+            }
+
+            if (aura == null)
+            {
+                var go = new GameObject("Aura");
+                go.transform.SetParent(transform, false);
+                aura = go.AddComponent<SpriteRenderer>();
+            }
+
+            aura.enabled = true;
+            aura.sprite = art;
+            float width = drawSize.x * manager.AuraWidthRatio;
+            float scale = width / art.bounds.size.x;
+            aura.transform.localScale = new Vector3(scale, scale, 1f);
+            Vector2 o = manager.AuraOffsetRatio;
+            aura.transform.localPosition = new Vector3(drawSize.x * o.x, drawSize.y * o.y, 0f);
+        }
+
+        /// <summary>
+        /// รูปถาดเฉพาะ: ไอคอนอยู่หลังถาด และเห็นเฉพาะในกรอบ Sprite Mask (กว้างเท่าถาด ก้นกรอบ = ก้นถาด)
+        /// ไอคอนจึงไม่ล้นข้างหรือล่าง / แบบเดิม: ไม่ใช้ mask ไอคอนอยู่หน้าถาด
+        /// </summary>
+        private void ApplyIconMask(Vector2 drawSize)
+        {
+            if (customArt && iconMask == null)
+            {
+                var mg = new GameObject("IconMask");
+                mg.transform.SetParent(transform, false);
+                iconMask = mg.AddComponent<SpriteMask>();
+                iconMask.sprite = CraftingSprites2D.Square;
+            }
+
+            if (iconMask != null)
+            {
+                iconMask.enabled = customArt;
+                if (customArt)
+                {
+                    float above = manager != null ? manager.IconVisibleAboveRatio : 1f;
+                    float height = drawSize.y * (1f + above);
+                    Vector3 sb = iconMask.sprite.bounds.size;
+                    iconMask.transform.localScale = new Vector3(drawSize.x / sb.x, height / sb.y, 1f);
+                    iconMask.transform.localPosition = new Vector3(0f, -drawSize.y * 0.5f + height * 0.5f, 0f);
+                }
+            }
+
+            foreach (var sr in icons)
+                if (sr != null)
+                    sr.maskInteraction = customArt ? SpriteMaskInteraction.VisibleInsideMask : SpriteMaskInteraction.None;
+        }
+
+        private int IconOrder => customArt ? baseOrder + orderOffset - 1 : baseOrder + orderOffset + 1;
+
+        private void ApplyOrders()
+        {
+            if (background == null) return;
+            background.sortingOrder = baseOrder + orderOffset;
+            // รูปถาดเฉพาะ: ชิ้นซ้ายอยู่หน้าสุด ชิ้นกลางอยู่กลาง ชิ้นขวาอยู่หลังสุด (ทุกชิ้นยังอยู่หลังรูปถาด)
+            for (int i = 0; i < icons.Length; i++)
+                if (icons[i] != null) icons[i].sortingOrder = customArt ? IconOrder - i : IconOrder;
+            if (aura != null) aura.sortingOrder = baseOrder + orderOffset - MaterialCount - 1; // หลังไอคอนทุกชิ้น
+            if (ring != null) ring.SetSortingOrder(baseOrder + orderOffset + 3);
+        }
+
         private void Refresh()
         {
+            ApplyBackground(manager != null ? manager.GetTraySprite(Blueprint) : null);
+
             var mats = Materials;
             for (int i = 0; i < icons.Length; i++)
             {
@@ -236,12 +340,19 @@ namespace PotionSystem
                     iconAlpha = 0.3f;
                     break;
                 default:
-                    bg = new Color(0.95f, 0.93f, 0.85f);
+                    // รูปถาดเฉพาะแสดงสีจริง (ไม่ย้อมครีม) / พื้นเรียบแบบเดิมย้อมครีม
+                    bg = customArt ? Color.white : new Color(0.95f, 0.93f, 0.85f);
                     iconAlpha = 1f;
                     break;
             }
 
             background.color = bg;
+            if (aura != null)
+            {
+                var ac = aura.color;
+                ac.a = iconAlpha; // ออร่าจางตามสถานะถาด (คูลดาวน์/อยู่ในหม้อ)
+                aura.color = ac;
+            }
             foreach (var sr in icons)
             {
                 if (sr == null) continue;

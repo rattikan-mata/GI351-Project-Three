@@ -856,11 +856,31 @@ MonoBehaviour:
   nextRowDirection: {x: 0, y: -1}
   slotSpacing: 1.2
   rowSpacing: 1
-  traySize: {x: 1, y: 0.5}
-  materialIconScale: 0.3
+  traySize: {x: 1.1, y: 0.31}
+  materialIconScale: 0.4
   slideSpeed: 12
   sortingOrder: 5
   traySprite: {fileID: 0}
+  traySprites:
+  - kind: 1
+    sprite: {fileID: 21300000, guid: 843747ccf7c253a428a89508f00c06c8, type: 3}
+  - kind: 2
+    sprite: {fileID: 21300000, guid: 2ba8870c426de2e479c0d1e084a498d0, type: 3}
+  - kind: 3
+    sprite: {fileID: 21300000, guid: aead921159a44ef44aed7aa40aa2a105, type: 3}
+  - kind: 0
+    sprite: {fileID: 21300000, guid: 8bd34d4acffdb2e4ebad07c69048ce88, type: 3}
+  - kind: 5
+    sprite: {fileID: 21300000, guid: 2ab80862a1047cc45ba20c8d00fecee4, type: 3}
+  - kind: 4
+    sprite: {fileID: 21300000, guid: 13b10cc8bc5bd6e4a95bcf767e6a9e5e, type: 3}
+  iconSpacingRatio: 0.23
+  iconOffsetRatio: {x: 0, y: 0.62}
+  iconVisibleAboveRatio: 1.2
+  auraComboSprite: {fileID: 21300000, guid: 9f0fd1b28763d554b92bb620efec7186, type: 3}
+  auraBasicSprite: {fileID: 21300000, guid: ea2c60c8e1d85f94591543c6b36e6df6, type: 3}
+  auraWidthRatio: 1.4
+  auraOffsetRatio: {x: 0, y: 0.3}
 --- !u!4 &249737557 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5130727976692276953, guid: 2471f67dbea11a34f9932526f5b2465c, type: 3}
@@ -2314,7 +2334,35 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6228281681913452626, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.042
+      value: 0.09
+      objectReference: {fileID: 0}
+    - target: {fileID: 6228281681913452626, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.22
+      objectReference: {fileID: 0}
+    - target: {fileID: 6228281681913452626, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6228281681913452626, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6228281681913452626, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6228281681913452626, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6228281681913452626, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6228281681913452626, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7114030222196000817, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
       propertyPath: m_Name
@@ -2322,11 +2370,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8720426379642202039, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.02858
+      value: 0.982
       objectReference: {fileID: 0}
     - target: {fileID: 8720426379642202039, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.861
+      value: 0.868
       objectReference: {fileID: 0}
     - target: {fileID: 8720426379642202039, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2948,7 +2996,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6506029453306674860, guid: 23eaacf6a06feb94eb342e6738815037, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.894
+      value: -1.05
       objectReference: {fileID: 0}
     - target: {fileID: 6506029453306674860, guid: 23eaacf6a06feb94eb342e6738815037, type: 3}
       propertyPath: m_LocalPosition.y
