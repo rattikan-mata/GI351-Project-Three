@@ -430,8 +430,8 @@ public class PusherAnimal : TestAnimal
             if (box != null && !handledBoxes.Contains(box))
             {
                 handledBoxes.Add(box);
-                if (box.IsDestructible && !box.IsBroken && box.CanAnimalDestroyBox(this))
-                    box.BreakBox();                                   // กล่องพังได้ -> ทำลาย
+                if (box.IsDestructible && !box.IsBroken)
+                    box.BreakBox();                                   // กล่องพังได้ -> ทำลาย (เหมือน Havoc ไม่เช็กสิทธิ์ของแมวชนิดนี้)
                 else
                     box.TryPush(dir, pushDistance, pushSpeed, null);  // กล่องพังไม่ได้ -> ดัน
             }

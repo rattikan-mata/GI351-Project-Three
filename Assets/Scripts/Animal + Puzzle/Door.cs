@@ -45,6 +45,10 @@ public class Door : MonoBehaviour
     [Tooltip("กล่องที่วางอยู่ใต้ประตู: ตอนประตูปิดลง จะหยุดค้างอยู่บนหัวกล่อง ตราบใดที่กล่องยังไม่พังและยังอยู่ใต้ประตู\n" +
              "พอกล่องพัง (หรือถูกดันออกไป) ประตูจะปิดลงมาจนสุดจุดปิด")]
     [SerializeField] private PushableBox[] supportBoxes;
+
+    [Tooltip("ช่องว่างระหว่างขอบล่างประตูกับหัวกล่องที่ค้ำ (หน่วย Unity) ถ้าเป็น 0 ประตูจะติดกล่องจนฟิสิกส์ถือว่าซ้อนกัน แล้วกล่องผลักไม่ไป\n" +
+             "ควรมากกว่า Skin Width ของกล่อง + Contact Offset ของ Physics 2D (ประมาณ 0.03)")]
+    [SerializeField, Min(0f)] private float supportGap = 0.08f;
     #endregion
 
     #region Breakable
@@ -188,7 +192,7 @@ public class Door : MonoBehaviour
 
             Bounds b = boxCol.bounds;
             if (b.min.x >= door.max.x || b.max.x <= door.min.x) continue; // ไม่ได้อยู่ใต้ประตู
-            holdY = Mathf.Max(holdY, b.max.y + bottomOffset);
+            holdY = Mathf.Max(holdY, b.max.y + bottomOffset + supportGap);
         }
 
         if (holdY > target.y) target.y = holdY;
