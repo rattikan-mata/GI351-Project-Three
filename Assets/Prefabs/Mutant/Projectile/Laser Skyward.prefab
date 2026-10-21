@@ -109,9 +109,10 @@ MonoBehaviour:
   lineRenderer: {fileID: 0}
   beamSprite: {fileID: 0}
   beamWidth: 0.2
+  spriteAngleOffset: 0
   beamColor: {r: 0.8867924, g: 0.008776327, b: 0, a: 1}
   textureScrollSpeed: 3
-  duration: 0.3
+  duration: 0.7
   fadeOut: 1
   autoDestroy: 1
   muzzlePoint: {fileID: 0}

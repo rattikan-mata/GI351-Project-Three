@@ -32,11 +32,11 @@ public class PusherAnimal : TestAnimal
     #endregion
 
     #region Combo Settings
-    private enum GoatMode { Push, Laser, Havoc, Ceiling }
+    private enum GoatMode { Push, ForwardLaser, SkywardLaser, Havoc, Ceiling }
     private enum CeilingState { Floor, Rising, OnCeiling, Falling }
 
-    [Header("Skyward / Green (เลเซอร์ระยะไกล)")]
-    [Tooltip("Prefab สำหรับลำแสงเลเซอร์ระยะไกล (ถ้าใส่สคริปต์ GoatLaserBeam หรือ LineRenderer/SpriteRenderer จะทำงานอัตโนมัติ / ถ้าเว้นว่างจะวาดด้วยโค้ด)")]
+    [Header("Green Potion (ยาเขียว: ยิงเลเซอร์ออกข้างหน้า)")]
+    [Tooltip("Prefab สำหรับลำแสงเลเซอร์ยิงตรงไปข้างหน้า (ถ้าเว้นว่างจะวาดด้วยโค้ด)")]
     [SerializeField] private GameObject laserPrefab;
 
     [Tooltip("จุดที่ลำแสงเลเซอร์พุ่งออกมา (เช่น ปาก/เขา/ตาแพะ) ถ้าเว้นว่างจะยิงจากกลางตัว")]
@@ -48,7 +48,7 @@ public class PusherAnimal : TestAnimal
     [Tooltip("Prefab ประกายไฟตรงจุดยิง (Muzzle Flash)")]
     [SerializeField] private GameObject laserMuzzlePrefab;
 
-    [Tooltip("ระยะยิงเลเซอร์ระยะไกล (ทำลายกล่องที่พังได้ ดันกล่องที่พังไม่ได้ กดปุ่ม/สวิตช์ 1 ครั้งต่อนัด)")]
+    [Tooltip("ระยะยิงเลเซอร์ออกข้างหน้า (ทำลายกล่องที่พังได้ ดันกล่องที่พังไม่ได้ กดปุ่ม/สวิตช์ 1 ครั้งต่อนัด)")]
     [SerializeField] private float laserRange = 30f;
 
     [Tooltip("ให้เลเซอร์เปิด/ปิดประตูธรรมดาได้หรือไม่ (ปกติ false: ประตูธรรมดาต้องเปิดด้วยสวิตช์เท่านั้น ไม่เปิดด้วยเลเซอร์)")]
@@ -69,8 +69,61 @@ public class PusherAnimal : TestAnimal
     [Tooltip("เสียงเอฟเฟกต์ตอนยิงเลเซอร์ (Optional)")]
     [SerializeField] private AudioClip laserSound;
 
-    [Tooltip("ให้ยาเขียว (Vomit) ทำให้แพะยิงเลเซอร์ได้ด้วย (ตามดีไซน์: สีเขียว = แพะยิงเลเซอร์)")]
+    [Tooltip("ให้ยาเขียว (Vomit) ทำให้แพะยิงเลเซอร์ออกข้างหน้า")]
     [SerializeField] private bool allowGreenPotionLaser = true;
+
+    [Header("Skyward Potion (ยา Skyward เขียว+ฟ้า: เสกเลเซอร์ลงมาจากฟ้า)")]
+    [Tooltip("Prefab สำหรับลำแสงเลเซอร์ที่เสกลงมาจากฟ้า (ถ้าเว้นว่างจะค้นหา Laser Skyward ให้อัตโนมัติ หรือวาดเส้นด้วยโค้ด)")]
+    [SerializeField] private GameObject skywardLaserPrefab;
+
+    [Tooltip("ความสูงของจุดเริ่มลำแสงเลเซอร์บนท้องฟ้าเหนือเป้าหมาย")]
+    [SerializeField] private float skyLaserHeight = 20f;
+
+    [Tooltip("Prefab ประกายไฟ/ระเบิดตรงจุดตกของเลเซอร์จากฟ้า (Impact)")]
+    [SerializeField] private GameObject skywardHitPrefab;
+
+    [Tooltip("เสียงเอฟเฟกต์ตอนเลเซอร์ผ่าลงมาจากฟ้า (Optional)")]
+    [SerializeField] private AudioClip skywardSound;
+
+    [Tooltip("สีของเลเซอร์จากฟ้า (กรณีวาดด้วยโค้ด)")]
+    [SerializeField] private Color skywardLaserColor = new Color(0.3f, 1f, 0.85f, 1f);
+
+    [Tooltip("ความหนาของลำแสงเลเซอร์จากฟ้า (กรณีวาดด้วยโค้ด)")]
+    [SerializeField] private float skywardLaserWidth = 0.25f;
+
+    [Tooltip("เลเซอร์จากฟ้าค้างให้เห็นกี่วินาที")]
+    [SerializeField] private float skywardDisplaySeconds = 0.35f;
+
+    [Tooltip("รัศมีค้นหาเป้าหมายอัตโนมัติ (ปุ่ม/กล่อง/ประตู) เมื่อแพะได้ยา Skyward")]
+    [SerializeField] private float skywardAutoSearchRadius = 25f;
+
+    [Header("Skyward Piercing & Blocking (การทะลุ / สิ่งที่ขวางเลเซอร์ฟ้า - ปรับแยกอิสระ)")]
+    [Tooltip("ทะลุกำแพง/เพดาน/สิ่งกีดขวาง (เลเซอร์ผ่าลงมาจากฟ้าทะลุหลังคาลงมาหาเป้าหมายได้ ไม่ติดกำแพงด้านบน)")]
+    [SerializeField] private bool skywardPierceWalls = true;
+
+    [Tooltip("Layer ที่ทำให้เลเซอร์จากฟ้าหยุดทันที (เฉพาะเลเซอร์จากฟ้า ไม่เกี่ยวอะไรกับ Laser Block Layers) ถ้าเว้นว่าง = ไม่มี Layer ไหนขวาง")]
+    [SerializeField] private LayerMask skywardBlockLayers;
+
+    [Tooltip("ให้เลเซอร์จากฟ้าเปิด/ปิดประตูธรรมดาได้หรือไม่ (ปกติ false: ประตูธรรมดาเปิดด้วยสวิตช์เท่านั้น)")]
+    [SerializeField] private bool skywardCanToggleDoors = false;
+
+    [Tooltip("ทะลุผ่านกล่องที่พังได้ (หลังทำลายกล่องแล้ว ลำแสงทะลุลงไปโดนสิ่งที่อยู่ข้างใต้ต่อได้)")]
+    [SerializeField] private bool skywardPierceBreakableBoxes = true;
+
+    [Tooltip("ทะลุผ่านกล่องที่พังไม่ได้ (ถ้าไม่ติ๊ก เลเซอร์จะหยุดบนหัวกล่อง)")]
+    [SerializeField] private bool skywardPierceSolidBoxes = false;
+
+    [Tooltip("ทะลุผ่านสวิตช์/ปุ่ม (กดสวิตช์แล้วลำแสงทะลุลงไปต่อได้)")]
+    [SerializeField] private bool skywardPierceSwitches = true;
+
+    [Tooltip("ทะลุผ่านประตูที่พังแล้ว หรือประตูที่เปิดอยู่")]
+    [SerializeField] private bool skywardPierceOpenDoors = true;
+
+    [Tooltip("ประตูธรรมดาที่ปิดอยู่ขวางเลเซอร์หรือไม่ (ถ้าติ๊ก = เลเซอร์หยุดที่ประตู / ถ้าไม่ติ๊ก = ทะลุผ่าน)")]
+    [SerializeField] private bool skywardBlockedByClosedDoors = true;
+
+    [Tooltip("จำนวนวัตถุสูงสุดที่เลเซอร์จากฟ้าทะลุผ่านได้ (99 = ไม่จำกัด)")]
+    [SerializeField] private int skywardMaxPierceCount = 99;
 
     [Header("Surge (ฟ้า+ส้ม): ยากราวิตี้ กระโดดแตะเพดานแล้วเดินบนเพดาน")]
     [Tooltip("Layer ของพื้น/เพดาน ใช้หาเพดานที่จะกระโดดไปแตะ และหาพื้นตอนกลับลง เว้นว่าง = ทุก Layer ที่ไม่ใช่ Trigger")]
@@ -125,8 +178,8 @@ public class PusherAnimal : TestAnimal
         Vector2 dir = ToVector(pushDirection);
         if (comboMode != GoatMode.Push)
         {
-            // Skyward (เลเซอร์): ยิงไปตามแกน X ของแมวที่หมุนไว้ (Rotation Z) ถ้ากลับด้านด้วย Scale X ติดลบก็กลับทิศตาม
-            if (comboMode == GoatMode.Laser)
+            // ยาเขียว (ยิงเลเซอร์ออกข้างหน้า): ยิงไปตามแกน X ของแพะที่หมุนไว้
+            if (comboMode == GoatMode.ForwardLaser)
                 dir = ((Vector2)transform.right * Mathf.Sign(transform.lossyScale.x)).normalized;
             yield return ComboAutoRoutine(dir);
             yield break;
@@ -211,9 +264,13 @@ public class PusherAnimal : TestAnimal
     {
         switch (potion)
         {
+            case PotionType.Vomit:
+                // ยาเขียว: ยิงเลเซอร์ออกข้างหน้า
+                comboMode = GoatMode.ForwardLaser;
+                break;
             case PotionType.Skyward:
-            case PotionType.Vomit: // สีเขียว = แพะยิงเลเซอร์ ตามดีไซน์
-                comboMode = GoatMode.Laser;
+                // ยา Skyward (เขียว+ฟ้า): เสกเลเซอร์ลงมาจากฟ้า
+                comboMode = GoatMode.SkywardLaser;
                 break;
             case PotionType.Havoc: comboMode = GoatMode.Havoc; break;
             case PotionType.Surge: comboMode = GoatMode.Ceiling; break;
@@ -235,7 +292,7 @@ public class PusherAnimal : TestAnimal
         Vector2 dir = aimWorldPoint - rb.position;
         if (dir.sqrMagnitude < 0.0001f) dir = FacingDirection;
 
-        if (comboMode != GoatMode.Push) return PerformComboAbility(dir.normalized);
+        if (comboMode != GoatMode.Push) return PerformComboAbility(aimWorldPoint, dir.normalized);
 
         if (snapToCardinalDirections)
         {
@@ -292,6 +349,7 @@ public class PusherAnimal : TestAnimal
     {
         base.Awake();
         bodyCollider = GetComponent<Collider2D>();
+        EnsureSkywardLaserPrefab();
     }
 
     protected override void Update()
@@ -412,26 +470,35 @@ public class PusherAnimal : TestAnimal
             yield break;
         }
 
+        if (comboMode == GoatMode.SkywardLaser)
+        {
+            // เสกเลเซอร์ลงมาจากฟ้า: ค้นหาเป้าหมายอัตโนมัติ (กล่อง/ปุ่มสวิตช์/ประตูไม้)
+            Vector2 target = FindSkywardTarget(dir);
+            ExecuteAbility(target);
+            yield break;
+        }
+
         ExecuteAbility(rb.position + dir);
     }
 
-    private bool PerformComboAbility(Vector2 dir)
+    private bool PerformComboAbility(Vector2 aimWorldPoint, Vector2 dir)
     {
         FacingDirection = dir;
-        if (comboMode == GoatMode.Laser) FaceDirection(dir); // เลเซอร์ยิงไปทางไหนก็หันไปทางนั้น
+        if (comboMode == GoatMode.ForwardLaser) FaceDirection(dir); // เลเซอร์ออกข้างหน้า หันไปตามทิศที่ยิง
 
         switch (comboMode)
         {
-            case GoatMode.Laser: return FireLaser(dir);
+            case GoatMode.ForwardLaser: return FireForwardLaser(dir);
+            case GoatMode.SkywardLaser: return FireSkywardLaser(aimWorldPoint);
             case GoatMode.Havoc: return SmashEverything();
             case GoatMode.Ceiling: return ToggleCeiling();
         }
         return false;
     }
 
-    #region Laser
-    /// <summary>ยิงเลเซอร์ระยะไกล สลับประตู/ทำลายหรือดันกล่อง/กดปุ่มสวิตช์ (สลับสถานะ 1 ครั้งต่อนัด) และหยุดเมื่อชน Laser Block Layers</summary>
-    private bool FireLaser(Vector2 dir)
+    #region Forward Laser (ยาเขียว: ยิงเลเซอร์ออกข้างหน้า)
+    /// <summary>ยาเขียว: ยิงเลเซอร์ออกข้างหน้า สลับประตู/ทำลายหรือดันกล่อง/กดปุ่มสวิตช์ (สลับสถานะ 1 ครั้งต่อนัด) และหยุดเมื่อชน Laser Block Layers</summary>
+    private bool FireForwardLaser(Vector2 dir)
     {
         StopMoving();
         Vector2 origin = (laserFirePoint != null) ? (Vector2)laserFirePoint.position : (rb.position + (Vector2)transform.up * 0.15f);
@@ -611,6 +678,361 @@ public class PusherAnimal : TestAnimal
         lr.startColor = lr.endColor = laserColor;
         lr.sortingOrder = 50;
         Destroy(go, laserDisplaySeconds);
+    }
+    #endregion
+
+    #region Skyward Laser (ยา Skyward: เสกเลเซอร์ลงมาจากฟ้า)
+    /// <summary>Skyward: เสกลำแสงเลเซอร์ลงมาจากท้องฟ้าใส่เป้าหมาย (ปุ่ม, กล่อง, ประตูไม้)</summary>
+    private bool FireSkywardLaser(Vector2 targetPoint)
+    {
+        StopMoving();
+
+        // จุดเริ่มบนฟ้าเหนือเป้าหมาย
+        Vector2 skyOrigin = new Vector2(targetPoint.x, targetPoint.y + skyLaserHeight);
+        Vector2 end = targetPoint;
+        RaycastHit2D targetHit = default;
+        bool hasHit = false;
+
+        float totalCastDistance = skyLaserHeight + 5f;
+        RaycastHit2D[] hits = Physics2D.RaycastAll(skyOrigin, Vector2.down, totalCastDistance);
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        int pierceCount = 0;
+        LayerMask effectiveBlockLayers = skywardBlockLayers; // แยกอิสระ 100% ไม่ยืม laserBlockLayers เด็ดขาด
+
+        var handledDoors = new HashSet<Door>();
+        var handledBoxes = new HashSet<PushableBox>();
+        var handledSwitches = new HashSet<FloorSwitch>();
+
+        foreach (var hit in hits)
+        {
+            if (hit.collider == null) continue;
+            if (hit.collider.GetComponentInParent<TestAnimal>() == this) continue;
+
+            // 1. ปุ่ม/สวิตช์ (FloorSwitch): โดนเลเซอร์จากฟ้ากดสลับสถานะ
+            var sw = hit.collider.GetComponentInParent<FloorSwitch>();
+            if (sw != null)
+            {
+                if (handledSwitches.Add(sw))
+                {
+                    sw.RemoteToggle();
+                }
+
+                if (!skywardPierceSwitches)
+                {
+                    end = hit.point;
+                    targetHit = hit;
+                    hasHit = true;
+                    break;
+                }
+
+                pierceCount++;
+                if (pierceCount >= skywardMaxPierceCount)
+                {
+                    end = hit.point;
+                    targetHit = hit;
+                    hasHit = true;
+                    break;
+                }
+                continue;
+            }
+
+            // 2. ประตู (Door)
+            var door = hit.collider.GetComponentInParent<Door>();
+            if (door != null)
+            {
+                if (handledDoors.Add(door))
+                {
+                    if (door.IsBreakable)
+                    {
+                        door.BreakDoor(); // ประตูไม้พังได้ -> ทำลาย
+                    }
+                    else if (skywardCanToggleDoors)
+                    {
+                        door.RemoteToggle(); // ประตูธรรมดาเปิดได้เฉพาะเมื่อเปิด skywardCanToggleDoors
+                    }
+                }
+
+                // ถ้าเป็นประตูที่ยังปิดอยู่ (ไม่ได้เปิดและไม่พัง)
+                if (!door.IsOpen && !door.IsBroken)
+                {
+                    if (skywardBlockedByClosedDoors)
+                    {
+                        end = hit.point;
+                        targetHit = hit;
+                        hasHit = true;
+                        break;
+                    }
+                }
+                else
+                {
+                    // ประตูเปิดอยู่หรือพังแล้ว
+                    if (!skywardPierceOpenDoors)
+                    {
+                        end = hit.point;
+                        targetHit = hit;
+                        hasHit = true;
+                        break;
+                    }
+                }
+
+                pierceCount++;
+                if (pierceCount >= skywardMaxPierceCount)
+                {
+                    end = hit.point;
+                    targetHit = hit;
+                    hasHit = true;
+                    break;
+                }
+                continue;
+            }
+
+            // 3. กล่อง (PushableBox)
+            var box = hit.collider.GetComponentInParent<PushableBox>();
+            if (box != null)
+            {
+                if (handledBoxes.Add(box))
+                {
+                    if (box.IsDestructible && !box.IsBroken)
+                    {
+                        box.BreakBox(); // กล่องพังได้ -> ทำลาย
+                    }
+                    else
+                    {
+                        box.TryPush(Vector2.down, 0.5f, pushSpeed, null);
+                    }
+                }
+
+                // ตรวจสอบการทะลุผ่านกล่อง
+                if (box.IsDestructible)
+                {
+                    if (!skywardPierceBreakableBoxes)
+                    {
+                        end = hit.point;
+                        targetHit = hit;
+                        hasHit = true;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (!skywardPierceSolidBoxes)
+                    {
+                        end = hit.point;
+                        targetHit = hit;
+                        hasHit = true;
+                        break;
+                    }
+                }
+
+                pierceCount++;
+                if (pierceCount >= skywardMaxPierceCount)
+                {
+                    end = hit.point;
+                    targetHit = hit;
+                    hasHit = true;
+                    break;
+                }
+                continue;
+            }
+
+            // 4. สิ่งกีดขวาง / กำแพง / เพดาน / พื้น
+            bool isAboveTarget = (hit.point.y > targetPoint.y + 0.1f);
+
+            if (isAboveTarget)
+            {
+                // ถ้าตั้งให้ทะลุกำแพง/เพดาน ให้เลเซอร์ทะลุผ่านลงไปหาเป้าหมายด้านล่างได้เลย
+                if (skywardPierceWalls)
+                {
+                    continue;
+                }
+
+                // ถ้าไม่ได้ตั้งให้ทะลุกำแพง และชน Layer ที่บล็อกไว้ ให้หยุดทันที
+                if (effectiveBlockLayers.value != 0 && (effectiveBlockLayers.value & (1 << hit.collider.gameObject.layer)) != 0)
+                {
+                    end = hit.point;
+                    targetHit = hit;
+                    hasHit = true;
+                    break;
+                }
+            }
+            else
+            {
+                // อยู่ที่ระดับเป้าหมายหรือต่ำกว่า (เช่น พื้นใต้ปุ่ม/กล่อง หรือเล็งใส่พื้น/กำแพงตรงๆ)
+                if (effectiveBlockLayers.value != 0 && (effectiveBlockLayers.value & (1 << hit.collider.gameObject.layer)) != 0)
+                {
+                    end = hit.point;
+                    targetHit = hit;
+                    hasHit = true;
+                    break;
+                }
+
+                // ถ้าทะลุผ่านวัตถุมาถึงพื้นแล้ว ให้เลเซอร์หยุดที่จุดตกเป้าหมาย/พื้น
+                if (hit.point.y <= targetPoint.y)
+                {
+                    end = hit.point;
+                    targetHit = hit;
+                    hasHit = true;
+                    break;
+                }
+            }
+        }
+
+        GameObject prefabToUse = (skywardLaserPrefab != null) ? skywardLaserPrefab : laserPrefab;
+        GameObject hitEffectToUse = (skywardHitPrefab != null) ? skywardHitPrefab : laserHitPrefab;
+        AudioClip soundToUse = (skywardSound != null) ? skywardSound : laserSound;
+
+        SpawnSkywardVisual(skyOrigin, end, prefabToUse, hitEffectToUse, soundToUse, hasHit, targetHit);
+        return true;
+    }
+
+    private void SpawnSkywardVisual(Vector2 from, Vector2 to, GameObject prefab, GameObject hitPrefab, AudioClip sound, bool hasHit, RaycastHit2D hitInfo)
+    {
+        if (sound != null)
+        {
+            AudioSource.PlayClipAtPoint(sound, to);
+        }
+
+        if (hasHit && hitPrefab != null)
+        {
+            Quaternion hRot = (hitInfo.collider != null && hitInfo.normal != Vector2.zero)
+                ? Quaternion.FromToRotation(Vector2.up, hitInfo.normal)
+                : Quaternion.identity;
+            Instantiate(hitPrefab, to, hRot);
+        }
+
+        if (prefab != null)
+        {
+            GameObject go = Instantiate(prefab, from, Quaternion.identity);
+
+            if (go.TryGetComponent<GoatLaserBeam>(out var beam))
+            {
+                beam.Setup(from, to, Vector2.down, hitInfo);
+                return;
+            }
+
+            var lr = go.GetComponentInChildren<LineRenderer>();
+            if (lr != null)
+            {
+                lr.useWorldSpace = true;
+                lr.positionCount = 2;
+                lr.SetPosition(0, from);
+                lr.SetPosition(1, to);
+                Destroy(go, skywardDisplaySeconds);
+                return;
+            }
+
+            var sr = go.GetComponentInChildren<SpriteRenderer>();
+            if (sr != null)
+            {
+                float dist = Vector2.Distance(from, to);
+                go.transform.position = (from + to) * 0.5f;
+                go.transform.rotation = Quaternion.Euler(0, 0, -90f);
+
+                if (sr.drawMode == SpriteDrawMode.Tiled || sr.drawMode == SpriteDrawMode.Sliced)
+                {
+                    sr.size = new Vector2(dist, sr.size.y);
+                }
+                else
+                {
+                    float spriteWidth = (sr.sprite != null && sr.sprite.rect.width > 0f)
+                        ? sr.sprite.rect.width / sr.sprite.pixelsPerUnit
+                        : 1f;
+                    Vector3 s = go.transform.localScale;
+                    s.x = dist / Mathf.Max(0.01f, spriteWidth);
+                    go.transform.localScale = s;
+                }
+
+                Destroy(go, skywardDisplaySeconds);
+                return;
+            }
+
+            Destroy(go, skywardDisplaySeconds);
+        }
+        else
+        {
+            DrawProceduralSkywardLaser(from, to);
+        }
+    }
+
+    private void DrawProceduralSkywardLaser(Vector2 from, Vector2 to)
+    {
+        GameObject go = new GameObject("SkywardLaserProcedural");
+        var lr = go.AddComponent<LineRenderer>();
+        lr.positionCount = 2;
+        lr.SetPosition(0, from);
+        lr.SetPosition(1, to);
+        lr.startWidth = lr.endWidth = skywardLaserWidth;
+        lr.material = new Material(Shader.Find("Sprites/Default"));
+        lr.startColor = lr.endColor = skywardLaserColor;
+        lr.sortingOrder = 50;
+        Destroy(go, skywardDisplaySeconds);
+    }
+
+    private Vector2 FindSkywardTarget(Vector2 aimDir)
+    {
+        // 1. ค้นหากล่องในระยะ
+        PushableBox bestBox = null;
+        float bestBoxDist = float.MaxValue;
+        foreach (var box in FindObjectsByType<PushableBox>())
+        {
+            if (box == null || box.IsBroken) continue;
+            float d = Vector2.Distance(rb.position, box.transform.position);
+            if (d <= skywardAutoSearchRadius && d < bestBoxDist)
+            {
+                bestBoxDist = d;
+                bestBox = box;
+            }
+        }
+        if (bestBox != null) return bestBox.transform.position;
+
+        // 2. ค้นหาสวิตช์ที่ยังไม่เปิด
+        FloorSwitch bestSwitch = null;
+        float bestSwitchDist = float.MaxValue;
+        foreach (var sw in FindObjectsByType<FloorSwitch>())
+        {
+            if (sw == null || sw.IsActive) continue;
+            float d = Vector2.Distance(rb.position, sw.transform.position);
+            if (d <= skywardAutoSearchRadius && d < bestSwitchDist)
+            {
+                bestSwitchDist = d;
+                bestSwitch = sw;
+            }
+        }
+        if (bestSwitch != null) return bestSwitch.transform.position;
+
+        // 3. ค้นหาประตูไม้ที่ยังไม่พัง
+        Door bestDoor = null;
+        float bestDoorDist = float.MaxValue;
+        foreach (var door in FindObjectsByType<Door>())
+        {
+            if (door == null || !door.IsBreakable || door.IsBroken) continue;
+            float d = Vector2.Distance(rb.position, door.transform.position);
+            if (d <= skywardAutoSearchRadius && d < bestDoorDist)
+            {
+                bestDoorDist = d;
+                bestDoor = door;
+            }
+        }
+        if (bestDoor != null) return bestDoor.transform.position;
+
+        // 4. ถ้าไม่พบเป้าหมาย ให้เสกลงมาข้างหน้า
+        return rb.position + aimDir * 6f;
+    }
+
+    private void EnsureSkywardLaserPrefab()
+    {
+        if (skywardLaserPrefab == null)
+        {
+#if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("Laser Skyward t:Prefab");
+            if (guids != null && guids.Length > 0)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                skywardLaserPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+#endif
+        }
     }
     #endregion
 
