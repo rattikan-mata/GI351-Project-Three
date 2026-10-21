@@ -100,6 +100,9 @@ public class PusherAnimal : TestAnimal
         Vector2 dir = ToVector(pushDirection);
         if (comboMode != GoatMode.Push)
         {
+            // Skyward (เลเซอร์): ยิงไปตามแกน X ของแมวที่หมุนไว้ (Rotation Z) ถ้ากลับด้านด้วย Scale X ติดลบก็กลับทิศตาม
+            if (comboMode == GoatMode.Laser)
+                dir = ((Vector2)transform.right * Mathf.Sign(transform.lossyScale.x)).normalized;
             yield return ComboAutoRoutine(dir);
             yield break;
         }
@@ -213,6 +216,7 @@ public class PusherAnimal : TestAnimal
         }
         dir.Normalize();
         FacingDirection = dir;
+        FaceDirection(dir); // ผลักไปทางไหนก็หันไปทางนั้น (ไม่ใช่ทางที่เดินมาตอนไปยืนหลังกล่อง)
 
         PushableBox box = FindBoxInFront(dir);
         if (box == null) return false; // ไม่มีกล่องให้ดัน ไม่เริ่ม cooldown
@@ -269,8 +273,7 @@ public class PusherAnimal : TestAnimal
         if (ceilingState == CeilingState.OnCeiling && spriteRenderer != null)
         {
             spriteRenderer.flipY = true;
-            bool goingLeft = ceilingWalkDir < 0f;
-            spriteRenderer.flipX = spriteFacesRight ? goingLeft : !goingLeft;
+            FaceHorizontal(ceilingWalkDir < 0f);
         }
     }
 
@@ -386,6 +389,7 @@ public class PusherAnimal : TestAnimal
     private bool PerformComboAbility(Vector2 dir)
     {
         FacingDirection = dir;
+        if (comboMode == GoatMode.Laser) FaceDirection(dir); // เลเซอร์ยิงไปทางไหนก็หันไปทางนั้น
 
         switch (comboMode)
         {

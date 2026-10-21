@@ -538,8 +538,7 @@ public class FlyingAnimal : TestAnimal
         // หันหน้าซ้าย-ขวาตามทิศทางการเด้ง
         if (isBouncing && spriteRenderer != null && Mathf.Abs(FacingDirection.x) > 0.01f)
         {
-            bool goingLeft = FacingDirection.x < 0f;
-            spriteRenderer.flipX = spriteFacesRight ? goingLeft : !goingLeft;
+            FaceHorizontal(FacingDirection.x < 0f);
         }
     }
 
