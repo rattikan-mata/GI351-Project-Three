@@ -40,6 +40,13 @@ public class Door : MonoBehaviour
     [SerializeField] private bool disableColliderWhenOpen = true;
     #endregion
 
+    #region Support Boxes
+    [Header("Support Boxes (กล่องที่ค้ำประตูไว้ไม่ให้ปิดลงมา)")]
+    [Tooltip("กล่องที่วางอยู่ใต้ประตู: ตอนประตูปิดลง จะหยุดค้างอยู่บนหัวกล่อง ตราบใดที่กล่องยังไม่พังและยังอยู่ใต้ประตู\n" +
+             "พอกล่องพัง (หรือถูกดันออกไป) ประตูจะปิดลงมาจนสุดจุดปิด")]
+    [SerializeField] private PushableBox[] supportBoxes;
+    #endregion
+
     #region Breakable
     [Header("Breakable Door (ประตูพังได้)")]
     [Tooltip("ติ๊กไว้ = ประตูนี้สามารถพังได้ (ไม่ว่าจะเป็นสวิตช์สั่ง หรือถูกชน)")]
@@ -105,7 +112,8 @@ public class Door : MonoBehaviour
 
         CachePositions();
         IsOpen = startsOpen;
-        transform.position = TargetPosition; // เริ่มที่จุดของสถานะเริ่มต้นเลย ไม่ต้องเลื่อน
+        Physics2D.SyncTransforms();
+        transform.position = ApplySupport(TargetPosition); // เริ่มที่จุดของสถานะเริ่มต้นเลย ไม่ต้องเลื่อน
         ApplyState();
     }
 
@@ -129,7 +137,7 @@ public class Door : MonoBehaviour
     {
         if (IsBroken) return;
 
-        Vector3 target = TargetPosition;
+        Vector3 target = ApplySupport(TargetPosition);
         if (transform.position != target)
         {
             transform.position = (slideSpeed > 0f)
@@ -158,6 +166,34 @@ public class Door : MonoBehaviour
 
     #region Positions
     private Vector3 TargetPosition => IsOpen ? openPos : closedPos;
+
+    /// <summary>
+    /// ถ้าประตูกำลังปิดลง และมีกล่องค้ำอยู่ใต้ประตู (ยังไม่พัง และทับซ้อนกับประตูในแนวนอน)
+    /// ให้หยุดประตูไว้ที่หัวกล่อง แทนที่จะลงไปถึงจุดปิด
+    /// </summary>
+    private Vector3 ApplySupport(Vector3 target)
+    {
+        if (IsOpen || supportBoxes == null || supportBoxes.Length == 0) return target;
+        if (blockingCollider == null || !blockingCollider.enabled) return target;
+
+        Bounds door = blockingCollider.bounds;
+        float bottomOffset = transform.position.y - door.min.y; // ระยะจากจุดกึ่งกลางประตูถึงขอบล่าง
+        float holdY = float.NegativeInfinity;
+
+        foreach (var box in supportBoxes)
+        {
+            if (box == null || box.IsBroken || !box.gameObject.activeInHierarchy) continue;
+            var boxCol = box.GetComponent<Collider2D>();
+            if (boxCol == null || !boxCol.enabled) continue;
+
+            Bounds b = boxCol.bounds;
+            if (b.min.x >= door.max.x || b.max.x <= door.min.x) continue; // ไม่ได้อยู่ใต้ประตู
+            holdY = Mathf.Max(holdY, b.max.y + bottomOffset);
+        }
+
+        if (holdY > target.y) target.y = holdY;
+        return target;
+    }
 
     /// <summary>อ่านตำแหน่งจุดปิด/จุดเปิดเก็บไว้ครั้งเดียว (กันจุดที่เป็นลูกของประตูเลื่อนตามประตูไปด้วย)</summary>
     private void CachePositions()

@@ -2332,6 +2332,14 @@ PrefabInstance:
       propertyPath: switches.Array.size
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 575727271890621168, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: supportBoxes.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 575727271890621168, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: 'supportBoxes.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2070437706}
     - target: {fileID: 7114030222196000817, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
       propertyPath: m_Name
       value: Door_Steel 1
@@ -4232,6 +4240,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6506029453306674860, guid: 23eaacf6a06feb94eb342e6738815037, type: 3}
   m_PrefabInstance: {fileID: 1306409749}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2070437706 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4978304402180210101, guid: 23eaacf6a06feb94eb342e6738815037, type: 3}
+  m_PrefabInstance: {fileID: 1306409749}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 624b13562ce62924e8db0091ecf9141d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PushableBox
 --- !u!1001 &436789490442212074
 PrefabInstance:
   m_ObjectHideFlags: 0
