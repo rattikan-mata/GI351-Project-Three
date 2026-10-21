@@ -308,6 +308,15 @@ namespace PotionSystem
                                 break;
                             }
 
+                            // สัตว์ใช้ความสามารถเสร็จแล้วและหยุดนิ่ง (เช่น Strong cat ได้ยา Havoc ทุบของแล้วหยุด ไม่ได้ไปกดสวิตช์)
+                            // ไม่ต้องรอสวิตช์จนครบ Stage Timeout ให้ส่งยาขั้นต่อไปได้เลย
+                            var shotAnimal = dropper.TargetAnimal;
+                            if (!dropper.IsDispensing && shotAnimal != null && !shotAnimal.IsAutoRunning && !shotAnimal.IsMoving)
+                            {
+                                Debug.Log($"[PotionStagingManager] {shotAnimal.name} ทำงานเสร็จและหยุดนิ่งแล้ว ปลดล็อคขั้นตอนถัดไปโดยไม่รอสวิตช์");
+                                break;
+                            }
+
                             timer += Time.deltaTime;
                             yield return null;
                         }

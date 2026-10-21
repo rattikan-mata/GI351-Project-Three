@@ -34,6 +34,10 @@ namespace PotionSystem
         [Tooltip("SpriteRenderer ที่ใช้แสดงรูปยา ว่างไว้ = สร้างลูก (child) ชื่อ PotionIcon ให้เองอัตโนมัติ")]
         [SerializeField] private SpriteRenderer iconRenderer;
 
+        [Tooltip("ลำดับการวาด (Order in Layer) ของรูปยาที่สร้างให้อัตโนมัติ ต้องมากกว่า Sorting Order ของ Canvas ถึงจะอยู่หน้า Canvas\n" +
+                 "(Canvas Leyer 1 ใน Stage 1 = 3) ไม่มีผลถ้าใส่ Icon Renderer เอง")]
+        [SerializeField] private int iconSortingOrder = 10;
+
         [Tooltip("ขนาดของขวดยาตอนอยู่ในช่องนี้ (1 = ขนาดปกติ, 0.5 = เล็กลงครึ่งหนึ่ง) ไม่กระทบขนาดตอนลาก และไม่กระทบพื้นที่คลิก")]
         [SerializeField, Range(0.1f, 2f)] private float storedPotionScale = 1f;
 
@@ -73,7 +77,7 @@ namespace PotionSystem
                 iconGo.transform.SetParent(transform, false);
                 iconRenderer = iconGo.AddComponent<SpriteRenderer>();
                 iconRenderer.sortingLayerID = frameRenderer.sortingLayerID;
-                iconRenderer.sortingOrder = frameRenderer.sortingOrder + 1;
+                iconRenderer.sortingOrder = Mathf.Max(iconSortingOrder, frameRenderer.sortingOrder + 1);
             }
 
             GetComponent<BoxCollider2D>().isTrigger = true;

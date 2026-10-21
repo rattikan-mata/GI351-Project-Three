@@ -64,8 +64,69 @@ namespace PotionSystem
         [SerializeField, Min(0.01f)] private float materialIconScale = 0.5f;
         [SerializeField, Min(0.1f)] private float slideSpeed = 12f;
         [SerializeField] private int sortingOrder = 5;
-        [Tooltip("(ไม่บังคับ) รูปพื้นหลังถาด ว่างไว้ = สี่เหลี่ยมเรียบ")]
+        [Tooltip("(ไม่บังคับ) รูปพื้นหลังถาด ว่างไว้ = สี่เหลี่ยมเรียบ (ใช้เมื่อสูตรนั้นไม่มีรูปใน Tray Sprites By Kind)")]
         [SerializeField] private Sprite traySprite;
+
+        [Serializable]
+        public class TraySpriteEntry
+        {
+            public PotionKind kind;
+            public Sprite sprite;
+        }
+
+        [Header("Tray Art: รูปถาดตามชนิดยาที่สูตรทำออกมา")]
+        [Tooltip("ถาดของสูตรที่ทำยาชนิดนี้ จะใช้รูปนี้ (เปลี่ยนตามสูตรทุกครั้งที่ถาดสุ่มสูตรใหม่) รูปจะคงสัดส่วน โดยกว้างเท่า Tray Size X")]
+        [SerializeField] private List<TraySpriteEntry> traySprites = new List<TraySpriteEntry>();
+
+        [Tooltip("ระยะห่างระหว่างไอคอนวัตถุดิบ 3 ชิ้น เป็นสัดส่วนของความกว้างถาด (ใช้กับรูปใน Tray Sprites By Kind)")]
+        [SerializeField, Range(0.05f, 0.5f)] private float iconSpacingRatio = 0.26f;
+        [Tooltip("ขยับกลุ่มไอคอนจากกึ่งกลางถาด เป็นสัดส่วนของขนาดถาด (x: ซ้าย-ขวา, y: ขึ้น-ลง)")]
+        [SerializeField] private Vector2 iconOffsetRatio = new Vector2(-0.08f, 0.55f);
+        [Tooltip("ไอคอนวัตถุดิบอยู่หลังรูปถาด และถูกตัดด้วย Sprite Mask ให้เห็นเฉพาะในกรอบที่กว้างเท่าตัวถาด ก้นกรอบตรงก้นถาด\n" +
+                 "ค่านี้คือความสูงของกรอบส่วนที่เลยขอบบนถาดขึ้นไป เป็นสัดส่วนของความสูงถาด (ไอคอนโผล่พ้นถาดได้เท่านี้)")]
+        [SerializeField, Min(0f)] private float iconVisibleAboveRatio = 1f;
+
+        [Header("Aura: ออร่าเรืองหลังชุดยา")]
+        [Tooltip("ออร่าหลังถาดของสูตรที่ทำยาผสม (Skyward / Havoc / Surge) ว่าง = ไม่มีออร่า")]
+        [SerializeField] private Sprite auraComboSprite;
+        [Tooltip("ออร่าหลังถาดของสูตรที่ทำยาพื้นฐาน (Red / Blue / Green) ว่าง = ไม่มีออร่า")]
+        [SerializeField] private Sprite auraBasicSprite;
+        [Tooltip("ความกว้างของออร่า เป็นสัดส่วนของความกว้างถาด")]
+        [SerializeField, Min(0.1f)] private float auraWidthRatio = 1.4f;
+        [Tooltip("ขยับออร่าจากกึ่งกลางถาด เป็นสัดส่วนของขนาดถาด (x: ซ้าย-ขวา, y: ขึ้น-ลง)")]
+        [SerializeField] private Vector2 auraOffsetRatio = new Vector2(0f, 0.3f);
+
+        public float AuraWidthRatio => auraWidthRatio;
+        public Vector2 AuraOffsetRatio => auraOffsetRatio;
+
+        /// <summary>ออร่าของสูตรนี้ (ยาผสม = ออร่าสีฟ้า / ยาพื้นฐาน = ออร่าสีเทา) คืน null ถ้าไม่ได้ตั้งไว้</summary>
+        public Sprite GetAuraSprite(PotionBlueprint blueprint)
+        {
+            if (blueprint == null || blueprint.ResultPotion == null) return null;
+            switch (blueprint.ResultPotion.Kind)
+            {
+                case PotionKind.Skyward:
+                case PotionKind.Havoc:
+                case PotionKind.Surge:
+                    return auraComboSprite;
+                default:
+                    return auraBasicSprite;
+            }
+        }
+
+        public float IconSpacingRatio => iconSpacingRatio;
+        public Vector2 IconOffsetRatio => iconOffsetRatio;
+        public float IconVisibleAboveRatio => iconVisibleAboveRatio;
+
+        /// <summary>รูปถาดของสูตรนี้ (ตามชนิดยาที่ได้) คืน null ถ้าไม่ได้ตั้งไว้</summary>
+        public Sprite GetTraySprite(PotionBlueprint blueprint)
+        {
+            if (blueprint == null || blueprint.ResultPotion == null) return null;
+            var kind = blueprint.ResultPotion.Kind;
+            foreach (var e in traySprites)
+                if (e != null && e.kind == kind && e.sprite != null) return e.sprite;
+            return null;
+        }
 
         private System.Random rng;
         private readonly List<IngredientTray2D> row = new List<IngredientTray2D>();

@@ -29,17 +29,31 @@ public class FlyingAnimal : TestAnimal
     #endregion
 
     #region Combo Settings
-    [Header("Skyward (เขียว+ฟ้า) & Havoc (เขียว+ส้ม): เด้งสะท้อนแล้วบินไปหยุดที่จุดเป้าหมาย")]
-    [Tooltip("จำนวนครั้งที่เด้งก่อนบินไปจุดเป้าหมาย")]
-    [SerializeField] private int dizzyBounces = 6;
+    [Header("Skyward & Havoc: จุดรีเซ็ท & จุดเป้าหมาย")]
+    [Tooltip("จุดรีเซ็ทกลางทาง 1: เมื่อสุ่มเด้งเกิน (2-3 ครั้ง) แล้วยังไม่ถึงเป้าหมาย จะเด้งกลับมาเริ่มที่จุดนี้")]
+    [SerializeField] private Transform midwayResetPoint;
 
     [FormerlySerializedAs("teleportTarget")]
-    [Tooltip("จุดเป้าหมายที่จะให้บินไปหยุดหลังเด้งครบจำนวน (Skyward / Havoc)")]
+    [Tooltip("จุดเป้าหมาย 1: จุดที่ต้องการให้เด้งไปให้ถึง เมื่อถึงแล้วจะปล่อยให้เด้งอิสระ")]
     [SerializeField] private Transform targetDestination;
 
     [Tooltip("(ไม่บังคับ) จุดเป้าหมายแยกเฉพาะสำหรับ Skyward ถ้าไม่ใส่จะใช้ targetDestination ร่วมกัน")]
     [SerializeField] private Transform skywardDestination;
 
+    [Tooltip("จำนวนครั้งเด้งขั้นต่ำก่อนรีเซ็ทกลับจุดกลางทาง")]
+    [SerializeField] private int minBouncesBeforeReset = 2;
+
+    [Tooltip("จำนวนครั้งเด้งสูงสุดก่อนรีเซ็ทกลับจุดกลางทาง")]
+    [SerializeField] private int maxBouncesBeforeReset = 3;
+
+    [Header("Free Bounce (เด้งอิสระหลังทำเป้าหมายเสร็จ)")]
+    [Tooltip("ระยะเวลาเด้งอิสระหลังทำเป้าหมายสำเร็จ (วินาที)")]
+    [SerializeField] private float freeBounceDuration = 8f;
+
+    [Tooltip("จำนวนครั้งที่เด้งอิสระหลังทำเป้าหมายสำเร็จ (0 = เด้งตามเวลา freeBounceDuration)")]
+    [SerializeField] private int freeBounces = 10;
+
+    [SerializeField, HideInInspector] private int dizzyBounces = 6;
     [SerializeField, HideInInspector] private float zigzagStep = 1.5f;
     [SerializeField, HideInInspector] private float zigzagAmplitude = 1.2f;
     [SerializeField, HideInInspector] private int zigzagMaxLegs = 20;
@@ -138,102 +152,105 @@ public class FlyingAnimal : TestAnimal
         if (isFlying) Land();
     }
 
-    /// <summary>บินพุ่งไปข้างหน้าและเด้งสะท้อนกำแพงซ้าย-ขวาเหมือนกระจกทันที เพิ่มความเร็วทุกครั้งที่เด้ง และเมื่อครบจะวาร์ป (TP) หรือเด้งต่อ</summary>
+    /// <summary>บินและเด้งสะท้อนกำแพง โดยมีจุดรีเซ็ทกลางทาง สุ่มทิศและสุ่มเด้ง 2-3 ครั้ง หากไม่ถึงเป้าหมายจะเด้งกลับมารีเซ็ท เมื่อถึงเป้าหมายจะปล่อยเด้งอิสระ</summary>
     private IEnumerator BounceRoutine(int bounceCount, bool allowTeleportAfter, Vector2? customDestination = null)
     {
         isBouncing = true;
         TakeOff();
         flyEndTime = float.MaxValue;
-
-        // กำหนดทิศทางเริ่มต้น: ให้พุ่งไปแนวนอน (ซ้าย-ขวา) เป็นหลัก
-        float dirX = 0f;
-        if (customDestination.HasValue)
-        {
-            dirX = customDestination.Value.x - rb.position.x;
-        }
-        if (Mathf.Abs(dirX) < 0.1f)
-        {
-            dirX = ToVector(flyDirection).x;
-        }
-        if (Mathf.Abs(dirX) < 0.1f)
-        {
-            dirX = FacingDirection.x;
-        }
-        if (Mathf.Abs(dirX) < 0.1f)
-        {
-            dirX = 1f; // ถ้าเป็น 0 หรือตั้งตรง ให้พุ่งไปทางขวาเป็นค่าเริ่มต้น
-        }
-
-        currentBounceDir = new Vector2(Mathf.Sign(dirX), 0f);
-        FacingDirection = currentBounceDir;
+        StopMoving();
 
         wallBouncedCount = 0;
-        StopMoving(); // หยุดระบบเดินปกติของ TestAnimal เพราะตอนเด้งจะคุม Rigidbody โดยตรงใน FixedUpdate
-
-        float speed = moveSpeed * SpeedMultiplier;
-        rb.linearVelocity = new Vector2(currentBounceDir.x * speed, 0f) + ConveyorVelocity;
-
-        // บินสะท้อนกำแพงไปเรื่อยๆ จนครบจำนวนครั้งที่กำหนด
-        while (bounceCount <= 0 || wallBouncedCount < bounceCount)
-        {
-            yield return null;
-        }
-
-        isBouncing = false;
-        rb.linearVelocity = Vector2.zero;
+        attemptBounceCount = 0;
+        freeBounceCount = 0;
+        freeBounceTimer = 0f;
 
         Transform destTransform = (lastDrunkPotion == PotionType.Skyward && skywardDestination != null)
             ? skywardDestination
             : targetDestination;
 
-        Vector3? targetPos = null;
-        if (destTransform != null)
+        if (midwayResetPoint != null)
         {
-            targetPos = destTransform.position;
-        }
-        else if (customDestination.HasValue)
-        {
-            targetPos = customDestination.Value;
-        }
-
-        if (targetPos.HasValue)
-        {
-            // บินพุ่งตรงไปยังจุดเป้าหมายที่กำหนด (แบบไม่ TP)
-            Vector2 dest = targetPos.Value;
-            float timeout = 4f;
-            float elapsed = 0f;
-
-            while (Vector2.Distance(rb.position, dest) > stopDistance && elapsed < timeout)
+            float distToReset = Vector2.Distance(rb.position, midwayResetPoint.position);
+            if (distToReset <= 0.6f)
             {
-                elapsed += Time.deltaTime;
-                Vector2 dirToTarget = (dest - rb.position).normalized;
-                FacingDirection = dirToTarget;
-
-                float travelSpeed = Mathf.Max(moveSpeed * flySpeedMultiplier, moveSpeed * SpeedMultiplier);
-                rb.linearVelocity = dirToTarget * travelSpeed + ConveyorVelocity;
-
-                if (spriteRenderer != null && Mathf.Abs(dirToTarget.x) > 0.01f)
-                {
-                    bool goingLeft = dirToTarget.x < 0f;
-                    spriteRenderer.flipX = spriteFacesRight ? goingLeft : !goingLeft;
-                }
-
-                yield return null;
+                SetupResetPointLaunch();
             }
-
-            // ถึงจุดหมายแล้ว: หยุดนิ่งและลงพื้น
-            rb.position = dest;
-            StopMoving();
-            rb.linearVelocity = Vector2.zero;
-            if (isFlying) Land();
+            else
+            {
+                bounceStage = BounceStage.MovingToReset;
+                currentBounceDir = ((Vector2)midwayResetPoint.position - rb.position).normalized;
+                FacingDirection = currentBounceDir;
+                float speed = moveSpeed * SpeedMultiplier;
+                rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+            }
         }
         else
         {
-            // ถ้าไม่ได้กำหนดจุดเป้าหมาย ให้หยุดตรงจุดที่เด้งเสร็จและลงพื้น
-            StopMoving();
-            rb.linearVelocity = Vector2.zero;
-            if (isFlying) Land();
+            SetupResetPointLaunch();
         }
+
+        // ปล่อยให้ FixedUpdate จัดการทุกสเตจจนเสร็จสิ้น
+        while (isBouncing)
+        {
+            yield return null;
+        }
+
+        isBouncing = false;
+        StopMoving();
+        rb.linearVelocity = Vector2.zero;
+        if (isFlying) Land();
+    }
+
+    /// <summary>สุ่มทิศทางและสุ่มจำนวนครั้งที่เด้งได้ (2-3 ครั้ง) จากจุดรีเซ็ทกลางทาง</summary>
+    private void SetupResetPointLaunch()
+    {
+        if (midwayResetPoint != null)
+        {
+            rb.position = midwayResetPoint.position;
+        }
+
+        attemptBounceCount = 0;
+        allowedBouncesThisAttempt = Random.Range(minBouncesBeforeReset, maxBouncesBeforeReset + 1);
+
+        Transform destTransform = (lastDrunkPotion == PotionType.Skyward && skywardDestination != null)
+            ? skywardDestination
+            : targetDestination;
+
+        Vector2 toTarget;
+        if (destTransform != null)
+        {
+            toTarget = (Vector2)destTransform.position - rb.position;
+        }
+        else
+        {
+            toTarget = ToVector(flyDirection);
+        }
+
+        if (toTarget.sqrMagnitude < 0.0001f)
+        {
+            toTarget = Vector2.up;
+        }
+
+        // สุ่มมุมกระจายตัวจากทิศทางมุ่งหน้าไปหาเป้าหมาย (กระจายซ้าย-ขวา ±65 องศา)
+        float baseAngle = Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg;
+        float randomOffset = Random.Range(-65f, 65f);
+        if (Mathf.Abs(randomOffset) < 15f)
+        {
+            randomOffset = Mathf.Sign(randomOffset != 0 ? randomOffset : (Random.value - 0.5f)) * 25f;
+        }
+
+        float launchAngle = (baseAngle + randomOffset) * Mathf.Deg2Rad;
+        Vector2 launchDir = new Vector2(Mathf.Cos(launchAngle), Mathf.Sin(launchAngle)).normalized;
+
+        currentBounceDir = launchDir;
+        FacingDirection = launchDir;
+        bounceStage = BounceStage.BouncingToTarget;
+
+        float speed = moveSpeed * SpeedMultiplier;
+        rb.linearVelocity = launchDir * speed + ConveyorVelocity;
+
+        Debug.Log($"[{animalName}] ออกตัวจากจุดรีเซ็ท: สุ่มทิศ {launchDir}, กำหนดเด้งได้ {allowedBouncesThisAttempt} ครั้ง");
     }
 
     /// <summary>พุ่งชนไปข้างหน้าด้วยความเร็วสูง กล่อง/ประตูที่พังได้จะแตก</summary>
@@ -260,26 +277,53 @@ public class FlyingAnimal : TestAnimal
         ramTarget = null;
     }
 
-    /// <summary>ฟังก์ชันสะท้อนออกจากกำแพงซ้าย-ขวาทันทีแบบกระจก (ไม่ติดการเด้งบนล่าง)</summary>
-    private void ReflectHorizontal(float normalX)
+    /// <summary>ฟังก์ชันสะท้อนออกจากกำแพงทันทีแบบกระจก (รองรับทุกมุมกำแพง)</summary>
+    private void OnBounceHit(Vector2 normal)
     {
-        float signNormal = Mathf.Sign(normalX);
+        if (normal.sqrMagnitude < 0.0001f) return;
+        normal.Normalize();
 
         // ตรวจสอบว่าทิศทางกำลังพุ่งเข้าหากำแพงจริงถึงจะสะท้อน (ป้องกันการสะท้อนซ้ำ)
-        if (currentBounceDir.x * signNormal < 0f)
+        if (Vector2.Dot(currentBounceDir, normal) < 0f)
         {
-            currentBounceDir = new Vector2(signNormal, 0f);
+            currentBounceDir = Vector2.Reflect(currentBounceDir, normal).normalized;
             FacingDirection = currentBounceDir;
+
+            // ดันตัวออกจากกำแพงเล็กน้อยเพื่อไม่ให้ Collider ฝังในกำแพง
+            rb.position += normal * 0.05f;
+
+            float speed = moveSpeed * SpeedMultiplier;
+            rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
 
             OnBounce();
             wallBouncedCount++;
 
-            // ดันตัวออกจากกำแพงเล็กน้อยเพื่อไม่ให้ Collider ฝังในกำแพง
-            rb.position = new Vector2(rb.position.x + signNormal * 0.05f, rb.position.y);
+            if (bounceStage == BounceStage.BouncingToTarget)
+            {
+                attemptBounceCount++;
+                Debug.Log($"[{animalName}] เด้งครั้งที่ {attemptBounceCount}/{allowedBouncesThisAttempt}");
 
-            float speed = moveSpeed * SpeedMultiplier;
-            rb.linearVelocity = new Vector2(currentBounceDir.x * speed, 0f) + ConveyorVelocity;
+                // ถ้าเด้งเกิน (สุ่ม 2-3 ครั้ง) แล้วยังไม่ถึงเป้าหมาย -> เด้งกลับมาที่จุดรีเซ็ท
+                if (attemptBounceCount >= allowedBouncesThisAttempt && midwayResetPoint != null)
+                {
+                    Debug.Log($"[{animalName}] เด้งเกินกำหนด ({allowedBouncesThisAttempt} ครั้ง) แล้วยังไม่ถึงเป้าหมาย -> เด้งกลับจุดรีเซ็ท");
+                    bounceStage = BounceStage.ReturningToReset;
+                    Vector2 toReset = ((Vector2)midwayResetPoint.position - rb.position).normalized;
+                    currentBounceDir = toReset;
+                    FacingDirection = currentBounceDir;
+                    rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+                }
+            }
+            else if (bounceStage == BounceStage.FreeBouncing)
+            {
+                freeBounceCount++;
+            }
         }
+    }
+
+    private void ReflectHorizontal(float normalX)
+    {
+        OnBounceHit(new Vector2(normalX, 0f));
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -304,7 +348,7 @@ public class FlyingAnimal : TestAnimal
             return;
         }
 
-        // โหมดเด้ง (Havoc): ชนกำแพงซ้าย-ขวาแล้วเด้งสะท้อนกลับทันที (ไม่สะท้อนบนล่าง)
+        // โหมดเด้ง: ชนกำแพงแล้วสะท้อนทันทีแบบกระจก
         if (isFlying && isBouncing)
         {
             Vector2 normal = Vector2.zero;
@@ -314,9 +358,9 @@ public class FlyingAnimal : TestAnimal
                 for (int i = 0; i < count; i++) normal += collision.contacts[i].normal;
                 normal.Normalize();
             }
-            if (Mathf.Abs(normal.x) > 0.3f)
+            if (normal.sqrMagnitude > 0.01f)
             {
-                ReflectHorizontal(normal.x);
+                OnBounceHit(normal);
             }
             return;
         }
@@ -341,9 +385,9 @@ public class FlyingAnimal : TestAnimal
                 for (int i = 0; i < count; i++) normal += collision.contacts[i].normal;
                 normal.Normalize();
             }
-            if (Mathf.Abs(normal.x) > 0.3f)
+            if (normal.sqrMagnitude > 0.01f)
             {
-                ReflectHorizontal(normal.x);
+                OnBounceHit(normal);
             }
         }
     }
@@ -362,10 +406,23 @@ public class FlyingAnimal : TestAnimal
     #endregion
 
     #region State
+    private enum BounceStage
+    {
+        MovingToReset,    // เดินทางไปจุดรีเซ็ทกลางทาง
+        BouncingToTarget, // สุ่มทิศจากจุดรีเซ็ท เด้งกำแพง (สุ่ม 2-3 ครั้ง) เพื่อพยายามไปให้ถึงเป้าหมาย
+        ReturningToReset, // เด้งเกิน 2-3 ครั้งแล้วยังไม่ถึงเป้าหมาย -> เด้งกลับมาที่จุดรีเซ็ท
+        FreeBouncing      // ทำเป้าหมายเสร็จแล้ว -> เด้งอิสระ
+    }
+
     private FlyMode mode = FlyMode.Normal;
     private PotionType lastDrunkPotion = PotionType.None;
     private bool isFlying = false;
     private bool isBouncing = false;
+    private BounceStage bounceStage = BounceStage.BouncingToTarget;
+    private int attemptBounceCount = 0;
+    private int allowedBouncesThisAttempt = 3;
+    private int freeBounceCount = 0;
+    private float freeBounceTimer = 0f;
     private Vector2 currentBounceDir;
     private int wallBouncedCount = 0;
     private Coroutine activeBounceRoutine;
@@ -479,10 +536,9 @@ public class FlyingAnimal : TestAnimal
         }
 
         // หันหน้าซ้าย-ขวาตามทิศทางการเด้ง
-        if (isBouncing && spriteRenderer != null && Mathf.Abs(currentBounceDir.x) > 0.01f)
+        if (isBouncing && spriteRenderer != null && Mathf.Abs(FacingDirection.x) > 0.01f)
         {
-            bool goingLeft = currentBounceDir.x < 0f;
-            spriteRenderer.flipX = spriteFacesRight ? goingLeft : !goingLeft;
+            FaceHorizontal(FacingDirection.x < 0f);
         }
     }
 
@@ -491,24 +547,123 @@ public class FlyingAnimal : TestAnimal
         if (isBouncing)
         {
             float speed = moveSpeed * SpeedMultiplier;
+            float step = speed * Time.fixedDeltaTime;
 
-            // ตรวจจับกำแพงซ้าย-ขวาล่วงหน้าแบบเรียลไทม์ด้วย CircleCast เพื่อสะท้อนออกทันที
+            Transform destTransform = (lastDrunkPotion == PotionType.Skyward && skywardDestination != null)
+                ? skywardDestination
+                : targetDestination;
+
+            // --- 1. สเตจ: เดินทางไปจุดรีเซ็ทกลางทาง (ถ้าเริ่มจากจุดอื่น) ---
+            if (bounceStage == BounceStage.MovingToReset)
+            {
+                if (midwayResetPoint != null)
+                {
+                    Vector2 toReset = (Vector2)midwayResetPoint.position - rb.position;
+                    if (toReset.magnitude <= Mathf.Max(stopDistance, 0.45f))
+                    {
+                        SetupResetPointLaunch();
+                        return;
+                    }
+                    currentBounceDir = toReset.normalized;
+                    FacingDirection = currentBounceDir;
+                    rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+                }
+                else
+                {
+                    SetupResetPointLaunch();
+                    return;
+                }
+            }
+
+            // --- 2. สเตจ: เด้งกลับมาจุดรีเซ็ทกลางทาง (เมื่อเด้งเกิน 2-3 ครั้ง) ---
+            else if (bounceStage == BounceStage.ReturningToReset)
+            {
+                if (midwayResetPoint != null)
+                {
+                    Vector2 toReset = (Vector2)midwayResetPoint.position - rb.position;
+                    if (toReset.magnitude <= Mathf.Max(stopDistance, 0.45f))
+                    {
+                        // ถึงจุดรีเซ็ทแล้ว -> สุ่มทิศใหม่และสุ่มจำนวนเด้ง 2-3 ครั้ง แล้วพุ่งตัวอีกรอบ
+                        SetupResetPointLaunch();
+                        return;
+                    }
+                    currentBounceDir = toReset.normalized;
+                    FacingDirection = currentBounceDir;
+                    rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+                }
+                else
+                {
+                    SetupResetPointLaunch();
+                    return;
+                }
+            }
+
+            // --- 3. สเตจ: กำลังเด้งพยายามไปให้ถึงเป้าหมาย ---
+            else if (bounceStage == BounceStage.BouncingToTarget)
+            {
+                // ตรวจสอบว่าถึงเป้าหมายหรือยัง
+                if (destTransform != null)
+                {
+                    float distToTarget = Vector2.Distance(rb.position, destTransform.position);
+                    float arrivalThreshold = Mathf.Max(stopDistance, step * 0.9f + 0.2f);
+
+                    if (distToTarget <= arrivalThreshold)
+                    {
+                        // ถึงเป้าหมายแล้ว! (พอทำเป้าหมายเสร็จ)
+                        Debug.Log($"[{animalName}] ถึงเป้าหมายสำเร็จแล้ว! ปล่อยให้เด้งอิสระ");
+
+                        // ถ้าเป้าหมายมี FloorSwitch ให้กดสวิตช์ด้วย
+                        FloorSwitch sw = destTransform.GetComponentInParent<FloorSwitch>();
+                        if (sw != null) sw.RemoteToggle();
+
+                        // เปลี่ยนสเตจเป็นเด้งอิสระ (FreeBouncing)
+                        bounceStage = BounceStage.FreeBouncing;
+                        freeBounceCount = 0;
+                        freeBounceTimer = 0f;
+                        if (currentBounceDir.sqrMagnitude < 0.01f) currentBounceDir = FacingDirection;
+                        rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+                        return;
+                    }
+                }
+
+                FacingDirection = currentBounceDir;
+                rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+            }
+
+            // --- 4. สเตจ: เด้งอิสระ (FreeBouncing) ---
+            else if (bounceStage == BounceStage.FreeBouncing)
+            {
+                freeBounceTimer += Time.fixedDeltaTime;
+
+                bool timeExpired = freeBounceDuration > 0f && freeBounceTimer >= freeBounceDuration;
+                bool bouncesExceeded = freeBounces > 0 && freeBounceCount >= freeBounces;
+
+                if (timeExpired || bouncesExceeded)
+                {
+                    Debug.Log($"[{animalName}] สิ้นสุดการเด้งอิสระ ลงจอดสู่พื้น");
+                    rb.linearVelocity = Vector2.zero;
+                    isBouncing = false;
+                    StopMoving();
+                    Land();
+                    return;
+                }
+
+                FacingDirection = currentBounceDir;
+                rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+            }
+
+            // ตรวจจับกำแพงล่วงหน้าแบบเรียลไทม์ด้วย CircleCast เพื่อสะท้อนออกทันทีแบบกระจก
             CircleCollider2D circle = bodyCollider as CircleCollider2D;
             float radius = circle != null ? circle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y) * 0.95f : 0.45f;
-            float castDist = speed * Time.fixedDeltaTime + 0.05f;
+            float castDist = step + 0.05f;
 
             RaycastHit2D hit = Physics2D.CircleCast(rb.position, radius, currentBounceDir, castDist, ~flyOverLayers);
             if (hit.collider != null && !hit.collider.isTrigger && hit.collider.gameObject != gameObject)
             {
-                if (Mathf.Abs(hit.normal.x) > 0.3f)
-                {
-                    ReflectHorizontal(hit.normal.x);
-                }
+                OnBounceHit(hit.normal);
+                return;
             }
-            else
-            {
-                rb.linearVelocity = new Vector2(currentBounceDir.x * speed, 0f) + ConveyorVelocity;
-            }
+
             return;
         }
 

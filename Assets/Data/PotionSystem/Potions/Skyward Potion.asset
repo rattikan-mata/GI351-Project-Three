@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Skyward Potion
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionData
   displayName: Skyward Potion
-  icon: {fileID: 21300000, guid: 617916d4ea55c934c803ed5b849e98f6, type: 3}
+  icon: {fileID: 21300000, guid: 4accf1b19de3e0e40b1c2deb89f7f2d6, type: 3}
   description: 
   kind: 3

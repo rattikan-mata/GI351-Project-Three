@@ -160,14 +160,19 @@ public abstract class TestAnimal : MonoBehaviour
         Debug.Log($"[{animalName}] ใช้ยา {potion} แล้ว");
 
         // --- เปลี่ยนร่างเป็นสไปรต์ใหม่หลังได้รับยา ---
-        if (spriteRenderer != null && poweredUpSprite != null)
+        Sprite customSprite = GetCustomPoweredUpSprite(potion);
+        Sprite targetSprite = (customSprite != null) ? customSprite : poweredUpSprite;
+        if (spriteRenderer != null && targetSprite != null)
         {
-            spriteRenderer.sprite = poweredUpSprite;
+            spriteRenderer.sprite = targetSprite;
         }
 
         TriggerAuto();
         return true;
     }
+
+    /// <summary>สไปรต์ร่างใหม่เฉพาะของแต่ละคลาสลูกเมื่อได้ยาแต่ละชนิด (เช่น แมวร่าง Skyward / แพะร่างทุบ) ถ้าคืนค่า null จะใช้ Powered Up Sprite ปกติ</summary>
+    protected virtual Sprite GetCustomPoweredUpSprite(PotionType potion) => null;
     #endregion
 
     #region Unity Lifecycle
@@ -201,9 +206,31 @@ public abstract class TestAnimal : MonoBehaviour
     {
         if (flipSpriteByDirection && spriteRenderer != null && hasTarget && Mathf.Abs(MoveDirection.x) > 0.01f)
         {
-            bool goingLeft = MoveDirection.x < 0f;
-            spriteRenderer.flipX = spriteFacesRight ? goingLeft : !goingLeft;
+            FaceHorizontal(MoveDirection.x < 0f);
         }
+    }
+
+    /// <summary>
+    /// หันสไปรต์ไปซ้าย/ขวาในโลก โดยคิดการหมุน/กลับด้านของ Transform ที่ตั้งไว้ใน Inspector ด้วย
+    /// (เช่น หมุน Y 180 ให้แมวหันซ้ายตั้งแต่ต้น ตอนเดินจะไม่กลับด้านซ้อนจนหันผิดทาง)
+    /// </summary>
+    protected void FaceHorizontal(bool faceLeft)
+    {
+        if (spriteRenderer == null) return;
+
+        // ทิศ X ของแกนแมวในโลก (หมุน Y 180 = -1) ถ้าแกนเกือบตั้งฉากกับแกน X ถือว่าไม่กลับด้าน
+        float axisX = transform.right.x * Mathf.Sign(transform.lossyScale.x);
+        bool mirrored = axisX < -0.01f;
+
+        // flipX = false แล้วสไปรต์หันไปทางขวาของโลกหรือไม่
+        bool artFacesWorldRight = spriteFacesRight != mirrored;
+        spriteRenderer.flipX = artFacesWorldRight == faceLeft;
+    }
+
+    /// <summary>หันตามทิศที่จะทำความสามารถ (ถ้าทิศนั้นไม่มีแกน X เช่น บน/ล่าง ก็คงทิศเดิมไว้)</summary>
+    protected void FaceDirection(Vector2 dir)
+    {
+        if (flipSpriteByDirection && Mathf.Abs(dir.x) > 0.01f) FaceHorizontal(dir.x < 0f);
     }
 
     private bool isExternalMotion = false;
