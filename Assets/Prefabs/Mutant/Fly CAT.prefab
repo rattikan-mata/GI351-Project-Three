@@ -193,9 +193,9 @@ MonoBehaviour:
   flyOverLayers:
     serializedVersion: 2
     m_Bits: 0
-  midwayResetPoint: {fileID: 0}
-  targetDestination: {fileID: 5137231243203932422}
   skywardDestination: {fileID: 0}
+  midwayResetPoint: {fileID: 1397718920035000280}
+  targetDestination: {fileID: 5137231243203932422}
   minBouncesBeforeReset: 2
   maxBouncesBeforeReset: 3
   freeBounceDuration: 8
@@ -212,6 +212,27 @@ MonoBehaviour:
   ramCollideLayers:
     serializedVersion: 2
     m_Bits: 0
+  havocDestination: {fileID: 0}
+  havocBouncesBeforeTeleport: 5
+  delayBeforeTeleport: 0.15
+  bounceAfterTeleport: 1
+  havocPostTeleportBounces: 10
+  havocPostTeleportBounceDuration: 8
+  triggerSwitchOnTeleport: 1
+  landAfterPostTeleport: 1
+  patrolLiftHeight: 0.5
+  patrolSpeed: 3.5
+  patrolPushSpeed: 3
+  patrolPushStep: 1
+  returnSpeed: 4
+  patrolStartDirection: 0
+  patrolObstacleLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  boxLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  strengthFormSprite: {fileID: 0}
   flyDirection: 2
   flyDistance: 50
   liftHeight: 1

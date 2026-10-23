@@ -97,6 +97,36 @@ public abstract class TestAnimal : MonoBehaviour
 
     /// <summary>ความเร็วจากสายพาน (ConveyorBelt ใส่ให้ แมวยังเดินเองได้พร้อมถูกพาไป)</summary>
     public Vector2 ConveyorVelocity { get; set; }
+
+    #region Gravity
+    [Header("Gravity (แรงโน้มถ่วง)")]
+    [Tooltip("เปิด/ปิดแรงโน้มถ่วงของสัตว์ (ค่าเริ่มต้น: เปิด)")]
+    [SerializeField] protected bool useGravity = true;
+    public bool UseGravity
+    {
+        get => useGravity;
+        set
+        {
+            useGravity = value;
+            UpdateGravityState();
+        }
+    }
+
+    [Tooltip("ตัวคูณแรงโน้มถ่วงเมื่ออยู่บนพื้น (ค่าปกติ 2.5)")]
+    [SerializeField] protected float gravityScale = 2.5f;
+    public float GravityScale
+    {
+        get => gravityScale;
+        set
+        {
+            gravityScale = value;
+            UpdateGravityState();
+        }
+    }
+
+    [Tooltip("ความเร็วตกสูงสุด กันสัตว์ทะลุพื้น")]
+    [SerializeField] protected float maxFallSpeed = 20f;
+    #endregion
     #endregion
 
     #region Selection Visual & Sprites
@@ -182,11 +212,12 @@ public abstract class TestAnimal : MonoBehaviour
     protected virtual void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        rb.gravityScale = 0f;
         rb.freezeRotation = true;
 
         // กัน Rigidbody หลับ (sleep) ตอนยืนนิ่ง ไม่งั้นสวิตช์จะไม่รู้ว่ายืนทับอยู่
         rb.sleepMode = RigidbodySleepMode2D.NeverSleep;
+
+        UpdateGravityState();
 
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
 
@@ -197,6 +228,20 @@ public abstract class TestAnimal : MonoBehaviour
         }
 
         if (selectionIndicator != null) selectionIndicator.SetActive(false);
+    }
+
+    /// <summary>อัปเดตสถานะแรงโน้มถ่วงของ Rigidbody2D ตามสถานะลอยตัว (IsAirborne) และการตั้งค่า</summary>
+    public virtual void UpdateGravityState()
+    {
+        if (rb == null) return;
+        if (IsAirborne || !useGravity)
+        {
+            rb.gravityScale = 0f;
+        }
+        else
+        {
+            rb.gravityScale = gravityScale;
+        }
     }
 
     protected virtual void Start()
@@ -243,36 +288,81 @@ public abstract class TestAnimal : MonoBehaviour
     {
         if (isExternalMotion) return;
 
+        UpdateGravityState();
+
         Vector2 walk = Vector2.zero;
 
         if (hasTarget)
         {
-            Vector2 toTarget = targetPosition - rb.position;
-            if (toTarget.magnitude <= stopDistance)
+            if (IsAirborne || !useGravity)
             {
-                StopMoving();
+                Vector2 toTarget = targetPosition - rb.position;
+                if (toTarget.magnitude <= stopDistance)
+                {
+                    StopMoving();
+                }
+                else
+                {
+                    MoveDirection = toTarget.normalized;
+                    FacingDirection = MoveDirection;
+                    walk = MoveDirection * moveSpeed * SpeedMultiplier;
+
+                    stuckTimer += Time.fixedDeltaTime;
+                    if (stuckTimer >= stuckTimeout)
+                    {
+                        if (Vector2.Distance(rb.position, stuckCheckPos) < stuckMinProgress)
+                            StopMoving();
+                        else
+                        {
+                            stuckTimer = 0f;
+                            stuckCheckPos = rb.position;
+                        }
+                    }
+                }
             }
             else
             {
-                MoveDirection = toTarget.normalized;
-                FacingDirection = MoveDirection;
-                walk = MoveDirection * moveSpeed * SpeedMultiplier;
-
-                stuckTimer += Time.fixedDeltaTime;
-                if (stuckTimer >= stuckTimeout)
+                // เมื่ออยู่บนพื้นและเปิด Gravity: เดินแนวนอน (แกน X) สู่เป้าหมาย ให้ฟิสิกส์ 2D/แรงโน้มถ่วงจัดการแกน Y ตามระดับพื้น
+                float dx = targetPosition.x - rb.position.x;
+                if (Mathf.Abs(dx) <= stopDistance)
                 {
-                    if (Vector2.Distance(rb.position, stuckCheckPos) < stuckMinProgress)
-                        StopMoving();
-                    else
+                    StopMoving();
+                }
+                else
+                {
+                    float dirX = Mathf.Sign(dx);
+                    MoveDirection = new Vector2(dirX, 0f);
+                    FacingDirection = MoveDirection;
+                    walk = new Vector2(dirX * moveSpeed * SpeedMultiplier, 0f);
+
+                    stuckTimer += Time.fixedDeltaTime;
+                    if (stuckTimer >= stuckTimeout)
                     {
-                        stuckTimer = 0f;
-                        stuckCheckPos = rb.position;
+                        if (Mathf.Abs(rb.position.x - stuckCheckPos.x) < stuckMinProgress)
+                            StopMoving();
+                        else
+                        {
+                            stuckTimer = 0f;
+                            stuckCheckPos = rb.position;
+                        }
                     }
                 }
             }
         }
 
-        rb.linearVelocity = walk + ConveyorVelocity;
+        if (IsAirborne || !useGravity)
+        {
+            rb.linearVelocity = walk + ConveyorVelocity;
+        }
+        else
+        {
+            float vy = rb.linearVelocity.y;
+            if (maxFallSpeed > 0f && vy < -maxFallSpeed)
+            {
+                vy = -maxFallSpeed;
+            }
+            rb.linearVelocity = new Vector2(walk.x + ConveyorVelocity.x, vy + ConveyorVelocity.y);
+        }
     }
     #endregion
 

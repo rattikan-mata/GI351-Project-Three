@@ -1401,6 +1401,37 @@ MonoBehaviour:
   targetSwitch: {fileID: 0}
   targetSwitches: []
   switchWaitTimeout: 8
+--- !u!1 &399825909
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 399825910}
+  m_Layer: 3
+  m_Name: TP Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &399825910
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 399825909}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 2.61, y: 0.68, z: 0}
+  m_LocalScale: {x: 0.86742, y: 0.86742, z: 0.86742}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1209318195}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &493476535
 GameObject:
   m_ObjectHideFlags: 0
@@ -1503,13 +1534,21 @@ PrefabInstance:
       value: 2.331256
       objectReference: {fileID: 0}
     - target: {fileID: 6981963038372988400, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
+      propertyPath: havocDestination
+      value: 
+      objectReference: {fileID: 399825910}
+    - target: {fileID: 6981963038372988400, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
       propertyPath: midwayResetPoint
       value: 
-      objectReference: {fileID: 511775307}
+      objectReference: {fileID: 0}
+    - target: {fileID: 6981963038372988400, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
+      propertyPath: targetDestination
+      value: 
+      objectReference: {fileID: 1940324000}
     - target: {fileID: 6981963038372988400, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
       propertyPath: skywardDestination
       value: 
-      objectReference: {fileID: 511775308}
+      objectReference: {fileID: 1940324000}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1518,16 +1557,6 @@ PrefabInstance:
 --- !u!4 &511775306 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1543710547481088844, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
-  m_PrefabInstance: {fileID: 511775305}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &511775307 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 1397718920035000280, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
-  m_PrefabInstance: {fileID: 511775305}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &511775308 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5137231243203932422, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
   m_PrefabInstance: {fileID: 511775305}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &511775309 stripped
@@ -4490,6 +4519,39 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1175718147}
   m_CullTransparentMesh: 1
+--- !u!1 &1209318194
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1209318195}
+  m_Layer: 0
+  m_Name: Way Point for Flying
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1209318195
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1209318194}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 4.487, y: 3.50685, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 399825910}
+  - {fileID: 1940324000}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1233825723
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6824,6 +6886,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 707338887661517658, guid: 1ed8675ff5e65534f8e444c7d23b625a, type: 3}
   m_PrefabInstance: {fileID: 1930491797}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1940323999
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1940324000}
+  m_Layer: 0
+  m_Name: SkyWard Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1940324000
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1940323999}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.28, y: 1.01, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1209318195}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2027573832
 GameObject:
   m_ObjectHideFlags: 0
@@ -7152,3 +7245,4 @@ SceneRoots:
   - {fileID: 1399063045}
   - {fileID: 1010846773}
   - {fileID: 883091507}
+  - {fileID: 1209318195}

@@ -232,14 +232,30 @@ public class PusherAnimal : TestAnimal
             yield break;
         }
 
+        Vector2 toBox = (Vector2)box.transform.position - rb.position;
+        // ตรวจสอบว่ากล่องอยู่ทิศไหนเทียบกับตัวสัตว์:
+        // ถ้ากล่องอยู่ข้างหน้า และทิศ dir ที่ตั้งไว้จะทำให้สัตว์ต้องเดินทะลุกล่องไปยืนอีกฝั่ง (เช่น สัตว์อยู่ซ้าย กล่องอยู่กลาง แต่ dir = Left)
+        // สัตว์จะไม่สามารถเดินผ่านกล่องที่ตันได้ ให้กลับทิศ dir ผลักออกจากตัวสัตว์ไปข้างหน้าแทน
+        if (Mathf.Abs(dir.x) > 0.01f && Mathf.Abs(toBox.x) > 0.05f)
+        {
+            bool crossingBoxNeeded = Mathf.Sign(toBox.x) != Mathf.Sign(dir.x);
+            if (crossingBoxNeeded)
+            {
+                dir = new Vector2(Mathf.Sign(toBox.x), 0f);
+            }
+        }
+
         for (int i = 0; i < autoPushCount; i++)
         {
             if (i > 0) yield return new WaitForSeconds(abilityCooldown);
 
-            // เดินไปยืนด้านหลังกล่อง (ฝั่งตรงข้ามทิศที่จะผลัก)
-            Vector2 standPos = (Vector2)box.transform.position - dir * standOffset;
+            // เดินไปยืนด้านหลังกล่อง (ฝั่งตรงข้ามทิศที่จะผลัก) โดยคุมระดับ Y บนพื้นของสัตว์เอง
+            Vector2 standPos = new Vector2(box.transform.position.x - dir.x * standOffset, rb.position.y);
             MoveTo(standPos);
             while (IsMoving) yield return null;
+
+            // หันหน้าไปยังทิศที่จะผลัก
+            FaceDirection(dir);
 
             // ผลัก
             if (!ExecuteAbility(rb.position + dir)) yield break; // ผลักไม่ไปแล้ว (ติดกำแพง) เลิก
@@ -248,15 +264,23 @@ public class PusherAnimal : TestAnimal
         }
     }
 
+    private LayerMask GetEffectiveBoxLayer()
+    {
+        if (boxLayer.value != 0) return boxLayer;
+        int mask = LayerMask.GetMask("Box");
+        return mask != 0 ? (LayerMask)mask : (LayerMask)(~0);
+    }
+
     private PushableBox FindNearestBox()
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(rb.position, autoSearchRadius, boxLayer);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(rb.position, autoSearchRadius, GetEffectiveBoxLayer());
         PushableBox best = null;
         float bestDist = float.MaxValue;
 
         foreach (var hit in hits)
         {
-            if (!hit.TryGetComponent<PushableBox>(out var b)) continue;
+            PushableBox b = hit.GetComponentInParent<PushableBox>();
+            if (b == null) continue;
             float d = Vector2.Distance(rb.position, b.transform.position);
             if (d < bestDist) { bestDist = d; best = b; }
         }
@@ -361,16 +385,26 @@ public class PusherAnimal : TestAnimal
 
     private PushableBox FindBoxInFront(Vector2 dir)
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(rb.position, pushReach, boxLayer);
+        float reach = Mathf.Max(pushReach, standOffset + 0.6f);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(rb.position, reach, GetEffectiveBoxLayer());
         PushableBox best = null;
         float bestDist = float.MaxValue;
 
         foreach (var hit in hits)
         {
-            if (!hit.TryGetComponent<PushableBox>(out var box)) continue;
+            PushableBox box = hit.GetComponentInParent<PushableBox>();
+            if (box == null) continue;
 
             Vector2 toBox = (Vector2)box.transform.position - rb.position;
-            if (Vector2.Dot(toBox.normalized, dir) < aimAlignment) continue;
+            // ถ้าเป็นการผลักแนวนอน ให้เช็คความตรงของทิศแนวนอน เพื่อไม่ให้ความต่างของแกน Y เล็กน้อยทำให้องศาเพี้ยน
+            if (Mathf.Abs(dir.x) > 0.5f)
+            {
+                if (Mathf.Sign(toBox.x) != Mathf.Sign(dir.x)) continue;
+            }
+            else if (Vector2.Dot(toBox.normalized, dir) < aimAlignment)
+            {
+                continue;
+            }
 
             float dist = toBox.magnitude;
             if (dist < bestDist)
