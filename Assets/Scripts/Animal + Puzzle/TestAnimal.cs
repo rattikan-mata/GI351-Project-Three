@@ -78,6 +78,13 @@ public abstract class TestAnimal : MonoBehaviour
     private float stuckTimer = 0f;
     private Vector2 stuckCheckPos;
 
+    public Vector2 TargetWorldPosition => targetPosition;
+    public void ResetStuckTimer()
+    {
+        stuckTimer = 0f;
+        if (rb != null) stuckCheckPos = rb.position;
+    }
+
     /// <summary>ทิศที่กำลังเดินอยู่ตอนนี้ (ศูนย์ถ้าหยุดอยู่)</summary>
     public Vector2 MoveDirection { get; private set; } = Vector2.zero;
 

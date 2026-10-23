@@ -178,6 +178,9 @@ MonoBehaviour:
   stopDistance: 0.1
   stuckTimeout: 0.5
   stuckMinProgress: 0.1
+  useGravity: 1
+  gravityScale: 2.5
+  maxFallSpeed: 20
   defaultCatSprite: {fileID: 0}
   poweredUpSprite: {fileID: 0}
   selectionIndicator: {fileID: 0}
@@ -199,6 +202,7 @@ MonoBehaviour:
   laserHitPrefab: {fileID: 0}
   laserMuzzlePrefab: {fileID: 0}
   laserRange: 12
+  laserCanToggleSwitches: 0
   laserCanToggleDoors: 0
   laserBlockLayers:
     serializedVersion: 2

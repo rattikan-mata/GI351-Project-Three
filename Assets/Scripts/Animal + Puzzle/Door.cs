@@ -161,7 +161,7 @@ public class Door : MonoBehaviour
         // ปิดการชนเมื่อเลื่อนถึงจุดเปิดแล้วเท่านั้น (ตอนกำลังเลื่อนยังขวางอยู่)
         if (blockingCollider != null)
         {
-            bool arrivedOpen = IsOpen && transform.position == openPos;
+            bool arrivedOpen = IsOpen && (slideSpeed <= 0f || Vector3.Distance(transform.position, openPos) <= 0.05f);
             blockingCollider.enabled = !(disableColliderWhenOpen && arrivedOpen);
         }
     }

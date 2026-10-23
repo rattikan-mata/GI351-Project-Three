@@ -180,6 +180,9 @@ MonoBehaviour:
   stopDistance: 0.1
   stuckTimeout: 0.5
   stuckMinProgress: 0.1
+  useGravity: 1
+  gravityScale: 2.5
+  maxFallSpeed: 20
   defaultCatSprite: {fileID: 0}
   poweredUpSprite: {fileID: 0}
   selectionIndicator: {fileID: 0}
@@ -188,18 +191,18 @@ MonoBehaviour:
   abilityCooldown: 0
   requirePotion: 1
   potionEffectDuration: 0
-  flyDuration: 4
+  flyDuration: 10000
   flySpeedMultiplier: 1.3
   flyOverLayers:
     serializedVersion: 2
     m_Bits: 0
   skywardDestination: {fileID: 0}
-  midwayResetPoint: {fileID: 1397718920035000280}
-  targetDestination: {fileID: 5137231243203932422}
+  midwayResetPoint: {fileID: 0}
+  targetDestination: {fileID: 0}
   minBouncesBeforeReset: 2
   maxBouncesBeforeReset: 3
-  freeBounceDuration: 8
-  freeBounces: 10
+  freeBounceDuration: 10000
+  freeBounces: 10000
   dizzyBounces: 2
   zigzagStep: 5
   zigzagAmplitude: 2
@@ -207,6 +210,24 @@ MonoBehaviour:
   smokeEffectPrefab: {fileID: 0}
   speedIncreasePerBounce: 1
   maxBounceSpeed: 20
+  surgeLiftHeight: 0.5
+  surgeSpeed: 4.5
+  surgeReturnSpeed: 4
+  surgeStartDirection: 0
+  surgeMaxPatrolDurationWithoutTarget: 0
+  surgeMaxWallReverses: 0
+  surgeHitsToBreakBox: 3
+  surgeRecoilDistance: 1.3
+  surgeRecoilSpeed: 6
+  surgePauseBeforeRecharge: 0.25
+  surgeChargeSpeed: 8
+  surgeInstantBreakBox: 0
+  surgeBreakBoxes: 1
+  surgeBreakDoors: 1
+  surgeObstacleLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  surgeFormSprite: {fileID: 0}
   ramSpeedMultiplier: 2.5
   ramDistance: 8
   ramCollideLayers:
@@ -218,9 +239,9 @@ MonoBehaviour:
   bounceAfterTeleport: 1
   havocPostTeleportBounces: 10
   havocPostTeleportBounceDuration: 8
-  triggerSwitchOnTeleport: 1
+  triggerSwitchOnTeleport: 0
   landAfterPostTeleport: 1
-  patrolLiftHeight: 0.5
+  patrolLiftHeight: 0.2
   patrolSpeed: 3.5
   patrolPushSpeed: 3
   patrolPushStep: 1
@@ -231,13 +252,17 @@ MonoBehaviour:
     m_Bits: 0
   boxLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 64
   strengthFormSprite: {fileID: 0}
   flyDirection: 2
   flyDistance: 50
   hoverOnSwitchTouch: 1
-  delayAfterSwitchBeforeLand: 2
+  delayAfterSwitchBeforeLand: 10000
   triggerAnySwitchOnTouch: 1
+  hoverAtClosedDoor: 1
+  maxDoorWaitDuration: 0
+  passOpenDoors: 1
+  flyThroughAnyDoor: 0
   liftHeight: 1
   liftSmoothSpeed: 8
   shadow: {fileID: 0}
@@ -282,7 +307,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5137231243203932422}
   m_Layer: 0
-  m_Name: Teleport point
+  m_Name: Desination
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

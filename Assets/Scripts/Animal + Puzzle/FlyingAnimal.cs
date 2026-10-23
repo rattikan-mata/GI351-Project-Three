@@ -230,6 +230,19 @@ public class FlyingAnimal : TestAnimal
     [Tooltip("ติ๊กไว้ = สามารถกดสวิตช์ได้ทันทีที่บินไปแตะ แม้สวิตช์นั้นจะตั้ง ignoreAirborneAnimals ไว้ก็ตาม")]
     [SerializeField] private bool triggerAnySwitchOnTouch = true;
 
+    [Header("Door Flight (การบินผ่านประตู - ยาฟ้า)")]
+    [Tooltip("ติ๊กไว้ = เมื่อบินไปชนประตูที่ปิดอยู่ จะลอยค้างรอที่หน้าประตู (ไม่หยุดบิน/ไม่ตกพื้น) จนกว่าประตูจะเปิด แล้วบินต่อ")]
+    [SerializeField] private bool hoverAtClosedDoor = true;
+
+    [Tooltip("เวลาสูงสุดที่จะลอยรอหน้าประตูที่ปิดอยู่ (วินาที, 0 = รอไปเรื่อยๆ จนกว่าประตูจะเปิด)")]
+    [SerializeField] private float maxDoorWaitDuration = 0f;
+
+    [Tooltip("ติ๊กไว้ = ไม่ชนประตูที่เปิดอยู่เลย (บินผ่านประตูที่เปิดอยู่ได้ทันทีอย่างราบรื่น ไม่ติดขอบประตู)")]
+    [SerializeField] private bool passOpenDoors = true;
+
+    [Tooltip("ติ๊กไว้ = ตัวบิน (ยาฟ้า) สามารถบินทะลุประตูได้ทุกบาน")]
+    [SerializeField] private bool flyThroughAnyDoor = false;
+
     protected override IEnumerator AutoRoutine()
     {
         switch (mode)
@@ -251,11 +264,38 @@ public class FlyingAnimal : TestAnimal
 
         // บินไปทิศที่ตั้งไว้
         Vector2 dir = ToVector(flyDirection);
-        MoveTo(rb.position + dir * flyDistance);
-        while (IsMoving && !isSwitchHovering) yield return null;
+        Vector2 target = rb.position + dir * flyDistance;
+        MoveTo(target);
 
-        // ถ้าระหว่างทางมีการแตะสวิตช์และกำลังลอยค้างอยู่ ให้รอจนกว่าจะครบเวลาหน่วง
-        while (isSwitchHovering) yield return null;
+        while (isFlying)
+        {
+            // ถ้าระหว่างทางมีการแตะสวิตช์และกำลังลอยค้างอยู่ ให้รอจนกว่าจะครบเวลาหน่วง
+            if (isSwitchHovering)
+            {
+                while (isSwitchHovering) yield return null;
+                break; // แตะสวิตช์และลอยค้างจนครบเวลาแล้ว ลงพื้น
+            }
+
+            // ถ้าระหว่างทางชนประตูที่ปิดอยู่และกำลังลอยรอประตูเปิด
+            if (isDoorHovering)
+            {
+                while (isDoorHovering) yield return null;
+
+                // ประตูเปิดแล้ว! ถ้ายังบินอยู่ ให้บินต่อไปยังเป้าหมายเดิม
+                if (isFlying && !isSwitchHovering)
+                {
+                    MoveTo(target);
+                }
+            }
+
+            // ถ้าถึงจุดหมายแล้ว หรือติดสิ่งกีดขวางอื่นๆ (ที่ไม่ใช่ประตู/สวิตช์)
+            if (!IsMoving && !isDoorHovering && !isSwitchHovering)
+            {
+                break;
+            }
+
+            yield return null;
+        }
 
         // ถึงแล้ว (หรือชนสิ่งกีดขวาง หรือแตะสวิตช์ครบเวลาแล้ว) ลงพื้น
         if (isFlying) Land();
@@ -489,6 +529,35 @@ public class FlyingAnimal : TestAnimal
                 TryHandleSwitchHover(sw);
             }
         }
+
+        if (isFlying)
+        {
+            Door door = other.GetComponentInParent<Door>();
+            if (door == null) door = other.GetComponentInChildren<Door>();
+            if (door != null)
+            {
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken)
+                {
+                    IgnoreDoorCollision(door, true);
+                }
+            }
+        }
+    }
+
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (isFlying)
+        {
+            Door door = other.GetComponentInParent<Door>();
+            if (door == null) door = other.GetComponentInChildren<Door>();
+            if (door != null)
+            {
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken)
+                {
+                    IgnoreDoorCollision(door, true);
+                }
+            }
+        }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -502,6 +571,27 @@ public class FlyingAnimal : TestAnimal
             {
                 TryHandleSwitchHover(sw);
                 return;
+            }
+        }
+
+        // ตรวจจับประตูเมื่อบินชน (ยาฟ้า: ไม่ตกพื้นทันทีเมื่อชนประตู)
+        if (isFlying)
+        {
+            Door door = collision.gameObject.GetComponentInParent<Door>();
+            if (door == null) door = collision.gameObject.GetComponentInChildren<Door>();
+            if (door != null)
+            {
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken)
+                {
+                    IgnoreDoorCollision(door, true);
+                    return;
+                }
+
+                if (mode == FlyMode.Normal && hoverAtClosedDoor && !isDoorHovering)
+                {
+                    TryHandleDoorHover(door);
+                    return;
+                }
             }
         }
 
@@ -584,6 +674,26 @@ public class FlyingAnimal : TestAnimal
 
     private void OnCollisionStay2D(Collision2D collision)
     {
+        if (isFlying)
+        {
+            Door door = collision.gameObject.GetComponentInParent<Door>();
+            if (door == null) door = collision.gameObject.GetComponentInChildren<Door>();
+            if (door != null)
+            {
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken)
+                {
+                    IgnoreDoorCollision(door, true);
+                    return;
+                }
+
+                if (mode == FlyMode.Normal && hoverAtClosedDoor && !isDoorHovering)
+                {
+                    TryHandleDoorHover(door);
+                    return;
+                }
+            }
+        }
+
         if (isFlying && isSurgePatrolling)
         {
             HandleSurgeCollision(collision);
@@ -682,6 +792,125 @@ public class FlyingAnimal : TestAnimal
         }
     }
     #endregion
+
+    #region Door Flight Methods
+    private readonly System.Collections.Generic.HashSet<Collider2D> ignoredDoorColliders = new System.Collections.Generic.HashSet<Collider2D>();
+
+    /// <summary>ยกเลิกการชนกับประตู เพื่อให้ตัวบินบินผ่านได้อย่างอิสระ</summary>
+    private void IgnoreDoorCollision(Door door, bool ignore = true)
+    {
+        if (door == null || bodyCollider == null) return;
+        var doorColliders = door.GetComponentsInChildren<Collider2D>(true);
+        foreach (var dc in doorColliders)
+        {
+            if (dc != null && dc != bodyCollider)
+            {
+                Physics2D.IgnoreCollision(bodyCollider, dc, ignore);
+                if (ignore)
+                {
+                    ignoredDoorColliders.Add(dc);
+                }
+                else
+                {
+                    ignoredDoorColliders.Remove(dc);
+                }
+            }
+        }
+    }
+
+    /// <summary>คืนค่าการชนกับประตูทั้งหมดเมื่อลงจอด</summary>
+    private void RestoreDoorCollisions()
+    {
+        if (bodyCollider == null) return;
+        foreach (var dc in ignoredDoorColliders)
+        {
+            if (dc != null)
+            {
+                Physics2D.IgnoreCollision(bodyCollider, dc, false);
+            }
+        }
+        ignoredDoorColliders.Clear();
+    }
+
+    /// <summary>ตรวจสอบประตูที่เปิดอยู่ข้างหน้าแบบเรียลไทม์เพื่อไม่ให้ชนติด</summary>
+    private void CheckAheadForOpenDoors()
+    {
+        if (bodyCollider == null) return;
+        Vector2 checkDir = FacingDirection;
+        if (checkDir.sqrMagnitude < 0.01f) checkDir = ToVector(flyDirection);
+        if (checkDir.sqrMagnitude < 0.01f) return;
+
+        float speed = moveSpeed * SpeedMultiplier;
+        float castDist = speed * Time.fixedDeltaTime + 0.4f;
+
+        RaycastHit2D[] hits = Physics2D.CircleCastAll(rb.position, 0.4f, checkDir, castDist);
+        foreach (var hit in hits)
+        {
+            if (hit.collider == null || hit.collider == bodyCollider) continue;
+            Door door = hit.collider.GetComponentInParent<Door>();
+            if (door != null)
+            {
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken)
+                {
+                    IgnoreDoorCollision(door, true);
+                }
+            }
+        }
+    }
+
+    private void TryHandleDoorHover(Door door)
+    {
+        if (door == null || isDoorHovering || !isFlying) return;
+        if (isSurgePatrolling || isPatrolPushing || isBouncing || isHavocBouncing || isHavocPostBouncing) return;
+
+        if (doorHoverRoutine != null)
+        {
+            StopCoroutine(doorHoverRoutine);
+            doorHoverRoutine = null;
+        }
+
+        doorHoverRoutine = StartCoroutine(DoorHoverRoutine(door));
+    }
+
+    private IEnumerator DoorHoverRoutine(Door door)
+    {
+        isDoorHovering = true;
+        StopMoving();
+        rb.linearVelocity = Vector2.zero;
+        flyEndTime = float.MaxValue;
+
+        Vector2 hoverPos = rb.position;
+        float waitTimer = 0f;
+
+        while (isFlying && door != null && !door.IsOpen && !door.IsBroken && !flyThroughAnyDoor)
+        {
+            if (maxDoorWaitDuration > 0f && waitTimer >= maxDoorWaitDuration)
+            {
+                break;
+            }
+
+            waitTimer += Time.deltaTime;
+            rb.linearVelocity = Vector2.zero;
+            rb.position = hoverPos;
+            yield return null;
+        }
+
+        // เมื่อประตูเปิดแล้ว หรือเปิดโหมดบินทะลุประตู ให้เพิกเฉยต่อการชนทันที
+        if (door != null && (door.IsOpen || door.IsBroken || flyThroughAnyDoor))
+        {
+            IgnoreDoorCollision(door, true);
+        }
+
+        isDoorHovering = false;
+        doorHoverRoutine = null;
+
+        // ถ้ายังบินอยู่ แต่ประตูปิดค้างจนเกินเวลาที่ตั้งไว้ -> ค่อยลงจอด
+        if (isFlying && door != null && !door.IsOpen && !door.IsBroken && !flyThroughAnyDoor)
+        {
+            Land();
+        }
+    }
+    #endregion
     #endregion
 
     #region Visual
@@ -720,6 +949,8 @@ public class FlyingAnimal : TestAnimal
     private bool isFlying = false;
     private bool isSwitchHovering = false;
     private Coroutine switchHoverRoutine = null;
+    private bool isDoorHovering = false;
+    private Coroutine doorHoverRoutine = null;
     private bool isBouncing = false;
     private bool isPatrolPushing = false;
     private bool isHavocBouncing = false;
@@ -903,6 +1134,12 @@ public class FlyingAnimal : TestAnimal
             switchHoverRoutine = null;
         }
         isSwitchHovering = false;
+        if (doorHoverRoutine != null)
+        {
+            StopCoroutine(doorHoverRoutine);
+            doorHoverRoutine = null;
+        }
+        isDoorHovering = false;
     }
 
     protected override void Update()
@@ -927,6 +1164,11 @@ public class FlyingAnimal : TestAnimal
 
     protected override void FixedUpdate()
     {
+        if (isFlying && (passOpenDoors || flyThroughAnyDoor))
+        {
+            CheckAheadForOpenDoors();
+        }
+
         if (isPatrolPushing)
         {
             // โหมดลาดตระเวนผลักกล่องจัดการการเคลื่อนที่และฟิสิกส์เองใน PatrolPushRoutine
@@ -1147,16 +1389,33 @@ public class FlyingAnimal : TestAnimal
         UpdateGravityState();
         bodyCollider.excludeLayers = flyOverLayers; // ไม่ชน Layer เหล่านี้ตอนลอย
         if (shadow != null) shadow.SetActive(true);
+
+        if (passOpenDoors || flyThroughAnyDoor)
+        {
+            foreach (var door in FindObjectsByType<Door>(FindObjectsSortMode.None))
+            {
+                if (door != null && (flyThroughAnyDoor || door.IsOpen || door.IsBroken))
+                {
+                    IgnoreDoorCollision(door, true);
+                }
+            }
+        }
     }
 
     private void Land()
     {
         isFlying = false;
         isSwitchHovering = false;
+        isDoorHovering = false;
         if (switchHoverRoutine != null)
         {
             StopCoroutine(switchHoverRoutine);
             switchHoverRoutine = null;
+        }
+        if (doorHoverRoutine != null)
+        {
+            StopCoroutine(doorHoverRoutine);
+            doorHoverRoutine = null;
         }
         isBouncing = false;
         isPatrolPushing = false;
@@ -1190,6 +1449,7 @@ public class FlyingAnimal : TestAnimal
         UpdateGravityState();
         bodyCollider.excludeLayers = (LayerMask)0;
         if (shadow != null) shadow.SetActive(false);
+        RestoreDoorCollisions();
     }
 
     private void TeleportTo(Vector3 destination)
