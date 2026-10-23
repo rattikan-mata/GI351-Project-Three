@@ -23,6 +23,40 @@ public class Hairball : MonoBehaviour
 
     [Tooltip("ติ๊กไว้ = เมื่อพังกล่อง/ประตูแล้วให้หยุดและตกลงพื้นทันที (ถ้าไม่ติ๊กจะพุ่งต่อจนสุดระยะ)")]
     [SerializeField] private bool landOnBreak = false;
+
+    [Tooltip("ติ๊กไว้ = พังกล่องได้แม้กล่องจะไม่ถูกติ๊ก IsDestructible ไว้ใน Inspector")]
+    [SerializeField] private bool forceBreakBoxes = true;
+    public bool ForceBreakBoxes { get => forceBreakBoxes; set => forceBreakBoxes = value; }
+
+    [Tooltip("ติ๊กไว้ = พังประตูได้แม้ประตูจะไม่ถูกติ๊ก IsBreakable ไว้ใน Inspector")]
+    [SerializeField] private bool forceBreakDoors = true;
+    public bool ForceBreakDoors { get => forceBreakDoors; set => forceBreakDoors = value; }
+
+    [Header("Bubble Push (ฟองสบู่ดันกล่อง)")]
+    [Tooltip("ติ๊กไว้ = เป็นฟองสบู่ สามารถดันกล่อง PushableBox ได้")]
+    [SerializeField] private bool canPushBox = false;
+    public bool CanPushBox { get => canPushBox; set => canPushBox = value; }
+
+    [Tooltip("ระยะที่ดันกล่องไปต่อฟองสบู่ 1 ลูก (ลูกละเบาๆ)")]
+    [SerializeField] private float pushBoxDistance = 0.35f;
+    public float PushBoxDistance { get => pushBoxDistance; set => pushBoxDistance = value; }
+
+    [Tooltip("ความเร็วตอนดันกล่อง")]
+    [SerializeField] private float pushBoxSpeed = 3.5f;
+    public float PushBoxSpeed { get => pushBoxSpeed; set => pushBoxSpeed = value; }
+
+    [Tooltip("ติ๊กไว้ = ฟองสบู่แตกทันทีเมื่อผลักกล่องแล้ว")]
+    [SerializeField] private bool destroyOnPushBox = true;
+    public bool DestroyOnPushBox { get => destroyOnPushBox; set => destroyOnPushBox = value; }
+
+    [Tooltip("ติ๊กไว้ = ฟองสบู่แตกทันทีเมื่อชนกำแพง/พื้น/เพดาน หรือหมดระยะ")]
+    [SerializeField] private bool popOnWall = false;
+    public bool PopOnWall { get => popOnWall; set => popOnWall = value; }
+
+    [Tooltip("Prefab เอฟเฟกต์แตกของฟองสบู่ (Particle / Pop)")]
+    [SerializeField] private GameObject popEffectPrefab;
+    public GameObject PopEffectPrefab { get => popEffectPrefab; set => popEffectPrefab = value; }
+
     [Header("Gravity (แรงโน้มถ่วง)")]
     [Tooltip("ติ๊กไว้ = มีผลของแรงโน้มถ่วง")]
     [SerializeField] private bool useGravity = true;
@@ -152,12 +186,12 @@ public class Hairball : MonoBehaviour
         // 1. จัดการความเร็วและการเคลื่อนที่แนวดิ่ง (Vertical / Gravity)
         // ----------------------------------------
         // ถ้าเปิดแรงโน้มถ่วง ให้ดึงความเร็วลง
-        if (useGravity && gravityScale > 0f)
+        if (useGravity && Mathf.Abs(gravityScale) > 0.0001f)
         {
             if (!isGrounded || velocity.y > 0.001f)
             {
                 velocity.y += Physics2D.gravity.y * gravityScale * dt;
-                velocity.y = Mathf.Max(velocity.y, -maxFallSpeed);
+                velocity.y = Mathf.Clamp(velocity.y, -maxFallSpeed, maxFallSpeed);
             }
         }
 
@@ -184,10 +218,10 @@ public class Hairball : MonoBehaviour
                     Door door = hit.collider.GetComponentInParent<Door>();
                     if (door != null && (door.IsBroken || door.IsOpen)) continue;
 
-                    // ทำลายกล่อง/ประตู (สำหรับอ้วกยักษ์)
+                    // ทำลายกล่อง/ประตู (สำหรับอ้วกยักษ์ และ Havoc)
                     if (canBreakObstacles)
                     {
-                        if (box != null && box.IsDestructible && !box.IsBroken)
+                        if (box != null && !box.IsBroken && (box.IsDestructible || forceBreakBoxes))
                         {
                             box.BreakBox();
                             if (landOnBreak)
@@ -200,7 +234,7 @@ public class Hairball : MonoBehaviour
                             continue;
                         }
 
-                        if (door != null && door.IsBreakable && !door.IsBroken)
+                        if (door != null && !door.IsBroken && (door.IsBreakable || forceBreakDoors))
                         {
                             door.BreakDoor();
                             if (landOnBreak)
@@ -220,6 +254,12 @@ public class Hairball : MonoBehaviour
                         // ตรวจสอบว่า Normal หันลง (เป็นเพดานขวางอยู่ข้างบน)
                         if (Vector2.Dot(hit.normal, Vector2.up) < -0.2f)
                         {
+                            if (popOnWall)
+                            {
+                                Pop();
+                                return;
+                            }
+
                             float moveDist = Mathf.Max(0f, hit.distance - 0.02f);
                             rb.position += Vector2.up * moveDist;
 
@@ -244,6 +284,11 @@ public class Hairball : MonoBehaviour
                     traveled += stepY;
                     if (traveled >= range)
                     {
+                        if (popOnWall)
+                        {
+                            Pop();
+                            return;
+                        }
                         velocity.y = 0f;
                     }
                 }
@@ -258,6 +303,19 @@ public class Hairball : MonoBehaviour
                 {
                     if (distToGround <= fallDist + 0.01f)
                     {
+                        if (popOnWall)
+                        {
+                            PushableBox groundBox = gHit.collider != null ? gHit.collider.GetComponentInParent<PushableBox>() : null;
+                            if (canPushBox && groundBox != null && !groundBox.IsBroken)
+                            {
+                                Vector2 pushDir = new Vector2(Mathf.Sign(velocity.x != 0f ? velocity.x : direction.x), 0f);
+                                if (Mathf.Abs(pushDir.x) < 0.01f) pushDir = Vector2.right;
+                                groundBox.TryPush(pushDir, pushBoxDistance, pushBoxSpeed);
+                            }
+                            Pop();
+                            return;
+                        }
+
                         rb.position = new Vector2(rb.position.x, rb.position.y - distToGround);
 
                         if (bounciness > 0.15f && Mathf.Abs(velocity.y) > 2.0f)
@@ -351,12 +409,12 @@ public class Hairball : MonoBehaviour
                     Door door = hit.collider.GetComponentInParent<Door>();
                     if (door != null && (door.IsBroken || door.IsOpen)) continue;
 
-                    // ทำลายกล่อง / ประตู (สำหรับอ้วกยักษ์)
+                    // ทำลายกล่อง / ประตู (สำหรับอ้วกยักษ์ และ Havoc)
                     if (canBreakObstacles)
                     {
-                        if (box != null && box.IsDestructible && !box.IsBroken)
+                        if (box != null && !box.IsBroken && (box.IsDestructible || forceBreakBoxes))
                         {
-                            Debug.Log($"[Hairball] อ้วกยักษ์ชนกล่อง {box.name} แตก!");
+                            Debug.Log($"[Hairball] ชนกล่อง {box.name} แตก!");
                             box.BreakBox();
                             if (landOnBreak)
                             {
@@ -368,9 +426,9 @@ public class Hairball : MonoBehaviour
                             continue;
                         }
 
-                        if (door != null && door.IsBreakable && !door.IsBroken)
+                        if (door != null && !door.IsBroken && (door.IsBreakable || forceBreakDoors))
                         {
-                            Debug.Log($"[Hairball] อ้วกยักษ์ชนประตู {door.name} พัง!");
+                            Debug.Log($"[Hairball] ชนประตู {door.name} พัง!");
                             door.BreakDoor();
                             if (landOnBreak)
                             {
@@ -383,6 +441,17 @@ public class Hairball : MonoBehaviour
                         }
                     }
 
+                    // ฟองสบู่ผลักกล่อง
+                    if (canPushBox && box != null && !box.IsBroken)
+                    {
+                        box.TryPush(horizDir, pushBoxDistance, pushBoxSpeed);
+                        if (destroyOnPushBox)
+                        {
+                            Pop();
+                            return;
+                        }
+                    }
+
                     // สิ่งกีดขวางที่ชนแล้วไปต่อไม่ได้ (กำแพง, กล่องตัน, ประตูตัน)
                     bool isObstacle = ((obstacleLayer.value & (1 << hit.collider.gameObject.layer)) != 0) || box != null || door != null;
                     if (isObstacle)
@@ -390,6 +459,12 @@ public class Hairball : MonoBehaviour
                         // ตรวจสอบว่า Normal หันต้านทิศที่เราวิ่งไป (เป็นกำแพงขวางหน้า)
                         if (Vector2.Dot(hit.normal, horizDir) < -0.2f)
                         {
+                            if (popOnWall)
+                            {
+                                Pop();
+                                return;
+                            }
+
                             float moveDist = Mathf.Max(0f, hit.distance - 0.02f);
                             rb.position += horizDir * moveDist;
 
@@ -416,6 +491,16 @@ public class Hairball : MonoBehaviour
                     rb.position += new Vector2(stepX, 0f);
                     traveled += horizDist;
 
+                    if (traveled >= range)
+                    {
+                        if (popOnWall)
+                        {
+                            Pop();
+                            return;
+                        }
+                        velocity.x = 0f;
+                    }
+
                     // หมุนสไปรต์ตามระยะทางที่กลิ้งไปจริง (เหมือนลูกบอลกลิ้งในโลกจริง)
                     if (rotateWhenRolling)
                     {
@@ -435,7 +520,8 @@ public class Hairball : MonoBehaviour
             lingerTimer += dt;
             if (lingerTimer >= lingerSeconds)
             {
-                Destroy(gameObject);
+                Pop();
+                return;
             }
         }
         else
@@ -453,14 +539,27 @@ public class Hairball : MonoBehaviour
         PushableBox box = other.GetComponentInParent<PushableBox>();
         if (box != null && box.IsBroken) return;
 
+        // ฟองสบู่ผลักกล่อง
+        if (canPushBox && box != null && !box.IsBroken)
+        {
+            Vector2 pushDir = new Vector2(Mathf.Sign(velocity.x != 0f ? velocity.x : direction.x), 0f);
+            if (Mathf.Abs(pushDir.x) < 0.01f) pushDir = Vector2.right;
+            box.TryPush(pushDir, pushBoxDistance, pushBoxSpeed);
+            if (destroyOnPushBox)
+            {
+                Pop();
+                return;
+            }
+        }
+
         Door door = other.GetComponentInParent<Door>();
         if (door != null && (door.IsBroken || door.IsOpen)) return;
 
         if (canBreakObstacles)
         {
-            if (box != null && box.IsDestructible && !box.IsBroken)
+            if (box != null && !box.IsBroken && (box.IsDestructible || forceBreakBoxes))
             {
-                Debug.Log($"[Hairball] อ้วกยักษ์ชนกล่อง {box.name} แตก!");
+                Debug.Log($"[Hairball] ชนกล่อง {box.name} แตก!");
                 box.BreakBox();
                 if (landOnBreak)
                 {
@@ -472,9 +571,9 @@ public class Hairball : MonoBehaviour
                 return;
             }
 
-            if (door != null && door.IsBreakable && !door.IsBroken)
+            if (door != null && !door.IsBroken && (door.IsBreakable || forceBreakDoors))
             {
-                Debug.Log($"[Hairball] อ้วกยักษ์ชนประตู {door.name} พัง!");
+                Debug.Log($"[Hairball] ชนประตู {door.name} พัง!");
                 door.BreakDoor();
                 if (landOnBreak)
                 {
@@ -490,6 +589,11 @@ public class Hairball : MonoBehaviour
         bool isObstacle = ((obstacleLayer.value & (1 << other.gameObject.layer)) != 0) || box != null || door != null;
         if (isObstacle)
         {
+            if (popOnWall)
+            {
+                Pop();
+                return;
+            }
             float R = GetRadius();
             // 1. ตรวจสอบว่าชนพื้นด้านล่าง
             if (other.bounds.max.y <= rb.position.y - R * 0.4f)
@@ -533,6 +637,25 @@ public class Hairball : MonoBehaviour
     #endregion
 
     #region API
+    public void SetupBubblePush(bool canPush, float pushDist, float pushSpeed, bool destroyOnPush = true, bool popOnObstacle = true, GameObject popPrefab = null)
+    {
+        canPushBox = canPush;
+        pushBoxDistance = pushDist;
+        pushBoxSpeed = pushSpeed;
+        destroyOnPushBox = destroyOnPush;
+        popOnWall = popOnObstacle;
+        popEffectPrefab = popPrefab;
+    }
+
+    public void Pop()
+    {
+        if (popEffectPrefab != null)
+        {
+            Instantiate(popEffectPrefab, transform.position, Quaternion.identity);
+        }
+        Destroy(gameObject);
+    }
+
     public void Init(Vector2 fireDirection, float flySpeed, float flyRange, float linger, float gravScale = 1f)
     {
         direction = fireDirection.normalized;
@@ -540,6 +663,7 @@ public class Hairball : MonoBehaviour
         range = flyRange;
         lingerSeconds = linger;
         gravityScale = gravScale;
+        useGravity = Mathf.Abs(gravScale) > 0.0001f;
         velocity = direction * speed;
         isGrounded = false;
         traveled = 0f;

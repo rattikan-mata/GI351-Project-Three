@@ -411,23 +411,46 @@ public class PushableBox : MonoBehaviour
         return mask;
     }
 
+    private Coroutine currentSlideCoroutine;
+    private Vector2 currentSlideDirection;
+    private float remainingSlideDistance = 0f;
+    private float currentSlideSpeed = 0f;
+
     #region Push API
     /// <summary>ดันกล่องไปทิศ direction ไกลสุด distance คืนค่า true ถ้าดันไปได้จริง</summary>
     public bool TryPush(Vector2 direction, float distance, float speed, TestAnimal pusher = null)
     {
-        if (isMoving || isProcessingHit || IsBroken) return false;
+        if (isProcessingHit || IsBroken) return false;
 
         direction.Normalize();
+
+        // 1. ถ้ากล่องกำลังเลื่อนอยู่แล้ว (เช่น โดนฟองสบู่ลูกแรกผลัก แล้วลูกถัดไปมาโดนซ้ำ)
+        if (isMoving)
+        {
+            // ถ้าผลักไปในทิศทางเดียวกัน ให้สะสมระยะทางเพิ่มอย่างต่อเนื่อง
+            if (currentSlideCoroutine != null && Vector2.Dot(currentSlideDirection, direction) > 0.8f)
+            {
+                float addDist = GetFreeDistance(direction, remainingSlideDistance + distance, pusher);
+                remainingSlideDistance = addDist;
+                currentSlideSpeed = Mathf.Max(currentSlideSpeed, speed);
+                return true;
+            }
+            return false;
+        }
+
         float freeDist = GetFreeDistance(direction, distance, pusher);
 
-        // 1. ถ้ามีระยะว่างให้เลื่อนกล่องไปข้างหน้าได้ -> เลื่อนกล่องตามปกติ
+        // 2. ถ้ามีระยะว่างให้เลื่อนกล่องไปข้างหน้าได้ -> เลื่อนกล่องตามปกติ
         if (freeDist >= minPushDistance)
         {
-            StartCoroutine(SlideRoutine(direction, freeDist, speed));
+            currentSlideDirection = direction;
+            remainingSlideDistance = freeDist;
+            currentSlideSpeed = speed;
+            currentSlideCoroutine = StartCoroutine(SlideRoutine(pusher));
             return true;
         }
 
-        // 2. ถ้าติดกำแพง/สิ่งกีดขวางอยู่แล้ว และกล่องนี้ตั้งให้พังได้ และสัตว์ตัวที่ผลักมีสิทธิ์ทุบทำลาย
+        // 3. ถ้าติดกำแพง/สิ่งกีดขวางอยู่แล้ว และกล่องนี้ตั้งให้พังได้ และสัตว์ตัวที่ผลักมีสิทธิ์ทุบทำลาย
         if (isDestructible && pusher != null && CanAnimalDestroyBox(pusher))
         {
             // ถ้าเป็นแพะในโหมดผลักปกติ (ไม่ใช่โหมดทุบ smashMode) จะไม่ทุบกล่องแตก เว้นแต่ตั้งใจให้พังเมื่อติด (breakOnlyWhenBlocked)
@@ -496,31 +519,47 @@ public class PushableBox : MonoBehaviour
         return Mathf.Max(free, 0f);
     }
 
-    private IEnumerator SlideRoutine(Vector2 direction, float distance, float speed)
+    private IEnumerator SlideRoutine(TestAnimal pusher = null)
     {
         isMoving = true;
-        float moved = 0f;
 
-        while (moved < distance)
+        while (remainingSlideDistance > 0.001f)
         {
-            float step = Mathf.Min(speed * Time.fixedDeltaTime, distance - moved);
+            float step = Mathf.Min(currentSlideSpeed * Time.fixedDeltaTime, remainingSlideDistance);
+            float allowedStep = GetFreeDistance(currentSlideDirection, step, pusher);
+
+            if (allowedStep < step * 0.4f)
+            {
+                remainingSlideDistance = 0f;
+                break;
+            }
+
             Vector2 gravity = GravityDelta();
 
             // เช็คว่าพ้นขอบพื้นตกลงไปในหลุมหรือไม่ (ไม่มีพื้นรองรับด้านล่างเกิน 0.35 หน่วย)
             // ถ้าตกลงในหลุม ให้หยุดเลื่อนแนวนอนแล้วปล่อยให้ตกตามแรงโน้มถ่วง
             float groundDist = GetFreeDistance(Vector2.down, 0.4f);
-            if (Mathf.Abs(direction.x) > 0.5f && groundDist >= 0.35f)
+            if (Mathf.Abs(currentSlideDirection.x) > 0.5f && groundDist >= 0.35f)
             {
                 ApplyMove(gravity);
                 break;
             }
 
-            ApplyMove(direction * step + gravity);
-            moved += step;
+            ApplyMove(currentSlideDirection * allowedStep + gravity);
+            remainingSlideDistance -= allowedStep;
+
+            if (allowedStep < step)
+            {
+                remainingSlideDistance = 0f;
+                break;
+            }
+
             yield return new WaitForFixedUpdate();
         }
 
+        remainingSlideDistance = 0f;
         isMoving = false;
+        currentSlideCoroutine = null;
     }
 
     private Vector2 GravityDelta()

@@ -52,6 +52,9 @@ public class PusherAnimal : TestAnimal
     [Tooltip("ระยะยิงเลเซอร์ออกข้างหน้า (ทำลายกล่องที่พังได้ ดันกล่องที่พังไม่ได้ กดปุ่ม/สวิตช์ 1 ครั้งต่อนัด)")]
     [SerializeField] private float laserRange = 30f;
 
+    [Tooltip("ให้เลเซอร์ยิงออกข้างหน้ากดปุ่ม/สวิตช์ (FloorSwitch) ได้หรือไม่ (ถ้าไม่ติ๊ก เลเซอร์จะไม่กดปุ่ม/สวิตช์)")]
+    [SerializeField] private bool laserCanToggleSwitches = true;
+
     [Tooltip("ให้เลเซอร์เปิด/ปิดประตูธรรมดาได้หรือไม่ (ปกติ false: ประตูธรรมดาต้องเปิดด้วยสวิตช์เท่านั้น ไม่เปิดด้วยเลเซอร์)")]
     [SerializeField] private bool laserCanToggleDoors = false;
 
@@ -308,6 +311,18 @@ public class PusherAnimal : TestAnimal
 
     /// <summary>ตอนนี้ชนแล้วทำลายกล่องได้ไหม (โหมด 2 ยา: ได้เฉพาะตอนกินยาทำลาย)</summary>
     public bool CanSmash => !IsDualMode || smashMode;
+
+    public bool LaserCanToggleSwitches
+    {
+        get => laserCanToggleSwitches;
+        set => laserCanToggleSwitches = value;
+    }
+
+    public bool SkywardCanToggleSwitches
+    {
+        get => skywardCanToggleSwitches;
+        set => skywardCanToggleSwitches = value;
+    }
 
     protected override PotionType RequiredPotion => pushPotion;
 
@@ -699,11 +714,11 @@ public class PusherAnimal : TestAnimal
             if (hit.collider == null) continue;
             if (hit.collider.GetComponentInParent<TestAnimal>() == this) continue;
 
-            // FloorSwitch: เลเซอร์นับเป็นการกดปุ่ม 1 ครั้งต่อนัด (สลับสถานะ ปุ่มยุบแล้วเด้งกลับ) แล้วทะลุผ่านไปต่อ
+            // FloorSwitch: เลเซอร์นับเป็นการกดปุ่ม 1 ครั้งต่อนัด (สลับสถานะ ปุ่มยุบแล้วเด้งกลับ เฉพาะถ้าเปิด laserCanToggleSwitches) แล้วทะลุผ่านไปต่อ
             var sw = hit.collider.GetComponentInParent<FloorSwitch>();
             if (sw != null)
             {
-                if (!handledSwitches.Contains(sw))
+                if (laserCanToggleSwitches && !handledSwitches.Contains(sw))
                 {
                     handledSwitches.Add(sw);
                     sw.RemoteToggle();

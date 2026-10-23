@@ -18,6 +18,10 @@ public class FloorSwitch : MonoBehaviour
     [SerializeField] private bool triggeredByBoxes = true;
     [SerializeField] private bool triggeredByHairballs = true;
 
+    [Tooltip("ติ๊กไว้ = เลเซอร์ (เช่น เลเซอร์ของแพะ) สามารถกดสวิตช์นี้ได้")]
+    [SerializeField] private bool triggeredByLasers = true;
+    public bool TriggeredByLasers { get => triggeredByLasers; set => triggeredByLasers = value; }
+
     [Tooltip("ติ๊กไว้ = สัตว์ที่กำลังลอยอยู่ (ตัวอ้วนบินตอนบิน) จะไม่กดสวิตช์")]
     [SerializeField] private bool ignoreAirborneAnimals = true;
     #endregion
@@ -183,6 +187,7 @@ public class FloorSwitch : MonoBehaviour
     /// <summary>กดสวิตช์จากระยะไกล (เช่น เลเซอร์ของแพะ)</summary>
     public void RemoteToggle()
     {
+        if (!triggeredByLasers) return;
         ToggleSwitch();
         if (pressers.Count == 0 && animMode != ButtonAnimMode.StayWhileActive)
         {

@@ -1805,6 +1805,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1424346890}
     m_Modifications:
+    - target: {fileID: 638540066612953218, guid: 2471f67dbea11a34f9932526f5b2465c, type: 3}
+      propertyPath: laserCanToggleSwitches
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1280557578164829464, guid: 2471f67dbea11a34f9932526f5b2465c, type: 3}
       propertyPath: m_Name
       value: Strong cat
@@ -3970,6 +3974,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7600626584680777127, guid: ca9f6800a73c829429dc1b3828c985e9, type: 3}
+      propertyPath: bubblePrefab
+      value: 
+      objectReference: {fileID: 6585422362421399681, guid: fb9d392248aee524ba5ca57ba761680b, type: 3}
+    - target: {fileID: 7600626584680777127, guid: ca9f6800a73c829429dc1b3828c985e9, type: 3}
+      propertyPath: skywardBubblePrefab
+      value: 
+      objectReference: {fileID: 250844955669100016, guid: 34e611f1b78cd0a4da61546334fe2096, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
