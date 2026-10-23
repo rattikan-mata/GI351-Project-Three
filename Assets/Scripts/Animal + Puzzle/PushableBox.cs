@@ -66,6 +66,17 @@ public class PushableBox : MonoBehaviour
     [Tooltip("ติ๊กไว้ = สัตว์ต้องได้รับยาก่อน (สถานะพละกำลัง/ได้รับยา) ถึงจะทำลายกล่องได้")]
     [SerializeField] private bool requirePoweredAnimal = false;
 
+    [Header("Goat Laser Interaction (การโดนเลเซอร์ของแพะ)")]
+    [Tooltip("ติ๊กไว้ = กล่องนี้โดนเลเซอร์จากฟ้า (ยา Skyward ของแพะ) ได้\n" +
+             "ไม่ติ๊ก = เลเซอร์จากฟ้าจะไม่เล็งเป้าและไม่ทำลาย/ไม่ดันกล่องนี้ (เช่น หีบสมบัติ/Chest จบเกม)")]
+    [SerializeField] private bool canBeHitBySkywardLaser = true;
+    public bool CanBeHitBySkywardLaser => canBeHitBySkywardLaser;
+
+    [Tooltip("ติ๊กไว้ = กล่องนี้โดนเลเซอร์ยิงออกข้างหน้า (ยาเขียวของแพะ) ได้\n" +
+             "ไม่ติ๊ก = เลเซอร์ข้างหน้าจะไม่ทำลาย/ไม่ดันกล่องนี้")]
+    [SerializeField] private bool canBeHitByForwardLaser = true;
+    public bool CanBeHitByForwardLaser => canBeHitByForwardLaser;
+
     [Header("Destructible Visuals")]
     [Tooltip("สไปรต์เมื่อกล่องแตก (ถ้าเว้นว่างไว้จะซ่อนหรือลบกล่องทิ้ง)")]
     [SerializeField] private Sprite brokenSprite;

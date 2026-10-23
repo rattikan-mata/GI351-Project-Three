@@ -92,6 +92,9 @@ public abstract class TestAnimal : MonoBehaviour
     /// <summary>ลอยอยู่กลางอากาศไหม (สวิตช์ใช้เช็คว่าตัวเบาเกินกดไม่ติด)</summary>
     public virtual bool IsAirborne => false;
 
+    /// <summary>สัตว์ตัวนี้มีพลังพุ่งชน/ทำลายสิ่งกีดขวาง (เช่น ประตู/กล่อง) หรือไม่</summary>
+    public virtual bool CanBreakObstacles => false;
+
     /// <summary>ความเร็วจากสายพาน (ConveyorBelt ใส่ให้ แมวยังเดินเองได้พร้อมถูกพาไป)</summary>
     public Vector2 ConveyorVelocity { get; set; }
     #endregion

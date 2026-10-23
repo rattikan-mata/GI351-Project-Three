@@ -65,6 +65,15 @@ public class Door : MonoBehaviour
     [Tooltip("ติ๊กไว้ = พังเฉพาะเมื่อสัตว์ที่มาชนได้รับยาเสริมพลังแล้ว")]
     [SerializeField] private bool requirePoweredAnimal = false;
 
+    [Tooltip("ติ๊กไว้ = สัตว์ที่มาชนต้องได้รับยาที่มีพลังทำลายสิ่งกีดขวางจริง (เช่น ตัวบินต้องพุ่งชน IsRamming จากยา Surge / แพะต้องเป็นโหมดทุบ) ชนธรรมดาจะไม่พัง")]
+    [SerializeField] private bool requireBreakAbility = true;
+
+    [Tooltip("ติ๊กไว้ = ตัวบิน (FlyingAnimal) สามารถพุ่งชนทำลายประตูนี้ได้ (เฉพาะตอนพุ่งชน)")]
+    [SerializeField] private bool canBeBrokenByFlyer = true;
+
+    [Tooltip("ติ๊กไว้ = แพะ (PusherAnimal) สามารถชนทำลายประตูนี้ได้ (เฉพาะตอนอยู่ในโหมดทุบ)")]
+    [SerializeField] private bool canBeBrokenByPusher = true;
+
     [Header("Break Visuals (ภาพและเอฟเฟกต์ตอนพัง)")]
     [Tooltip("(ไม่บังคับ) ภาพสไปรต์ซากประตูตอนพังแล้ว ถ้าไม่ใส่จะซ่อนหรือลบประตูทิ้ง")]
     [SerializeField] private Sprite brokenSprite;
@@ -243,7 +252,8 @@ public class Door : MonoBehaviour
         TestAnimal animal = hitObj.GetComponentInParent<TestAnimal>();
         if (animal != null)
         {
-            if (requirePoweredAnimal && !animal.CanUseAbility) return;
+            if (!CanAnimalBreakDoor(animal)) return;
+
             BreakDoor();
             return;
         }
@@ -261,6 +271,39 @@ public class Door : MonoBehaviour
             BreakDoor();
             return;
         }
+    }
+
+    /// <summary>
+    /// ตรวจสอบว่าสัตว์ตัวนี้มีสิทธิ์และได้รับยาที่มีความสามารถทำลายประตูนี้ด้วยการชนหรือไม่
+    /// </summary>
+    public bool CanAnimalBreakDoor(TestAnimal animal)
+    {
+        if (animal == null) return false;
+        if (requirePoweredAnimal && !animal.CanUseAbility) return false;
+
+        // 1. ถ้าเป็นตัวบิน (FlyingAnimal)
+        if (animal is FlyingAnimal flyer)
+        {
+            if (!canBeBrokenByFlyer) return false;
+            // ถ้าเปิด requireBreakAbility: ตัวบินต้องพุ่งชนด้วยความเร็วสูง (IsRamming จากยา Surge) เท่านั้น
+            return !requireBreakAbility || flyer.IsRamming;
+        }
+
+        // 2. ถ้าเป็นแพะ (PusherAnimal)
+        if (animal is PusherAnimal pusher)
+        {
+            if (!canBeBrokenByPusher) return false;
+            // ถ้าเปิด requireBreakAbility: แพะต้องอยู่ในโหมดทุบ (CanSmash) เท่านั้น
+            return !requireBreakAbility || pusher.CanSmash;
+        }
+
+        // 3. สัตว์ตัวอื่นๆ
+        if (requireBreakAbility)
+        {
+            return animal.CanBreakObstacles;
+        }
+
+        return true;
     }
 
     /// <summary>

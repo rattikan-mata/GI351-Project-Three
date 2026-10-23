@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// สัตว์ทดลองตัวที่ 3: ตัวผลัก/ดันกล่อง (ใช้ยาเพิ่มพละกำลัง)
@@ -94,8 +95,39 @@ public class PusherAnimal : TestAnimal
     [Tooltip("เลเซอร์จากฟ้าค้างให้เห็นกี่วินาที")]
     [SerializeField] private float skywardDisplaySeconds = 0.35f;
 
-    [Tooltip("รัศมีค้นหาเป้าหมายอัตโนมัติ (ปุ่ม/กล่อง/ประตู) เมื่อแพะได้ยา Skyward")]
-    [SerializeField] private float skywardAutoSearchRadius = 25f;
+    [Header("Skyward Search Range (ระยะค้นหาเป้าหมายเลเซอร์ฟ้า)")]
+    [FormerlySerializedAs("skywardAutoSearchRadius")]
+    [Tooltip("ระยะค้นหาแนวนอนไปข้างหน้า (แกน X ตามทิศที่แพะหัน)")]
+    [SerializeField] private float skywardHorizontalRange = 25f;
+
+    [Tooltip("ระยะค้นหาแนวตั้ง (แกน Y สูง-ต่ำ ± จากตัวแพะ เช่น 10 = ขึ้นได้ 10 ลงได้ 10 หน่วย)")]
+    [SerializeField] private float skywardVerticalRange = 10f;
+
+    [Tooltip("ความสูงจุดกึ่งกลางของกรอบค้นหาแนวตั้ง (Offset แกน Y จากตัวแพะ เช่น 0 = กึ่งกลางตัวแพะพอดี)")]
+    [SerializeField] private float skywardVerticalOffset = 0f;
+
+    [Tooltip("ให้เลเซอร์จากฟ้าค้นหาเป้าหมายเฉพาะด้านหน้าที่แพะหันไปเท่านั้น (ไม่เล็งย้อนกลับหลัง)")]
+    [SerializeField] private bool skywardAimFrontOnly = true;
+
+    [Tooltip("จำนวนเป้าหมายที่อยู่ใกล้ที่สุดที่จะผ่าเลเซอร์ลงมาใส่พร้อมกัน (1 = ตีตัวที่ใกล้สุด 1 ชิ้น, 2 = ตี 2 ชิ้นที่ใกล้สุด ...)")]
+    [Min(1)]
+    [SerializeField] private int skywardTargetCount = 1;
+
+    [Tooltip("ระยะห่างเวลาระหว่างเลเซอร์แต่ละเส้นเมื่อตีหลายเป้าหมาย (วินาที, 0 = ผ่าลงมาพร้อมกันทุกเส้น)")]
+    [SerializeField] private float skywardMultiStrikeInterval = 0.08f;
+
+    [Tooltip("ให้เลเซอร์จากฟ้ากดปุ่ม/สวิตช์ (FloorSwitch) ได้หรือไม่ (ถ้าไม่ติ๊ก เลเซอร์จะไม่กดสวิตช์และไม่ล็อคเป้าหมายที่สวิตช์)")]
+    [SerializeField] private bool skywardCanToggleSwitches = true;
+
+    [Header("Skyward Gizmos (การแสดงผลกรอบค้นหาใน Scene View)")]
+    [Tooltip("แสดงกรอบค้นหาของเลเซอร์ฟ้า (Skyward) ตอนคลิกเลือกแพะใน Scene View")]
+    [SerializeField] private bool showSkywardGizmo = true;
+
+    [Tooltip("แสดงกรอบค้นหาของเลเซอร์ฟ้าตลอดเวลา แม้ไม่ได้คลิกเลือกแพะ")]
+    [SerializeField] private bool showSkywardGizmoAlways = false;
+
+    [Tooltip("สีของกรอบ Gizmo เลเซอร์ฟ้า")]
+    [SerializeField] private Color skywardGizmoColor = new Color(0f, 0.8f, 1f, 0.4f);
 
     [Header("Skyward Piercing & Blocking (การทะลุ / สิ่งที่ขวางเลเซอร์ฟ้า - ปรับแยกอิสระ)")]
     [Tooltip("ทะลุกำแพง/เพดาน/สิ่งกีดขวาง (เลเซอร์ผ่าลงมาจากฟ้าทะลุหลังคาลงมาหาเป้าหมายได้ ไม่ติดกำแพงด้านบน)")]
@@ -156,6 +188,7 @@ public class PusherAnimal : TestAnimal
     private Collider2D bodyCollider;
 
     public override bool IsAirborne => ceilingState != CeilingState.Floor;
+    public override bool CanBreakObstacles => CanSmash;
     protected override float SpeedMultiplier => ceilingState == CeilingState.OnCeiling ? ceilingWalkSpeedMultiplier : 1f;
     #endregion
 
@@ -178,9 +211,10 @@ public class PusherAnimal : TestAnimal
         Vector2 dir = ToVector(pushDirection);
         if (comboMode != GoatMode.Push)
         {
-            // ยาเขียว (ยิงเลเซอร์ออกข้างหน้า): ยิงไปตามแกน X ของแพะที่หมุนไว้
-            if (comboMode == GoatMode.ForwardLaser)
-                dir = ((Vector2)transform.right * Mathf.Sign(transform.lossyScale.x)).normalized;
+            // ยาเขียว (เลเซอร์หน้า) / ยา Skyward (เลเซอร์ฟ้า): เล็งไปด้านหน้าที่แพะหันหน้าอยู่จริง
+            if (comboMode == GoatMode.ForwardLaser || comboMode == GoatMode.SkywardLaser)
+                dir = GetFacingVector();
+
             yield return ComboAutoRoutine(dir);
             yield break;
         }
@@ -357,6 +391,51 @@ public class PusherAnimal : TestAnimal
         EnsureSkywardLaserPrefab();
     }
 
+    protected override void Start()
+    {
+        base.Start();
+        FacingDirection = GetFacingVector();
+    }
+
+    /// <summary>
+    /// หาเวกเตอร์ทิศทางด้านหน้าที่แพะกำลังหันไปในโลก (ซ้าย หรือ ขวา)
+    /// </summary>
+    public Vector2 GetFacingVector()
+    {
+        // 1. ถ้ามี SpriteRenderer ให้ดูทิศที่สไปรต์กำลังหันจริงในโลก
+        if (spriteRenderer == null) spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        if (spriteRenderer != null)
+        {
+            float axisX = transform.right.x * Mathf.Sign(transform.lossyScale.x);
+            bool mirrored = axisX < -0.01f;
+            bool artFacesWorldRight = spriteFacesRight != mirrored;
+            bool isFacingLeft = artFacesWorldRight ? spriteRenderer.flipX : !spriteRenderer.flipX;
+            return isFacingLeft ? Vector2.left : Vector2.right;
+        }
+
+        // 2. ถ้ามี FacingDirection
+        if (Mathf.Abs(FacingDirection.x) > 0.01f)
+        {
+            return (FacingDirection.x < 0f) ? Vector2.left : Vector2.right;
+        }
+
+        // 3. ถ้ามีการหมุน/สเกล Transform
+        float rightX = transform.right.x * Mathf.Sign(transform.lossyScale.x);
+        if (Mathf.Abs(rightX) > 0.01f)
+        {
+            return (rightX < 0f) ? Vector2.left : Vector2.right;
+        }
+
+        // 4. ค่าทิศจาก pushDirection ที่ตั้งไว้
+        Vector2 pd = ToVector(pushDirection);
+        if (Mathf.Abs(pd.x) > 0.01f)
+        {
+            return (pd.x < 0f) ? Vector2.left : Vector2.right;
+        }
+
+        return Vector2.right;
+    }
+
     protected override void Update()
     {
         base.Update();
@@ -477,9 +556,13 @@ public class PusherAnimal : TestAnimal
 
         if (comboMode == GoatMode.SkywardLaser)
         {
-            // เสกเลเซอร์ลงมาจากฟ้า: ค้นหาเป้าหมายอัตโนมัติ (กล่อง/ปุ่มสวิตช์/ประตูไม้)
-            Vector2 target = FindSkywardTarget(dir);
-            ExecuteAbility(target);
+            FaceDirection(dir);
+            // เสกเลเซอร์ลงมาจากฟ้า: ค้นหาเป้าหมายอัตโนมัติเฉพาะด้านหน้าที่แพะหันไป (ตามจำนวน skywardTargetCount)
+            ExecuteAbility(rb.position + dir);
+            if (skywardTargetCount > 1 && skywardMultiStrikeInterval > 0f)
+            {
+                yield return new WaitForSeconds(skywardTargetCount * skywardMultiStrikeInterval);
+            }
             yield break;
         }
 
@@ -488,13 +571,72 @@ public class PusherAnimal : TestAnimal
 
     private bool PerformComboAbility(Vector2 aimWorldPoint, Vector2 dir)
     {
-        FacingDirection = dir;
-        if (comboMode == GoatMode.ForwardLaser) FaceDirection(dir); // เลเซอร์ออกข้างหน้า หันไปตามทิศที่ยิง
+        if (comboMode == GoatMode.ForwardLaser)
+        {
+            FacingDirection = dir;
+            FaceDirection(dir); // เลเซอร์ออกข้างหน้า หันไปตามทิศที่ยิง
+            return FireForwardLaser(dir);
+        }
 
+        if (comboMode == GoatMode.SkywardLaser)
+        {
+            Vector2 fwd = GetFacingVector();
+            if (!skywardAimFrontOnly)
+            {
+                FacingDirection = dir;
+                FaceDirection(dir);
+                fwd = dir;
+            }
+
+            int targetCount = Mathf.Max(1, skywardTargetCount);
+            var targets = FindSkywardTargets(fwd, targetCount);
+
+            if (targets.Count > 0)
+            {
+                // ถ้าในโหมดเล่นเอง ผู้เล่นคลิกตรงเป้าหมายที่อยู่ในกรอบ ให้เป้าหมายที่คลิกอยู่คิวแรก
+                if (IsInsideSkywardSearchArea(aimWorldPoint, fwd, out _, out _, out _))
+                {
+                    int matchIdx = targets.FindIndex(p => Vector2.Distance(p, aimWorldPoint) < 0.75f);
+                    if (matchIdx > 0)
+                    {
+                        Vector2 clickedTarget = targets[matchIdx];
+                        targets.RemoveAt(matchIdx);
+                        targets.Insert(0, clickedTarget);
+                    }
+                    else if (matchIdx < 0)
+                    {
+                        targets.Insert(0, aimWorldPoint);
+                        if (targets.Count > targetCount) targets.RemoveAt(targets.Count - 1);
+                    }
+                }
+
+                if (skywardMultiStrikeInterval > 0.001f && targets.Count > 1)
+                {
+                    StartCoroutine(FireMultipleSkywardLasersRoutine(targets));
+                }
+                else
+                {
+                    foreach (var t in targets)
+                    {
+                        FireSkywardLaser(t);
+                    }
+                }
+                return true;
+            }
+            else
+            {
+                Vector2 targetPos = aimWorldPoint;
+                if (skywardAimFrontOnly && !IsInsideSkywardSearchArea(aimWorldPoint, fwd, out _, out _, out _))
+                {
+                    targetPos = rb.position + fwd * Mathf.Min(6f, skywardHorizontalRange);
+                }
+                return FireSkywardLaser(targetPos);
+            }
+        }
+
+        FacingDirection = dir;
         switch (comboMode)
         {
-            case GoatMode.ForwardLaser: return FireForwardLaser(dir);
-            case GoatMode.SkywardLaser: return FireSkywardLaser(aimWorldPoint);
             case GoatMode.Havoc: return SmashEverything();
             case GoatMode.Ceiling: return ToggleCeiling();
         }
@@ -568,10 +710,13 @@ public class PusherAnimal : TestAnimal
             if (box != null && !handledBoxes.Contains(box))
             {
                 handledBoxes.Add(box);
-                if (box.IsDestructible && !box.IsBroken)
-                    box.BreakBox();                                   // กล่องพังได้ -> ทำลาย
-                else
-                    box.TryPush(dir, pushDistance, pushSpeed, null);  // กล่องพังไม่ได้ -> ดัน
+                if (box.CanBeHitByForwardLaser)
+                {
+                    if (box.IsDestructible && !box.IsBroken)
+                        box.BreakBox();                                   // กล่องพังได้ -> ทำลาย
+                    else
+                        box.TryPush(dir, pushDistance, pushSpeed, null);  // กล่องพังไม่ได้ -> ดัน
+                }
             }
 
             // ชนกำแพง/พื้น/ประตู/กล่อง ใน Layer ที่ตั้งไว้ -> เลเซอร์หยุดตรงนี้
@@ -714,11 +859,11 @@ public class PusherAnimal : TestAnimal
             if (hit.collider == null) continue;
             if (hit.collider.GetComponentInParent<TestAnimal>() == this) continue;
 
-            // 1. ปุ่ม/สวิตช์ (FloorSwitch): โดนเลเซอร์จากฟ้ากดสลับสถานะ
+            // 1. ปุ่ม/สวิตช์ (FloorSwitch): โดนเลเซอร์จากฟ้ากดสลับสถานะ (ถ้าเปิด skywardCanToggleSwitches)
             var sw = hit.collider.GetComponentInParent<FloorSwitch>();
             if (sw != null)
             {
-                if (handledSwitches.Add(sw))
+                if (skywardCanToggleSwitches && handledSwitches.Add(sw))
                 {
                     sw.RemoteToggle();
                 }
@@ -796,6 +941,19 @@ public class PusherAnimal : TestAnimal
             var box = hit.collider.GetComponentInParent<PushableBox>();
             if (box != null)
             {
+                // ถ้ากล่องนี้ตั้งไว้ว่าไม่ให้โดนเลเซอร์ฟ้าของแพะ (เช่น Chest จบเกม)
+                if (!box.CanBeHitBySkywardLaser)
+                {
+                    if (!skywardPierceSolidBoxes)
+                    {
+                        end = hit.point;
+                        targetHit = hit;
+                        hasHit = true;
+                        break;
+                    }
+                    continue;
+                }
+
                 if (handledBoxes.Add(box))
                 {
                     if (box.IsDestructible && !box.IsBroken)
@@ -974,55 +1132,123 @@ public class PusherAnimal : TestAnimal
         Destroy(go, skywardDisplaySeconds);
     }
 
-    private Vector2 FindSkywardTarget(Vector2 aimDir)
+    /// <summary>
+    /// ตรวจสอบว่าจุดเป้าหมาย targetPos อยู่ในกรอบค้นหาของเลเซอร์ฟ้า (Skyward) หรือไม่
+    /// </summary>
+    public bool IsInsideSkywardSearchArea(Vector2 targetPos, Vector2 fwd, out float forwardDist, out float vertDist, out float totalDist)
     {
+        Vector2 origin = (rb != null) ? rb.position : (Vector2)transform.position;
+        Vector2 toTarget = targetPos - origin;
+
+        forwardDist = Vector2.Dot(toTarget, fwd);
+        vertDist = Mathf.Abs(toTarget.y - skywardVerticalOffset);
+        totalDist = toTarget.magnitude;
+
+        // ตรวจสอบระยะแนวนอน
+        if (skywardAimFrontOnly)
+        {
+            if (forwardDist < 0.1f || forwardDist > skywardHorizontalRange) return false;
+        }
+        else
+        {
+            if (Mathf.Abs(toTarget.x) > skywardHorizontalRange) return false;
+        }
+
+        // ตรวจสอบระยะแนวตั้ง (สูง-ต่ำ ไม่เกิน skywardVerticalRange)
+        if (vertDist > skywardVerticalRange) return false;
+
+        return true;
+    }
+
+    private struct SkywardCandidate
+    {
+        public Vector2 position;
+        public float distance;
+
+        public SkywardCandidate(Vector2 pos, float dist)
+        {
+            position = pos;
+            distance = dist;
+        }
+    }
+
+    /// <summary>
+    /// ค้นหาเป้าหมายทั้งหมดในกรอบค้นหาเลเซอร์ฟ้า โดยเรียงจากใกล้ที่สุดไปไกลที่สุด และเลือกมาจำนวน maxCount ชิ้น
+    /// </summary>
+    public List<Vector2> FindSkywardTargets(Vector2 aimDir, int maxCount)
+    {
+        Vector2 fwd = (aimDir.sqrMagnitude > 0.001f) ? aimDir.normalized : GetFacingVector();
+        var candidates = new List<SkywardCandidate>();
+
         // 1. ค้นหากล่องในระยะ
-        PushableBox bestBox = null;
-        float bestBoxDist = float.MaxValue;
         foreach (var box in FindObjectsByType<PushableBox>())
         {
             if (box == null || box.IsBroken) continue;
-            float d = Vector2.Distance(rb.position, box.transform.position);
-            if (d <= skywardAutoSearchRadius && d < bestBoxDist)
-            {
-                bestBoxDist = d;
-                bestBox = box;
-            }
-        }
-        if (bestBox != null) return bestBox.transform.position;
+            if (!box.CanBeHitBySkywardLaser) continue; // ข้ามกล่องที่ปิดไม่ให้โดนเลเซอร์ฟ้า (เช่น หีบสมบัติ Chest)
 
-        // 2. ค้นหาสวิตช์ที่ยังไม่เปิด
-        FloorSwitch bestSwitch = null;
-        float bestSwitchDist = float.MaxValue;
-        foreach (var sw in FindObjectsByType<FloorSwitch>())
+            if (!IsInsideSkywardSearchArea((Vector2)box.transform.position, fwd, out _, out _, out float dist))
+                continue;
+
+            candidates.Add(new SkywardCandidate(box.transform.position, dist));
+        }
+
+        // 2. ค้นหาสวิตช์ (เฉพาะเมื่อเปิดให้เลเซอร์ฟ้ากดสวิตช์ได้)
+        if (skywardCanToggleSwitches)
         {
-            if (sw == null || sw.IsActive) continue;
-            float d = Vector2.Distance(rb.position, sw.transform.position);
-            if (d <= skywardAutoSearchRadius && d < bestSwitchDist)
+            foreach (var sw in FindObjectsByType<FloorSwitch>())
             {
-                bestSwitchDist = d;
-                bestSwitch = sw;
+                if (sw == null || sw.IsActive) continue;
+
+                if (!IsInsideSkywardSearchArea((Vector2)sw.transform.position, fwd, out _, out _, out float dist))
+                    continue;
+
+                candidates.Add(new SkywardCandidate(sw.transform.position, dist));
             }
         }
-        if (bestSwitch != null) return bestSwitch.transform.position;
 
         // 3. ค้นหาประตูไม้ที่ยังไม่พัง
-        Door bestDoor = null;
-        float bestDoorDist = float.MaxValue;
         foreach (var door in FindObjectsByType<Door>())
         {
             if (door == null || !door.IsBreakable || door.IsBroken) continue;
-            float d = Vector2.Distance(rb.position, door.transform.position);
-            if (d <= skywardAutoSearchRadius && d < bestDoorDist)
-            {
-                bestDoorDist = d;
-                bestDoor = door;
-            }
-        }
-        if (bestDoor != null) return bestDoor.transform.position;
 
-        // 4. ถ้าไม่พบเป้าหมาย ให้เสกลงมาข้างหน้า
-        return rb.position + aimDir * 6f;
+            if (!IsInsideSkywardSearchArea((Vector2)door.transform.position, fwd, out _, out _, out float dist))
+                continue;
+
+            candidates.Add(new SkywardCandidate(door.transform.position, dist));
+        }
+
+        // เรียงลำดับจากใกล้ที่สุดไปไกลที่สุด
+        candidates.Sort((a, b) => a.distance.CompareTo(b.distance));
+
+        int count = Mathf.Min(Mathf.Max(1, maxCount), candidates.Count);
+        var result = new List<Vector2>(count);
+        for (int i = 0; i < count; i++)
+        {
+            result.Add(candidates[i].position);
+        }
+        return result;
+    }
+
+    private Vector2 FindSkywardTarget(Vector2 aimDir)
+    {
+        Vector2 fwd = (aimDir.sqrMagnitude > 0.001f) ? aimDir.normalized : GetFacingVector();
+        var targets = FindSkywardTargets(fwd, 1);
+        if (targets.Count > 0) return targets[0];
+
+        // 4. ถ้าไม่พบเป้าหมาย ให้เสกลงมาข้างหน้าตามทิศที่หัน
+        return rb.position + fwd * Mathf.Min(6f, skywardHorizontalRange);
+    }
+
+    private IEnumerator FireMultipleSkywardLasersRoutine(List<Vector2> targets)
+    {
+        for (int i = 0; i < targets.Count; i++)
+        {
+            if (i > 0 && skywardMultiStrikeInterval > 0f)
+            {
+                yield return new WaitForSeconds(skywardMultiStrikeInterval);
+            }
+            FireSkywardLaser(targets[i]);
+        }
     }
 
     private void EnsureSkywardLaserPrefab()
@@ -1162,10 +1388,83 @@ public class PusherAnimal : TestAnimal
     #endregion
 
     #region Debug Gizmos
+    private void OnDrawGizmos()
+    {
+        if (showSkywardGizmoAlways)
+        {
+            DrawSkywardGizmos();
+        }
+    }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, pushReach);
+
+        if (showSkywardGizmo && !showSkywardGizmoAlways)
+        {
+            DrawSkywardGizmos();
+        }
+    }
+
+    private void DrawSkywardGizmos()
+    {
+        Vector2 pos = (rb != null) ? rb.position : (Vector2)transform.position;
+        Vector2 fwd = GetFacingVector();
+
+        float centerX;
+        float sizeX;
+
+        if (skywardAimFrontOnly)
+        {
+            centerX = pos.x + fwd.x * (skywardHorizontalRange * 0.5f);
+            sizeX = skywardHorizontalRange;
+        }
+        else
+        {
+            centerX = pos.x;
+            sizeX = skywardHorizontalRange * 2f;
+        }
+
+        float centerY = pos.y + skywardVerticalOffset;
+        float sizeY = skywardVerticalRange * 2f;
+
+        Vector3 center = new Vector3(centerX, centerY, 0f);
+        Vector3 size = new Vector3(sizeX, sizeY, 0f);
+
+        // 1. วาดพื้นที่สี่เหลี่ยมโปร่งแสง
+        Color fillColor = skywardGizmoColor;
+        fillColor.a = Mathf.Clamp(skywardGizmoColor.a * 0.35f, 0.05f, 0.3f);
+        Gizmos.color = fillColor;
+        Gizmos.DrawCube(center, size);
+
+        // 2. วาดเส้นขอบสีเด่นชัด
+        Color outlineColor = skywardGizmoColor;
+        outlineColor.a = 1f;
+        Gizmos.color = outlineColor;
+        Gizmos.DrawWireCube(center, size);
+
+        // 3. วาดเส้นลูกศรชี้ทิศไปข้างหน้า
+        Gizmos.color = Color.cyan;
+        Vector3 arrowStart = new Vector3(pos.x, pos.y, 0f);
+        Vector3 arrowEnd = new Vector3(pos.x + fwd.x * skywardHorizontalRange, pos.y, 0f);
+        Gizmos.DrawLine(arrowStart, arrowEnd);
+
+        Vector3 arrowHead1 = arrowEnd - (Vector3)(fwd * 0.5f) + Vector3.up * 0.3f;
+        Vector3 arrowHead2 = arrowEnd - (Vector3)(fwd * 0.5f) + Vector3.down * 0.3f;
+        Gizmos.DrawLine(arrowEnd, arrowHead1);
+        Gizmos.DrawLine(arrowEnd, arrowHead2);
+
+        // 4. ไฮไลต์เป้าหมายที่จะถูกผ่าเลเซอร์ N ชิ้นที่อยู่ใกล้สุด
+        var targets = FindSkywardTargets(fwd, Mathf.Max(1, skywardTargetCount));
+        for (int i = 0; i < targets.Count; i++)
+        {
+            Vector3 tPos = targets[i];
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(tPos, 0.45f);
+            Gizmos.color = new Color(1f, 0.9f, 0.2f, 0.75f);
+            Gizmos.DrawLine(new Vector3(tPos.x, tPos.y + 3.5f, 0f), tPos);
+        }
     }
     #endregion
 }

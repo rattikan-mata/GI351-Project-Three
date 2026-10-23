@@ -215,7 +215,16 @@ MonoBehaviour:
   skywardLaserColor: {r: 0.3, g: 1, b: 0.85, a: 1}
   skywardLaserWidth: 0.25
   skywardDisplaySeconds: 0.35
-  skywardAutoSearchRadius: 50
+  skywardHorizontalRange: 13
+  skywardVerticalRange: 2.3
+  skywardVerticalOffset: 0
+  skywardAimFrontOnly: 1
+  skywardTargetCount: 3
+  skywardMultiStrikeInterval: 0.08
+  skywardCanToggleSwitches: 1
+  showSkywardGizmo: 1
+  showSkywardGizmoAlways: 0
+  skywardGizmoColor: {r: 0, g: 0.8, b: 1, a: 0.4}
   skywardPierceWalls: 1
   skywardBlockLayers:
     serializedVersion: 2
@@ -223,7 +232,7 @@ MonoBehaviour:
   skywardCanToggleDoors: 0
   skywardPierceBreakableBoxes: 1
   skywardPierceSolidBoxes: 0
-  skywardPierceSwitches: 1
+  skywardPierceSwitches: 0
   skywardPierceOpenDoors: 1
   skywardBlockedByClosedDoors: 0
   skywardMaxPierceCount: 99

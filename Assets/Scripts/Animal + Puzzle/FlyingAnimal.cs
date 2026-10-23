@@ -14,7 +14,7 @@ using UnityEngine.Serialization;
 /// </summary>
 public class FlyingAnimal : TestAnimal
 {
-    private enum FlyMode { Normal, Zigzag, Dizzy, Ram }
+    private enum FlyMode { Normal, Zigzag, Dizzy, Ram, PatrolPush, Havoc }
 
     #region Flying Settings
     [Header("Flying (บิน)")]
@@ -79,6 +79,66 @@ public class FlyingAnimal : TestAnimal
     [SerializeField] private LayerMask ramCollideLayers;
     #endregion
 
+    #region Havoc Settings
+    [Header("Havoc (เขียว+ส้ม): เด้งก่อนวาร์ป")]
+    [Tooltip("จำนวนครั้งที่เด้งสะท้อนกำแพงก่อนวาร์ปไปยังเป้าหมาย (ค่าเริ่มต้น 5 ครั้ง)")]
+    [SerializeField] private int havocBouncesBeforeTeleport = 5;
+
+    [Tooltip("(ไม่บังคับ) จุดเป้าหมายแยกเฉพาะสำหรับ Havoc ถ้าไม่ใส่จะใช้ targetDestination / skywardDestination / Teleport point ร่วมกัน")]
+    [SerializeField] private Transform havocDestination;
+
+    [Tooltip("ดีเลย์สั้นๆ หลังเด้งครบครั้งสุดท้ายก่อนวาร์ป (วินาที)")]
+    [SerializeField] private float delayBeforeTeleport = 0.15f;
+
+    [Tooltip("ให้ลงจอดสู่พื้นทันทีหลังวาร์ปถึงเป้าหมาย")]
+    [SerializeField] private bool landAfterTeleport = true;
+
+    [Tooltip("ให้กดสวิตช์ FloorSwitch ที่อยู่ ณ จุดเป้าหมายโดยอัตโนมัติเมื่อวาร์ปถึง")]
+    [SerializeField] private bool triggerSwitchOnTeleport = true;
+
+    public int HavocBouncesBeforeTeleport
+    {
+        get => havocBouncesBeforeTeleport;
+        set => havocBouncesBeforeTeleport = value;
+    }
+    #endregion
+
+    #region Strength Potion Settings
+    [Header("Strength Potion: Patrol & Push Box (ยาส้ม: บินลาดตระเวน & ดันกล่อง)")]
+    [Tooltip("ความสูงที่ตัวลอยขึ้นขณะบินลาดตระเวน (หน่วย Unity ปรับได้อิสระ)")]
+    [SerializeField] private float patrolLiftHeight = 0.5f;
+
+    [Tooltip("ความเร็วในการบินลาดตระเวน ซ้าย-ขวา")]
+    [SerializeField] private float patrolSpeed = 3.5f;
+
+    [Tooltip("ความเร็วตอนดันกล่อง")]
+    [SerializeField] private float patrolPushSpeed = 3f;
+
+    [Tooltip("ระยะดันกล่องทีละครั้ง (0 = ดันรวดเดียวจนสุดทางชนกำแพง, >0 = ค่อยๆ ดันทีละระยะนี้)")]
+    [SerializeField] private float patrolPushStep = 1f;
+
+    [Tooltip("ความเร็วตอนบินกลับไปยังจุดเริ่มต้น หลังผลักกล่องเสร็จ")]
+    [SerializeField] private float returnSpeed = 4f;
+
+    [Tooltip("ทิศทางเริ่มต้นที่เริ่มบินลาดตระเวน (ซ้าย หรือ ขวา)")]
+    [SerializeField] private AutoDirection patrolStartDirection = AutoDirection.Right;
+
+    [Tooltip("Layer สิ่งกีดขวาง/กำแพง ที่ชนแล้วจะกลับทิศ (ถ้าเว้นว่างจะตรวจจับทุกอย่างที่ไม่ใช่ flyOverLayers)")]
+    [SerializeField] private LayerMask patrolObstacleLayers;
+
+    [Tooltip("Layer ของกล่องที่ดันได้ (ถ้าเว้นว่างจะตรวจหากล่องที่มี PushableBox อัตโนมัติ)")]
+    [SerializeField] private LayerMask boxLayer;
+
+    [Tooltip("(ไม่บังคับ) สไปรต์เฉพาะเมื่อดื่มยาส้ม (Patrol / Push) ถ้าเว้นว่างจะใช้ poweredUpSprite ปกติ")]
+    [SerializeField] private Sprite strengthFormSprite;
+
+    public float PatrolLiftHeight
+    {
+        get => patrolLiftHeight;
+        set => patrolLiftHeight = value;
+    }
+    #endregion
+
     #region Auto
     [Header("Auto Flight (โหมดอัตโนมัติ)")]
     [Tooltip("ทิศที่จะบินไปเมื่อได้ยา")]
@@ -93,7 +153,9 @@ public class FlyingAnimal : TestAnimal
         {
             case FlyMode.Zigzag:
             case FlyMode.Dizzy: yield return BounceRoutine(dizzyBounces, true); break;
+            case FlyMode.Havoc: yield return HavocBounceRoutine(); break;
             case FlyMode.Ram: yield return RamRoutine(ToVector(flyDirection)); break;
+            case FlyMode.PatrolPush: yield return PatrolPushRoutine(); break;
             default: yield return NormalFlightRoutine(); break;
         }
     }
@@ -372,6 +434,30 @@ public class FlyingAnimal : TestAnimal
             StopMoving();
             return;
         }
+
+        // โหมดบินลาดตระเวนผลักกล่อง (ยาส้ม)
+        if (isFlying && isPatrolPushing)
+        {
+            HandlePatrolCollision(collision);
+            return;
+        }
+
+        // โหมด Havoc เด้งก่อนวาร์ป
+        if (isFlying && isHavocBouncing)
+        {
+            Vector2 normal = Vector2.zero;
+            int count = collision.contactCount;
+            if (count > 0)
+            {
+                for (int i = 0; i < count; i++) normal += collision.contacts[i].normal;
+                normal.Normalize();
+            }
+            if (normal.sqrMagnitude > 0.01f)
+            {
+                OnHavocBounceHit(normal);
+            }
+            return;
+        }
     }
 
     private void OnCollisionStay2D(Collision2D collision)
@@ -389,6 +475,29 @@ public class FlyingAnimal : TestAnimal
             {
                 OnBounceHit(normal);
             }
+            return;
+        }
+
+        if (isFlying && isPatrolPushing)
+        {
+            HandlePatrolCollision(collision);
+            return;
+        }
+
+        if (isFlying && isHavocBouncing)
+        {
+            Vector2 normal = Vector2.zero;
+            int count = collision.contactCount;
+            if (count > 0)
+            {
+                for (int i = 0; i < count; i++) normal += collision.contacts[i].normal;
+                normal.Normalize();
+            }
+            if (normal.sqrMagnitude > 0.01f)
+            {
+                OnHavocBounceHit(normal);
+            }
+            return;
         }
     }
     #endregion
@@ -414,10 +523,31 @@ public class FlyingAnimal : TestAnimal
         FreeBouncing      // ทำเป้าหมายเสร็จแล้ว -> เด้งอิสระ
     }
 
+    private enum PatrolPushStage
+    {
+        None,
+        Ascending,
+        Patrolling,
+        PushingBox,
+        Returning,
+        Descending
+    }
+
     private FlyMode mode = FlyMode.Normal;
     private PotionType lastDrunkPotion = PotionType.None;
     private bool isFlying = false;
     private bool isBouncing = false;
+    private bool isPatrolPushing = false;
+    private bool isHavocBouncing = false;
+    private int havocBounceCount = 0;
+    private Coroutine activeHavocRoutine = null;
+    private PatrolPushStage patrolPushStage = PatrolPushStage.None;
+    private Vector2 patrolOriginPos;
+    private Vector2 patrolDir = Vector2.right;
+    private PushableBox patrolDetectedBox = null;
+    private bool patrolHitWall = false;
+    private Vector2 patrolWallNormal = Vector2.zero;
+    private Coroutine activePatrolRoutine = null;
     private BounceStage bounceStage = BounceStage.BouncingToTarget;
     private int attemptBounceCount = 0;
     private int allowedBouncesThisAttempt = 3;
@@ -440,6 +570,7 @@ public class FlyingAnimal : TestAnimal
     public bool IsVanished { get; private set; }
 
     public override bool IsAirborne => isFlying;
+    public override bool CanBreakObstacles => IsRamming;
 
     protected override float SpeedMultiplier
     {
@@ -460,7 +591,7 @@ public class FlyingAnimal : TestAnimal
 
     public override bool AcceptsPotion(PotionType potion)
     {
-        return potion == PotionType.Light || IsComboPotion(potion);
+        return potion == PotionType.Light || potion == PotionType.Strength || IsComboPotion(potion);
     }
 
     private void OnBounce()
@@ -476,17 +607,29 @@ public class FlyingAnimal : TestAnimal
         switch (potion)
         {
             case PotionType.Skyward:
-            case PotionType.Havoc:
                 mode = FlyMode.Dizzy;
+                break;
+            case PotionType.Havoc:
+                mode = FlyMode.Havoc;
                 break;
             case PotionType.Surge:
                 mode = FlyMode.Ram;
+                break;
+            case PotionType.Strength:
+                mode = FlyMode.PatrolPush;
                 break;
             default:
                 mode = FlyMode.Normal;
                 break;
         }
         Debug.Log($"[{animalName}] โหมดบิน: {mode} (ยา: {potion})");
+    }
+
+    protected override Sprite GetCustomPoweredUpSprite(PotionType potion)
+    {
+        if (potion == PotionType.Strength && strengthFormSprite != null)
+            return strengthFormSprite;
+        return base.GetCustomPoweredUpSprite(potion);
     }
     #endregion
 
@@ -520,13 +663,23 @@ public class FlyingAnimal : TestAnimal
             StopCoroutine(activeBounceRoutine);
             activeBounceRoutine = null;
         }
+        if (activePatrolRoutine != null)
+        {
+            StopCoroutine(activePatrolRoutine);
+            activePatrolRoutine = null;
+        }
+        if (activeHavocRoutine != null)
+        {
+            StopCoroutine(activeHavocRoutine);
+            activeHavocRoutine = null;
+        }
     }
 
     protected override void Update()
     {
         base.Update();
 
-        if (isFlying && Time.time >= flyEndTime) Land();
+        if (isFlying && !isPatrolPushing && !isHavocBouncing && Time.time >= flyEndTime) Land();
 
         // ยกสไปรต์ขึ้น/ลงแบบนุ่มๆ
         if (spriteTransform != null)
@@ -536,7 +689,7 @@ public class FlyingAnimal : TestAnimal
         }
 
         // หันหน้าซ้าย-ขวาตามทิศทางการเด้ง
-        if (isBouncing && spriteRenderer != null && Mathf.Abs(FacingDirection.x) > 0.01f)
+        if ((isBouncing || isHavocBouncing) && spriteRenderer != null && Mathf.Abs(FacingDirection.x) > 0.01f)
         {
             FaceHorizontal(FacingDirection.x < 0f);
         }
@@ -544,6 +697,32 @@ public class FlyingAnimal : TestAnimal
 
     protected override void FixedUpdate()
     {
+        if (isPatrolPushing)
+        {
+            // โหมดลาดตระเวนผลักกล่องจัดการการเคลื่อนที่และฟิสิกส์เองใน PatrolPushRoutine
+            return;
+        }
+
+        if (isHavocBouncing)
+        {
+            float speed = moveSpeed * SpeedMultiplier;
+            CircleCollider2D circle = bodyCollider as CircleCollider2D;
+            float radius = (circle != null) ? circle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y) * 0.95f : 0.45f;
+            float step = speed * Time.fixedDeltaTime;
+            float castDist = step + 0.06f;
+
+            RaycastHit2D hit = Physics2D.CircleCast(rb.position, radius, currentBounceDir, castDist, ~flyOverLayers);
+            if (hit.collider != null && !hit.collider.isTrigger && hit.collider.gameObject != gameObject)
+            {
+                OnHavocBounceHit(hit.normal);
+            }
+            else
+            {
+                rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+            }
+            return;
+        }
+
         if (isBouncing)
         {
             float speed = moveSpeed * SpeedMultiplier;
@@ -692,6 +871,28 @@ public class FlyingAnimal : TestAnimal
             activeBounceRoutine = StartCoroutine(BounceRoutine(dizzyBounces, true, aimWorldPoint));
             return true;
         }
+        if (mode == FlyMode.PatrolPush)
+        {
+            if (activePatrolRoutine != null)
+            {
+                StopCoroutine(activePatrolRoutine);
+                activePatrolRoutine = null;
+            }
+
+            activePatrolRoutine = StartCoroutine(PatrolPushRoutine());
+            return true;
+        }
+        if (mode == FlyMode.Havoc)
+        {
+            if (activeHavocRoutine != null)
+            {
+                StopCoroutine(activeHavocRoutine);
+                activeHavocRoutine = null;
+            }
+
+            activeHavocRoutine = StartCoroutine(HavocBounceRoutine());
+            return true;
+        }
         if (isFlying) Land();
         else TakeOff();
         return true;
@@ -709,11 +910,24 @@ public class FlyingAnimal : TestAnimal
     {
         isFlying = false;
         isBouncing = false;
+        isPatrolPushing = false;
+        isHavocBouncing = false;
+        patrolPushStage = PatrolPushStage.None;
         currentBounceSpeedBonus = 0f;
         if (activeBounceRoutine != null)
         {
             StopCoroutine(activeBounceRoutine);
             activeBounceRoutine = null;
+        }
+        if (activePatrolRoutine != null)
+        {
+            StopCoroutine(activePatrolRoutine);
+            activePatrolRoutine = null;
+        }
+        if (activeHavocRoutine != null)
+        {
+            StopCoroutine(activeHavocRoutine);
+            activeHavocRoutine = null;
         }
         bodyCollider.excludeLayers = (LayerMask)0;
         if (shadow != null) shadow.SetActive(false);
@@ -745,6 +959,395 @@ public class FlyingAnimal : TestAnimal
         if (shadow != null) shadow.SetActive(false);
         bodyCollider.enabled = false;
         Debug.Log($"[{animalName}] เวียนหัวจนหายตัวไป!");
+    }
+    #endregion
+
+    #region Strength Potion (Patrol & Push Box)
+    /// <summary>
+    /// ทำงานเมื่อได้ยาส้ม (Strength Potion):
+    /// 1. ลอยตัวขึ้นตามระดับ patrolLiftHeight
+    /// 2. บินลาดตระเวน ซ้าย-ขวา ไปเรื่อยๆ เมื่อชนกำแพงจะสลับทิศทาง
+    /// 3. เมื่อเจอกล่อง (PushableBox) จะดันกล่องไปข้างหน้าจนกระทั่งกล่องติดกำแพง/ดันต่อไม่ได้
+    /// 4. เมื่อกล่องติดแล้ว บินกลับไปยังตำแหน่งตั้งต้นเดิม (originPos) แล้วลงจอด
+    /// </summary>
+    private IEnumerator PatrolPushRoutine()
+    {
+        isPatrolPushing = true;
+        patrolPushStage = PatrolPushStage.Ascending;
+        TakeOff();
+        flyEndTime = float.MaxValue;
+        StopMoving();
+
+        patrolOriginPos = rb.position;
+        float targetFlightY = patrolOriginPos.y + patrolLiftHeight;
+
+        // ตรวจสอบเพดานด้านบนก่อนลอยตัว กันชนทะลุเพดาน
+        LayerMask wallMask = patrolObstacleLayers.value != 0 ? patrolObstacleLayers : (LayerMask)(~flyOverLayers);
+        RaycastHit2D ceilCheck = Physics2D.Raycast(patrolOriginPos, Vector2.up, patrolLiftHeight + 0.2f, wallMask);
+        if (ceilCheck.collider != null && !ceilCheck.collider.isTrigger && ceilCheck.collider.gameObject != gameObject)
+        {
+            targetFlightY = Mathf.Min(targetFlightY, ceilCheck.point.y - 0.35f);
+        }
+
+        // --- 1. ลอยตัวขึ้นสู่ระดับความสูงบิน (Ascend) ---
+        float ascendSpeed = Mathf.Max(2f, patrolSpeed);
+        while (Mathf.Abs(rb.position.y - targetFlightY) > 0.02f)
+        {
+            float newY = Mathf.MoveTowards(rb.position.y, targetFlightY, ascendSpeed * Time.fixedDeltaTime);
+            rb.position = new Vector2(patrolOriginPos.x, newY);
+            yield return new WaitForFixedUpdate();
+        }
+        rb.position = new Vector2(patrolOriginPos.x, targetFlightY);
+
+        // กำหนดทิศทางเริ่มต้น
+        patrolDir = (patrolStartDirection == AutoDirection.Left) ? Vector2.left : Vector2.right;
+        FacingDirection = patrolDir;
+        FaceHorizontal(patrolDir.x < 0f);
+
+        patrolDetectedBox = null;
+        patrolHitWall = false;
+        patrolWallNormal = Vector2.zero;
+        float wallCooldown = 0f;
+        patrolPushStage = PatrolPushStage.Patrolling;
+
+        Debug.Log($"[{animalName}] เริ่มบินลาดตระเวน ทิศทาง {patrolDir} ความสูงลอยตัว {patrolLiftHeight}");
+
+        // --- 2. บินลาดตระเวน ซ้าย-ขวา ไปเรื่อยๆ จนเจอกล่องหรือชนกำแพงสลับทิศ ---
+        while (patrolDetectedBox == null)
+        {
+            wallCooldown -= Time.fixedDeltaTime;
+
+            // เคลื่อนที่แนวนอนด้วยความเร็วลาดตระเวน
+            float speed = patrolSpeed * SpeedMultiplier;
+            rb.linearVelocity = new Vector2(patrolDir.x * speed, 0f) + ConveyorVelocity;
+
+            // คุมระดับความสูงบินให้คงที่สม่ำเสมอ
+            if (Mathf.Abs(rb.position.y - targetFlightY) > 0.03f)
+            {
+                float correctedY = Mathf.MoveTowards(rb.position.y, targetFlightY, 3f * Time.fixedDeltaTime);
+                rb.position = new Vector2(rb.position.x, correctedY);
+            }
+
+            // CircleCast ตรวจจับสิ่งกีดขวาง/กล่องล่วงหน้า
+            CircleCollider2D circle = bodyCollider as CircleCollider2D;
+            float radius = (circle != null) ? circle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y) * 0.9f : 0.45f;
+            float checkDist = Mathf.Max(0.12f, speed * Time.fixedDeltaTime + 0.06f);
+            LayerMask checkMask = patrolObstacleLayers.value != 0 ? (patrolObstacleLayers | boxLayer) : (LayerMask)(~flyOverLayers);
+
+            RaycastHit2D hit = Physics2D.CircleCast(rb.position, radius, patrolDir, checkDist, checkMask);
+            if (hit.collider != null && !hit.collider.isTrigger && hit.collider.gameObject != gameObject)
+            {
+                PushableBox box = hit.collider.GetComponentInParent<PushableBox>();
+                if (box != null && !box.IsBroken)
+                {
+                    patrolDetectedBox = box;
+                    break;
+                }
+                else if (wallCooldown <= 0f)
+                {
+                    if (hit.normal.sqrMagnitude < 0.01f || Vector2.Dot(patrolDir, hit.normal) < -0.2f)
+                    {
+                        patrolHitWall = true;
+                        patrolWallNormal = hit.normal;
+                    }
+                }
+            }
+
+            // ถ้าชนกำแพง -> สลับซ้าย-ขวา (Reverse Direction)
+            if (patrolHitWall && wallCooldown <= 0f)
+            {
+                patrolDir = -patrolDir;
+                FacingDirection = patrolDir;
+                FaceHorizontal(patrolDir.x < 0f);
+
+                Vector2 nudge = (patrolWallNormal.sqrMagnitude > 0.01f) ? patrolWallNormal.normalized : -patrolDir;
+                rb.position += nudge * 0.08f;
+
+                wallCooldown = 0.3f;
+                patrolHitWall = false;
+                patrolWallNormal = Vector2.zero;
+                Debug.Log($"[{animalName}] บินชนกำแพง -> สลับทิศทางเป็น {patrolDir}");
+            }
+
+            yield return new WaitForFixedUpdate();
+        }
+
+        // --- 3. ดันกล่องไปข้างหน้าจนกระทั่งกล่องติด (Push Box Until Stuck) ---
+        patrolPushStage = PatrolPushStage.PushingBox;
+        PushableBox targetBox = patrolDetectedBox;
+        StopMoving();
+        rb.linearVelocity = Vector2.zero;
+        Debug.Log($"[{animalName}] เจอกล่อง {targetBox.name} เริ่มดันกล่องไปทาง {patrolDir}!");
+
+        Collider2D targetBoxCol = targetBox.GetComponent<Collider2D>();
+        float boxExtentX = (targetBoxCol != null) ? targetBoxCol.bounds.extents.x : 0.5f;
+        CircleCollider2D catCircle = bodyCollider as CircleCollider2D;
+        float catExtentX = (catCircle != null) ? catCircle.radius * transform.lossyScale.x : 0.45f;
+        float followOffset = boxExtentX + catExtentX + 0.05f;
+
+        bool boxStuck = false;
+        while (!boxStuck && targetBox != null && !targetBox.IsBroken)
+        {
+            float pushDist = patrolPushStep > 0f ? patrolPushStep : 50f;
+            bool pushed = targetBox.TryPush(patrolDir, pushDist, patrolPushSpeed, this);
+
+            if (!pushed)
+            {
+                // ดันต่อไม่ได้แล้ว = กล่องติดกำแพง/สิ่งกีดขวางแล้ว
+                Debug.Log($"[{animalName}] ดันกล่อง {targetBox.name} จนติดกำแพงแล้ว!");
+                boxStuck = true;
+                break;
+            }
+
+            // บินตามหลังกล่องไปเรื่อยๆ จนกว่ากล่องจะหยุดเลื่อนในจังหวะนั้น
+            while (targetBox != null && targetBox.IsMoving)
+            {
+                Vector2 targetCatPos = new Vector2(targetBox.transform.position.x - patrolDir.x * followOffset, targetFlightY);
+                float step = patrolPushSpeed * Time.fixedDeltaTime;
+                Vector2 nextCatPos = Vector2.MoveTowards(rb.position, targetCatPos, step * 1.35f);
+                rb.MovePosition(nextCatPos);
+                yield return new WaitForFixedUpdate();
+            }
+
+            if (patrolPushStep > 0f && !boxStuck)
+            {
+                yield return new WaitForSeconds(0.08f);
+            }
+        }
+
+        // --- 4. บินกลับไปยังตำแหน่งตั้งต้นเดิม (Return To Origin) ---
+        patrolPushStage = PatrolPushStage.Returning;
+        Debug.Log($"[{animalName}] ดันเสร็จแล้ว กำลังบินกลับไปยังตำแหน่งตั้งต้น {patrolOriginPos}");
+        StopMoving();
+        rb.linearVelocity = Vector2.zero;
+
+        yield return new WaitForSeconds(0.2f);
+
+        Vector2 returnHorizontalDir = (patrolOriginPos.x < rb.position.x) ? Vector2.left : Vector2.right;
+        FacingDirection = returnHorizontalDir;
+        FaceHorizontal(returnHorizontalDir.x < 0f);
+
+        float returnSafetyTimer = 0f;
+        while (Mathf.Abs(rb.position.x - patrolOriginPos.x) > 0.05f && returnSafetyTimer < 10f)
+        {
+            returnSafetyTimer += Time.fixedDeltaTime;
+            float step = returnSpeed * Time.fixedDeltaTime;
+            Vector2 nextH = Vector2.MoveTowards(rb.position, new Vector2(patrolOriginPos.x, targetFlightY), step);
+            rb.MovePosition(nextH);
+            yield return new WaitForFixedUpdate();
+        }
+        rb.MovePosition(new Vector2(patrolOriginPos.x, targetFlightY));
+
+        // --- 5. ลดระดับลงสู่ตำแหน่งตั้งต้นและลงจอด (Descend & Land) ---
+        patrolPushStage = PatrolPushStage.Descending;
+        returnSafetyTimer = 0f;
+        while (Mathf.Abs(rb.position.y - patrolOriginPos.y) > 0.03f && returnSafetyTimer < 5f)
+        {
+            returnSafetyTimer += Time.fixedDeltaTime;
+            float step = returnSpeed * Time.fixedDeltaTime;
+            Vector2 nextPos = Vector2.MoveTowards(rb.position, patrolOriginPos, step);
+            rb.MovePosition(nextPos);
+            yield return new WaitForFixedUpdate();
+        }
+        rb.MovePosition(patrolOriginPos);
+        rb.linearVelocity = Vector2.zero;
+
+        patrolPushStage = PatrolPushStage.None;
+        isPatrolPushing = false;
+        activePatrolRoutine = null;
+        Land();
+        Debug.Log($"[{animalName}] บินกลับถึงตำแหน่งตั้งต้นและลงจอดเรียบร้อยแล้ว");
+    }
+
+    /// <summary>
+    /// จัดการการชนของโหมดบินลาดตระเวน (ตรวจหากล่องเพื่อผลัก หรือตรวจหากำแพงเพื่อสลับทิศทาง)
+    /// </summary>
+    private void HandlePatrolCollision(Collision2D collision)
+    {
+        if (patrolPushStage != PatrolPushStage.Patrolling) return;
+
+        PushableBox box = collision.gameObject.GetComponentInParent<PushableBox>();
+        if (box != null && !box.IsBroken)
+        {
+            patrolDetectedBox = box;
+            return;
+        }
+
+        Vector2 normal = Vector2.zero;
+        int count = collision.contactCount;
+        for (int i = 0; i < count; i++)
+        {
+            normal += collision.contacts[i].normal;
+        }
+
+        if (normal.sqrMagnitude > 0.01f)
+        {
+            normal.Normalize();
+            if (Vector2.Dot(patrolDir, normal) < -0.2f)
+            {
+                patrolHitWall = true;
+                patrolWallNormal = normal;
+            }
+        }
+        else
+        {
+            patrolHitWall = true;
+            patrolWallNormal = -patrolDir;
+        }
+    }
+
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
+    {
+        // วาดระดับความสูงที่บินลอยขึ้นตอนกินยาส้ม (Patrol Lift Height)
+        Vector3 basePos = Application.isPlaying ? (Vector3)patrolOriginPos : transform.position;
+        Vector3 flightPos = basePos + Vector3.up * patrolLiftHeight;
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.85f); // สีส้ม
+        Gizmos.DrawLine(basePos, flightPos);
+        Gizmos.DrawWireSphere(flightPos, 0.2f);
+        Gizmos.DrawLine(flightPos + Vector3.left * 1.5f, flightPos + Vector3.right * 1.5f);
+
+        // วาดเส้นและจุดวาร์ปของ Havoc
+        Transform dest = GetHavocDestination();
+        if (dest != null)
+        {
+            Gizmos.color = new Color(0.7f, 0.2f, 1f, 0.9f); // สีม่วง Havoc
+            Gizmos.DrawLine(transform.position, dest.position);
+            Gizmos.DrawWireSphere(dest.position, 0.35f);
+        }
+    }
+#endif
+    #endregion
+
+    #region Havoc API
+    /// <summary>
+    /// หาจุดหมายปลายทางสำหรับวาร์ปของ Havoc (เรียงลำดับ: havocDestination -> targetDestination -> skywardDestination -> Teleport point)
+    /// </summary>
+    private Transform GetHavocDestination()
+    {
+        if (havocDestination != null) return havocDestination;
+        if (targetDestination != null) return targetDestination;
+        if (skywardDestination != null) return skywardDestination;
+
+        Transform child = transform.Find("Teleport point");
+        if (child != null) return child;
+
+        GameObject tpObj = GameObject.Find("Teleport point");
+        if (tpObj != null) return tpObj.transform;
+
+        return null;
+    }
+
+    /// <summary>
+    /// ฟังก์ชันสะท้อนออกจากกำแพงของโหมด Havoc เพิ่มความเร็วและนับจำนวนครั้งที่เด้งจนครบ havocBouncesBeforeTeleport
+    /// </summary>
+    private void OnHavocBounceHit(Vector2 normal)
+    {
+        if (!isHavocBouncing || normal.sqrMagnitude < 0.0001f) return;
+        normal.Normalize();
+
+        if (Vector2.Dot(currentBounceDir, normal) < -0.05f)
+        {
+            currentBounceDir = Vector2.Reflect(currentBounceDir, normal).normalized;
+            FacingDirection = currentBounceDir;
+            FaceHorizontal(currentBounceDir.x < 0f);
+
+            rb.position += normal * 0.06f;
+
+            OnBounce();
+            havocBounceCount++;
+            Debug.Log($"[{animalName}] Havoc เด้งครั้งที่ {havocBounceCount}/{havocBouncesBeforeTeleport}");
+
+            float speed = moveSpeed * SpeedMultiplier;
+            rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+        }
+    }
+
+    /// <summary>
+    /// โหมด Havoc: เด้งสะท้อนกำแพง 5 ครั้ง (หรือตามที่ตั้งไว้ใน havocBouncesBeforeTeleport) แล้ววาร์ปไปยังจุดหมายเป้าหมาย
+    /// </summary>
+    private IEnumerator HavocBounceRoutine()
+    {
+        isHavocBouncing = true;
+        isBouncing = true;
+        havocBounceCount = 0;
+        currentBounceSpeedBonus = 0f;
+        TakeOff();
+        flyEndTime = float.MaxValue;
+        StopMoving();
+
+        Transform dest = GetHavocDestination();
+        Vector2 toDest = (dest != null) ? ((Vector2)dest.position - rb.position).normalized : ToVector(flyDirection);
+        if (toDest.sqrMagnitude < 0.0001f) toDest = Vector2.right;
+
+        // สุ่มมุมกระจายตัวออกไปเล็กน้อยเพื่อให้เด้งชิ่งกำแพง
+        float baseAngle = Mathf.Atan2(toDest.y, toDest.x) * Mathf.Rad2Deg;
+        float randomOffset = Random.Range(-55f, 55f);
+        if (Mathf.Abs(randomOffset) < 15f) randomOffset = Mathf.Sign(randomOffset != 0 ? randomOffset : 1f) * 25f;
+
+        float launchAngle = (baseAngle + randomOffset) * Mathf.Deg2Rad;
+        currentBounceDir = new Vector2(Mathf.Cos(launchAngle), Mathf.Sin(launchAngle)).normalized;
+        FacingDirection = currentBounceDir;
+        FaceHorizontal(currentBounceDir.x < 0f);
+
+        float speed = moveSpeed * SpeedMultiplier;
+        rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+
+        Debug.Log($"[{animalName}] เริ่ม Havoc: ทิศทาง {currentBounceDir}, กำหนดเด้ง {havocBouncesBeforeTeleport} ครั้งก่อนวาร์ป");
+
+        // 1. เด้งสะท้อนกำแพงจนครบตามจำนวนที่กำหนด (ค่าเริ่มต้น 5 ครั้ง)
+        while (isHavocBouncing && havocBounceCount < havocBouncesBeforeTeleport)
+        {
+            yield return null;
+        }
+
+        // เด้งครบแล้ว หยุดการเคลื่อนที่
+        isHavocBouncing = false;
+        rb.linearVelocity = Vector2.zero;
+
+        // 2. หน่วงเวลาสั้นๆ ให้เห็นการชนกำแพงครั้งสุดท้าย
+        if (delayBeforeTeleport > 0f)
+        {
+            yield return new WaitForSeconds(delayBeforeTeleport);
+        }
+
+        // 3. วาร์ป (Teleport) ไปยังจุดหมายเป้าหมายทันที
+        dest = GetHavocDestination();
+        if (dest != null)
+        {
+            Debug.Log($"[{animalName}] Havoc เด้งครบ {havocBouncesBeforeTeleport} ครั้งแล้ว! วาร์ปไปยัง {dest.name} ({dest.position})");
+            TeleportTo(dest.position);
+
+            // 4. สับสวิตช์ FloorSwitch ที่อยู่ ณ จุดวาร์ป (ถ้ามี)
+            if (triggerSwitchOnTeleport)
+            {
+                FloorSwitch sw = dest.GetComponentInParent<FloorSwitch>();
+                if (sw == null) sw = dest.GetComponentInChildren<FloorSwitch>();
+                if (sw == null)
+                {
+                    Collider2D col = Physics2D.OverlapCircle(dest.position, 0.6f);
+                    if (col != null) sw = col.GetComponentInParent<FloorSwitch>();
+                }
+                if (sw != null)
+                {
+                    sw.RemoteToggle();
+                    Debug.Log($"[{animalName}] Havoc วาร์ปถึงสวิตช์ -> สับสวิตช์ {sw.name} สำเร็จ!");
+                }
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[{animalName}] Havoc เด้งครบ {havocBouncesBeforeTeleport} ครั้งแล้ว แต่ไม่พบจุดเป้าหมายสำหรับวาร์ป!");
+        }
+
+        // 5. ลงจอด
+        if (landAfterTeleport)
+        {
+            Land();
+        }
+
+        isBouncing = false;
+        activeHavocRoutine = null;
     }
     #endregion
 }

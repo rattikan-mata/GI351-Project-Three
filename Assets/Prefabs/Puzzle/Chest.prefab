@@ -197,6 +197,8 @@ MonoBehaviour:
   canBeDestroyedByHairball: 0
   canBeDestroyedByOthers: 0
   requirePoweredAnimal: 0
+  canBeHitBySkywardLaser: 0
+  canBeHitByForwardLaser: 0
   brokenSprite: {fileID: 0}
   breakEffectPrefab: {fileID: 0}
   hitEffectPrefab: {fileID: 0}
