@@ -235,6 +235,9 @@ MonoBehaviour:
   strengthFormSprite: {fileID: 0}
   flyDirection: 2
   flyDistance: 50
+  hoverOnSwitchTouch: 1
+  delayAfterSwitchBeforeLand: 2
+  triggerAnySwitchOnTouch: 1
   liftHeight: 1
   liftSmoothSpeed: 8
   shadow: {fileID: 0}

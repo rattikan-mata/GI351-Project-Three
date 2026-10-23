@@ -24,6 +24,7 @@ public class FloorSwitch : MonoBehaviour
 
     [Tooltip("ติ๊กไว้ = สัตว์ที่กำลังลอยอยู่ (ตัวอ้วนบินตอนบิน) จะไม่กดสวิตช์")]
     [SerializeField] private bool ignoreAirborneAnimals = true;
+    public bool IgnoreAirborneAnimals { get => ignoreAirborneAnimals; set => ignoreAirborneAnimals = value; }
     #endregion
 
     #region Weight
@@ -188,6 +189,19 @@ public class FloorSwitch : MonoBehaviour
     public void RemoteToggle()
     {
         if (!triggeredByLasers) return;
+        ToggleSwitch();
+        if (pressers.Count == 0 && animMode != ButtonAnimMode.StayWhileActive)
+        {
+            AnimateBounce();
+        }
+    }
+
+    /// <summary>ตรวจว่ามี Collider นี้เหยียบ/ทับสวิตช์อยู่หรือไม่</summary>
+    public bool ContainsPresser(Collider2D col) => col != null && pressers.Contains(col);
+
+    /// <summary>สั่งสลับสถานะสวิตช์โดยตรง (เช่น เมื่อสัตว์บินชนสวิตช์)</summary>
+    public void ForceToggle()
+    {
         ToggleSwitch();
         if (pressers.Count == 0 && animMode != ButtonAnimMode.StayWhileActive)
         {
