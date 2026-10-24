@@ -12,7 +12,7 @@ using UnityEngine;
 public class WinZone : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private EndGameUIController endGame;
+    [SerializeField] private EndGameUI endGame;
     [Tooltip("(ไม่บังคับ) ใช้นับจำนวนครั้งที่ลอง (กดรีเซ็ต + 1) ไว้คิดดาว ว่าง = นับเป็นลองครั้งแรกเสมอ")]
     [SerializeField] private PuzzleResetManager resetManager;
 
@@ -91,7 +91,7 @@ public class WinZone : MonoBehaviour
         won = true;
         int attempts = resetManager != null ? resetManager.ResetCount + 1 : 1;
         Debug.Log($"[WinZone] ชนะ! หีบนอนนิ่งในช่องรางวัล (ลองครั้งที่ {attempts})");
-        if (endGame != null) endGame.ShowWinScreen(attempts);
+        if (endGame != null) endGame.OpenWinScreen(attempts);
         else Debug.LogWarning("[WinZone] ยังไม่ได้ผูก EndGameUIController", this);
     }
 }
