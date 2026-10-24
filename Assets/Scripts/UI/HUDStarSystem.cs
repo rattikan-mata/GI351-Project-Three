@@ -8,32 +8,44 @@ public class HUDStarSystem : MonoBehaviour
     [SerializeField] private Sprite activeStarSprite;
     [SerializeField] private Sprite inactiveStarSprite;
 
-    public int CurrentStars { get; private set; } = 3;
-    public int AttemptCount { get; private set; } = 0;
+    [Header("EndGame Connection")]
+    [SerializeField] private EndGameUI endGameUI;
 
-    private void Awake()
-    {
-        ResetStars();
-    }
+    public static int CurrentStars { get; private set; } = 3;
+    public static int AttemptCount { get; private set; } = 0;
 
-    public void ResetStars()
+    private void Start()
     {
-        CurrentStars = 3;
-        AttemptCount = 0;
         RefreshVisuals();
     }
 
     public void DeductOneStar()
     {
         AttemptCount++;
+
         if (CurrentStars > 0)
         {
             CurrentStars--;
         }
+
         RefreshVisuals();
+
+        if (CurrentStars <= 0)
+        {
+            if (endGameUI != null)
+            {
+                endGameUI.OpenLoseScreen();
+            }
+        }
     }
 
-    private void RefreshVisuals()
+    public static void ResetStarsForNewStage()
+    {
+        CurrentStars = 3;
+        AttemptCount = 0;
+    }
+
+    public void RefreshVisuals()
     {
         for (int i = 0; i < starImages.Length; i++)
         {

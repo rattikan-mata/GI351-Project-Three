@@ -91,7 +91,7 @@ public class WinZone : MonoBehaviour
         won = true;
         int attempts = resetManager != null ? resetManager.ResetCount + 1 : 1;
         Debug.Log($"[WinZone] ชนะ! หีบนอนนิ่งในช่องรางวัล (ลองครั้งที่ {attempts})");
-        if (endGame != null) endGame.OpenWinScreen(attempts);
+        if (endGame != null) endGame.OpenWinScreen();
         else Debug.LogWarning("[WinZone] ยังไม่ได้ผูก EndGameUIController", this);
     }
 }

@@ -13,6 +13,11 @@ public class ResetStageController : MonoBehaviour
             starSystem.DeductOneStar();
         }
 
+        if (HUDStarSystem.CurrentStars <= 0)
+        {
+            return;
+        }
+
         if (curtain != null)
         {
             curtain.PlayClose(() =>

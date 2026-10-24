@@ -2190,6 +2190,7 @@ MonoBehaviour:
   - {fileID: 339785684}
   activeStarSprite: {fileID: 21300000, guid: e0710a40fac87d7479e75966923bdd77, type: 3}
   inactiveStarSprite: {fileID: 21300000, guid: 49b326d8862fc3a41b9d79509277b822, type: 3}
+  endGameUI: {fileID: 2083335847}
 --- !u!1 &367969553
 GameObject:
   m_ObjectHideFlags: 0
@@ -7064,7 +7065,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.size
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Mode

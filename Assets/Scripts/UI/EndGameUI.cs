@@ -29,7 +29,7 @@ public class EndGameUI : MonoBehaviour
         endGamePanel.SetActive(false);
     }
 
-    public void OpenWinScreen(int attemptsUsed)
+    public void OpenWinScreen()
     {
         endGamePanel.SetActive(true);
         txtResult.text = "VICTORY";
@@ -38,12 +38,9 @@ public class EndGameUI : MonoBehaviour
         btnRestart.SetActive(true);
         btnExitToMenu.SetActive(true);
 
-        int stars = 1;
-        if (attemptsUsed <= 1) stars = 3;
-        else if (attemptsUsed == 2) stars = 2;
-        else if (attemptsUsed >= 3) stars = 1;
+        int starsEarned = HUDStarSystem.CurrentStars;
 
-        SetStarVisuals(stars);
+        SetStarVisuals(starsEarned);
     }
 
     public void OpenLoseScreen()
@@ -78,20 +75,24 @@ public class EndGameUI : MonoBehaviour
     }
 
     // --- Buttons Action ---
+
     public void OnClickNext()
     {
+        HUDStarSystem.ResetStarsForNewStage();
         Time.timeScale = 1f;
         SceneManager.LoadScene(nextStageName);
     }
 
     public void OnClickRestart()
     {
+        HUDStarSystem.ResetStarsForNewStage();
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     public void OnClickExitToMenu()
     {
+        HUDStarSystem.ResetStarsForNewStage();
         Time.timeScale = 1f;
         SceneManager.LoadScene(mainMenuName);
     }

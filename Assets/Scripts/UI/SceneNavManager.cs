@@ -5,12 +5,14 @@ public class SceneNavManager : MonoBehaviour
 {
     public void LoadScene(string sceneName)
     {
+        HUDStarSystem.ResetStarsForNewStage();
         Time.timeScale = 1f;
         SceneManager.LoadScene(sceneName);
     }
 
     public void ReloadCurrentScene()
     {
+        HUDStarSystem.ResetStarsForNewStage();
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
