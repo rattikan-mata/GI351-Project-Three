@@ -69,6 +69,43 @@ public class FlyingAnimal : TestAnimal
     [SerializeField] private float maxBounceSpeed = 12f;
     #endregion
 
+    #region Skyward Door Pierce
+    [Header("Skyward Door Pierce (การทะลุประตูหลังแตะสวิตช์)")]
+    [Tooltip("เมื่อตัววัวแตะปุ่ม/สวิตช์ในโหมด Skyward แล้ว จะได้รับความสามารถทะลุประตูได้")]
+    [SerializeField] private bool skywardPierceDoorsAfterSwitch = true;
+
+    [Tooltip("เมื่อตัววัวบินไปชน/แตะ FloorSwitch ในโหมด Skyward ให้กดสวิตช์ทำงานทันที")]
+    [SerializeField] private bool skywardTriggerSwitchOnTouch = true;
+
+    [Tooltip("หากประตูเป็นแบบพังได้ (Breakable) เมื่อทะลุผ่านจะทำให้ประตูพังด้วยหรือไม่")]
+    [SerializeField] private bool skywardBreakDoorsOnPierce = false;
+
+    public bool SkywardPierceDoorsAfterSwitch
+    {
+        get => skywardPierceDoorsAfterSwitch;
+        set => skywardPierceDoorsAfterSwitch = value;
+    }
+
+    public bool SkywardBreakDoorsOnPierce
+    {
+        get => skywardBreakDoorsOnPierce;
+        set => skywardBreakDoorsOnPierce = value;
+    }
+
+    public bool SkywardSwitchTouched
+    {
+        get => skywardSwitchTouched;
+        set
+        {
+            skywardSwitchTouched = value;
+            if (skywardSwitchTouched && skywardPierceDoorsAfterSwitch)
+            {
+                IgnoreAllDoors();
+            }
+        }
+    }
+    #endregion
+
     #region Surge Settings
     [Header("Surge (ฟ้า+ส้ม): บินลาดตระเวน พังกล่องพังประตู & บินกลับที่เดิม")]
     [Tooltip("ความสูงที่ตัวลอยขึ้นขณะบิน Surge (หน่วย Unity ปรับได้อิสระ)")]
@@ -348,6 +385,7 @@ public class FlyingAnimal : TestAnimal
     private IEnumerator BounceRoutine(int bounceCount, bool allowTeleportAfter, Vector2? customDestination = null)
     {
         isBouncing = true;
+        skywardSwitchTouched = false;
         TakeOff();
         flyEndTime = float.MaxValue;
         StopMoving();
@@ -520,11 +558,18 @@ public class FlyingAnimal : TestAnimal
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (isFlying && hoverOnSwitchTouch && !isSwitchHovering)
+        FloorSwitch sw = other.GetComponentInParent<FloorSwitch>();
+        if (sw == null) sw = other.GetComponentInChildren<FloorSwitch>();
+        if (sw != null)
         {
-            FloorSwitch sw = other.GetComponentInParent<FloorSwitch>();
-            if (sw == null) sw = other.GetComponentInChildren<FloorSwitch>();
-            if (sw != null)
+            // ถ้าอยู่ในโหมด Skyward ให้สั่งเปิดสวิตช์และปลดล็อกการทะลุประตู
+            if (isFlying && (isBouncing || lastDrunkPotion == PotionType.Skyward))
+            {
+                if (skywardTriggerSwitchOnTouch) sw.ForceToggle();
+                if (skywardPierceDoorsAfterSwitch) OnSkywardSwitchTriggered();
+            }
+
+            if (isFlying && hoverOnSwitchTouch && !isSwitchHovering)
             {
                 TryHandleSwitchHover(sw);
             }
@@ -536,9 +581,14 @@ public class FlyingAnimal : TestAnimal
             if (door == null) door = other.GetComponentInChildren<Door>();
             if (door != null)
             {
-                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken)
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                    (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
                 {
                     IgnoreDoorCollision(door, true);
+                    if (skywardBreakDoorsOnPierce && door.IsBreakable && !door.IsBroken)
+                    {
+                        door.BreakDoor();
+                    }
                 }
             }
         }
@@ -552,9 +602,14 @@ public class FlyingAnimal : TestAnimal
             if (door == null) door = other.GetComponentInChildren<Door>();
             if (door != null)
             {
-                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken)
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                    (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
                 {
                     IgnoreDoorCollision(door, true);
+                    if (skywardBreakDoorsOnPierce && door.IsBreakable && !door.IsBroken)
+                    {
+                        door.BreakDoor();
+                    }
                 }
             }
         }
@@ -563,27 +618,39 @@ public class FlyingAnimal : TestAnimal
     private void OnCollisionEnter2D(Collision2D collision)
     {
         // ตรวจจับสวิตช์เมื่อบินชน
-        if (isFlying && hoverOnSwitchTouch && !isSwitchHovering)
+        FloorSwitch sw = collision.gameObject.GetComponentInParent<FloorSwitch>();
+        if (sw == null) sw = collision.gameObject.GetComponentInChildren<FloorSwitch>();
+        if (sw != null)
         {
-            FloorSwitch sw = collision.gameObject.GetComponentInParent<FloorSwitch>();
-            if (sw == null) sw = collision.gameObject.GetComponentInChildren<FloorSwitch>();
-            if (sw != null)
+            // ถ้าอยู่ในโหมด Skyward ให้สั่งเปิดสวิตช์และปลดล็อกการทะลุประตู
+            if (isFlying && (isBouncing || lastDrunkPotion == PotionType.Skyward))
+            {
+                if (skywardTriggerSwitchOnTouch) sw.ForceToggle();
+                if (skywardPierceDoorsAfterSwitch) OnSkywardSwitchTriggered();
+            }
+
+            if (isFlying && hoverOnSwitchTouch && !isSwitchHovering)
             {
                 TryHandleSwitchHover(sw);
                 return;
             }
         }
 
-        // ตรวจจับประตูเมื่อบินชน (ยาฟ้า: ไม่ตกพื้นทันทีเมื่อชนประตู)
+        // ตรวจจับประตูเมื่อบินชน (ยาฟ้า: ไม่ตกพื้นทันทีเมื่อชนประตู / Skyward: ทะลุผ่านประตูหลังแตะสวิตช์)
         if (isFlying)
         {
             Door door = collision.gameObject.GetComponentInParent<Door>();
             if (door == null) door = collision.gameObject.GetComponentInChildren<Door>();
             if (door != null)
             {
-                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken)
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                    (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
                 {
                     IgnoreDoorCollision(door, true);
+                    if (skywardBreakDoorsOnPierce && door.IsBreakable && !door.IsBroken)
+                    {
+                        door.BreakDoor();
+                    }
                     return;
                 }
 
@@ -625,6 +692,15 @@ public class FlyingAnimal : TestAnimal
         // โหมดเด้ง: ชนกำแพงแล้วสะท้อนทันทีแบบกระจก
         if (isFlying && isBouncing)
         {
+            Door door = collision.gameObject.GetComponentInParent<Door>();
+            if (door == null) door = collision.gameObject.GetComponentInChildren<Door>();
+            if (door != null && (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                                 (skywardSwitchTouched && skywardPierceDoorsAfterSwitch)))
+            {
+                IgnoreDoorCollision(door, true);
+                return;
+            }
+
             Vector2 normal = Vector2.zero;
             int count = collision.contactCount;
             if (count > 0)
@@ -680,7 +756,8 @@ public class FlyingAnimal : TestAnimal
             if (door == null) door = collision.gameObject.GetComponentInChildren<Door>();
             if (door != null)
             {
-                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken)
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                    (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
                 {
                     IgnoreDoorCollision(door, true);
                     return;
@@ -702,6 +779,15 @@ public class FlyingAnimal : TestAnimal
 
         if (isFlying && isBouncing && !IsRamming)
         {
+            Door door = collision.gameObject.GetComponentInParent<Door>();
+            if (door == null) door = collision.gameObject.GetComponentInChildren<Door>();
+            if (door != null && (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                                 (skywardSwitchTouched && skywardPierceDoorsAfterSwitch)))
+            {
+                IgnoreDoorCollision(door, true);
+                return;
+            }
+
             Vector2 normal = Vector2.zero;
             int count = collision.contactCount;
             if (count > 0)
@@ -799,21 +885,26 @@ public class FlyingAnimal : TestAnimal
     /// <summary>ยกเลิกการชนกับประตู เพื่อให้ตัวบินบินผ่านได้อย่างอิสระ</summary>
     private void IgnoreDoorCollision(Door door, bool ignore = true)
     {
-        if (door == null || bodyCollider == null) return;
+        if (door == null) return;
+        var myColliders = GetComponentsInChildren<Collider2D>(true);
         var doorColliders = door.GetComponentsInChildren<Collider2D>(true);
         foreach (var dc in doorColliders)
         {
-            if (dc != null && dc != bodyCollider)
+            if (dc == null) continue;
+            foreach (var mc in myColliders)
             {
-                Physics2D.IgnoreCollision(bodyCollider, dc, ignore);
-                if (ignore)
+                if (mc != null && mc != dc)
                 {
-                    ignoredDoorColliders.Add(dc);
+                    Physics2D.IgnoreCollision(mc, dc, ignore);
                 }
-                else
-                {
-                    ignoredDoorColliders.Remove(dc);
-                }
+            }
+            if (ignore)
+            {
+                ignoredDoorColliders.Add(dc);
+            }
+            else
+            {
+                ignoredDoorColliders.Remove(dc);
             }
         }
     }
@@ -821,15 +912,54 @@ public class FlyingAnimal : TestAnimal
     /// <summary>คืนค่าการชนกับประตูทั้งหมดเมื่อลงจอด</summary>
     private void RestoreDoorCollisions()
     {
-        if (bodyCollider == null) return;
+        var myColliders = GetComponentsInChildren<Collider2D>(true);
         foreach (var dc in ignoredDoorColliders)
         {
             if (dc != null)
             {
-                Physics2D.IgnoreCollision(bodyCollider, dc, false);
+                foreach (var mc in myColliders)
+                {
+                    if (mc != null && mc != dc)
+                    {
+                        Physics2D.IgnoreCollision(mc, dc, false);
+                    }
+                }
             }
         }
         ignoredDoorColliders.Clear();
+    }
+
+    /// <summary>ยกเลิกการชนกับประตูทั้งหมดในฉาก</summary>
+    private void IgnoreAllDoors()
+    {
+        Door[] allDoors = FindObjectsByType<Door>(FindObjectsSortMode.None);
+        foreach (var d in allDoors)
+        {
+            if (d != null)
+            {
+                IgnoreDoorCollision(d, true);
+                if (skywardBreakDoorsOnPierce && d.IsBreakable && !d.IsBroken)
+                {
+                    d.BreakDoor();
+                }
+            }
+        }
+    }
+
+    /// <summary>เรียกเมื่อตัววัวในโหมด Skyward แตะสวิตช์/ปุ่ม ทำให้ได้รับความสามารถทะลุประตูได้</summary>
+    private void OnSkywardSwitchTriggered()
+    {
+        if (skywardSwitchTouched) return;
+        skywardSwitchTouched = true;
+        Debug.Log($"[{animalName}] Skyward แตะสวิตช์แล้ว! ได้รับความสามารถทะลุประตู (Skyward Door Pierce Active)");
+        IgnoreAllDoors();
+
+        if (bounceStage == BounceStage.BouncingToTarget)
+        {
+            bounceStage = BounceStage.FreeBouncing;
+            freeBounceCount = 0;
+            freeBounceTimer = 0f;
+        }
     }
 
     /// <summary>ตรวจสอบประตูที่เปิดอยู่ข้างหน้าแบบเรียลไทม์เพื่อไม่ให้ชนติด</summary>
@@ -850,9 +980,14 @@ public class FlyingAnimal : TestAnimal
             Door door = hit.collider.GetComponentInParent<Door>();
             if (door != null)
             {
-                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken)
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                    (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
                 {
                     IgnoreDoorCollision(door, true);
+                    if (skywardBreakDoorsOnPierce && door.IsBreakable && !door.IsBroken)
+                    {
+                        door.BreakDoor();
+                    }
                 }
             }
         }
@@ -982,6 +1117,7 @@ public class FlyingAnimal : TestAnimal
     private int freeBounceCount = 0;
     private float freeBounceTimer = 0f;
     private Vector2 currentBounceDir;
+    private bool skywardSwitchTouched = false;
     private int wallBouncedCount = 0;
     private Coroutine activeBounceRoutine;
     private float flyEndTime;
@@ -1140,6 +1276,7 @@ public class FlyingAnimal : TestAnimal
             doorHoverRoutine = null;
         }
         isDoorHovering = false;
+        skywardSwitchTouched = false;
     }
 
     protected override void Update()
@@ -1164,7 +1301,7 @@ public class FlyingAnimal : TestAnimal
 
     protected override void FixedUpdate()
     {
-        if (isFlying && (passOpenDoors || flyThroughAnyDoor))
+        if (isFlying && (passOpenDoors || flyThroughAnyDoor || (isBouncing && skywardSwitchTouched && skywardPierceDoorsAfterSwitch)))
         {
             CheckAheadForOpenDoors();
         }
@@ -1273,7 +1410,22 @@ public class FlyingAnimal : TestAnimal
 
                         // ถ้าเป้าหมายมี FloorSwitch ให้กดสวิตช์ด้วย
                         FloorSwitch sw = destTransform.GetComponentInParent<FloorSwitch>();
+                        if (sw == null) sw = destTransform.GetComponentInChildren<FloorSwitch>();
+                        if (sw == null)
+                        {
+                            Collider2D nearbyCol = Physics2D.OverlapCircle(destTransform.position, 1.2f);
+                            if (nearbyCol != null)
+                            {
+                                sw = nearbyCol.GetComponentInParent<FloorSwitch>();
+                                if (sw == null) sw = nearbyCol.GetComponentInChildren<FloorSwitch>();
+                            }
+                        }
                         if (sw != null) sw.RemoteToggle();
+
+                        if (skywardPierceDoorsAfterSwitch)
+                        {
+                            OnSkywardSwitchTriggered();
+                        }
 
                         // เปลี่ยนสเตจเป็นเด้งอิสระ (FreeBouncing)
                         bounceStage = BounceStage.FreeBouncing;
@@ -1311,15 +1463,38 @@ public class FlyingAnimal : TestAnimal
                 rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
             }
 
-            // ตรวจจับกำแพงล่วงหน้าแบบเรียลไทม์ด้วย CircleCast เพื่อสะท้อนออกทันทีแบบกระจก
+            // ตรวจจับกำแพงล่วงหน้าแบบเรียลไทม์ด้วย CircleCast เพื่อสะท้อนออกทันทีแบบกระจก (ข้ามประตูเมื่ออยู่ในโหมดทะลุประตู)
             CircleCollider2D circle = bodyCollider as CircleCollider2D;
             float radius = circle != null ? circle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y) * 0.95f : 0.45f;
             float castDist = step + 0.05f;
 
-            RaycastHit2D hit = Physics2D.CircleCast(rb.position, radius, currentBounceDir, castDist, ~flyOverLayers);
-            if (hit.collider != null && !hit.collider.isTrigger && hit.collider.gameObject != gameObject)
+            RaycastHit2D[] hits = Physics2D.CircleCastAll(rb.position, radius, currentBounceDir, castDist, ~flyOverLayers);
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+            foreach (var h in hits)
             {
-                OnBounceHit(hit.normal);
+                if (h.collider == null || h.collider.isTrigger || h.collider.gameObject == gameObject)
+                    continue;
+
+                Door door = h.collider.GetComponentInParent<Door>();
+                if (door == null) door = h.collider.GetComponentInChildren<Door>();
+
+                if (door != null)
+                {
+                    bool canPassDoor = flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                                       (skywardSwitchTouched && skywardPierceDoorsAfterSwitch);
+                    if (canPassDoor)
+                    {
+                        IgnoreDoorCollision(door, true);
+                        if (skywardBreakDoorsOnPierce && door.IsBreakable && !door.IsBroken)
+                        {
+                            door.BreakDoor();
+                        }
+                        continue;
+                    }
+                }
+
+                OnBounceHit(h.normal);
                 return;
             }
 
@@ -1390,11 +1565,11 @@ public class FlyingAnimal : TestAnimal
         bodyCollider.excludeLayers = flyOverLayers; // ไม่ชน Layer เหล่านี้ตอนลอย
         if (shadow != null) shadow.SetActive(true);
 
-        if (passOpenDoors || flyThroughAnyDoor)
+        if (passOpenDoors || flyThroughAnyDoor || (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
         {
             foreach (var door in FindObjectsByType<Door>(FindObjectsSortMode.None))
             {
-                if (door != null && (flyThroughAnyDoor || door.IsOpen || door.IsBroken))
+                if (door != null && (flyThroughAnyDoor || door.IsOpen || door.IsBroken || (skywardSwitchTouched && skywardPierceDoorsAfterSwitch)))
                 {
                     IgnoreDoorCollision(door, true);
                 }
@@ -1407,6 +1582,7 @@ public class FlyingAnimal : TestAnimal
         isFlying = false;
         isSwitchHovering = false;
         isDoorHovering = false;
+        skywardSwitchTouched = false;
         if (switchHoverRoutine != null)
         {
             StopCoroutine(switchHoverRoutine);

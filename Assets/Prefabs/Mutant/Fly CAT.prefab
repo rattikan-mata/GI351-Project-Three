@@ -210,6 +210,9 @@ MonoBehaviour:
   smokeEffectPrefab: {fileID: 0}
   speedIncreasePerBounce: 1
   maxBounceSpeed: 20
+  skywardPierceDoorsAfterSwitch: 0
+  skywardTriggerSwitchOnTouch: 1
+  skywardBreakDoorsOnPierce: 0
   surgeLiftHeight: 0.5
   surgeSpeed: 4.5
   surgeReturnSpeed: 4
@@ -237,8 +240,8 @@ MonoBehaviour:
   havocBouncesBeforeTeleport: 5
   delayBeforeTeleport: 0.15
   bounceAfterTeleport: 1
-  havocPostTeleportBounces: 10
-  havocPostTeleportBounceDuration: 8
+  havocPostTeleportBounces: 10000
+  havocPostTeleportBounceDuration: 10000
   triggerSwitchOnTeleport: 0
   landAfterPostTeleport: 1
   patrolLiftHeight: 0.2
