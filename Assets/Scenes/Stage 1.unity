@@ -998,7 +998,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 204380481}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 333587172}
+        m_TargetAssemblyTypeName: InfoMenuController, Assembly-CSharp
+        m_MethodName: QuitToMainMenu
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &204380481
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1766,7 +1778,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 2083335847}
-        m_TargetAssemblyTypeName: EndGameUIController, Assembly-CSharp
+        m_TargetAssemblyTypeName: EndGameUI, Assembly-CSharp
         m_MethodName: OnClickRestart
         m_Mode: 1
         m_Arguments:
@@ -1847,6 +1859,7 @@ GameObject:
   - component: {fileID: 333587171}
   - component: {fileID: 333587170}
   - component: {fileID: 333587169}
+  - component: {fileID: 333587172}
   m_Layer: 5
   m_Name: InfoMenu
   m_TagString: Untagged
@@ -1924,6 +1937,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 333587167}
   m_CullTransparentMesh: 1
+--- !u!114 &333587172
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 333587167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3069160ada84c144db3dba84f4c42ce8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InfoMenuController
+  infoPanel: {fileID: 731734489}
+  canvasGroup: {fileID: 333587169}
+  mainMenuSceneName: MainMenu
 --- !u!1 &339785682
 GameObject:
   m_ObjectHideFlags: 0
@@ -2088,6 +2116,7 @@ GameObject:
   m_Component:
   - component: {fileID: 366371545}
   - component: {fileID: 366371546}
+  - component: {fileID: 366371547}
   m_Layer: 5
   m_Name: Stars
   m_TagString: Untagged
@@ -2143,6 +2172,21 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &366371547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 366371544}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7ea6cbb6f50dba4898ebdc74dc41641, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HUDStarSystem
+  starImages: []
+  activeStarSprite: {fileID: 0}
+  inactiveStarSprite: {fileID: 0}
 --- !u!1 &367969553
 GameObject:
   m_ObjectHideFlags: 0
@@ -2227,9 +2271,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 2083335847}
-        m_TargetAssemblyTypeName: EndGameUIController, Assembly-CSharp
-        m_MethodName: OnClickNextLevel
-        m_Mode: 5
+        m_TargetAssemblyTypeName: EndGameUI, Assembly-CSharp
+        m_MethodName: OnClickNext
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -2984,6 +3028,7 @@ GameObject:
   - component: {fileID: 557003438}
   - component: {fileID: 557003437}
   - component: {fileID: 557003436}
+  - component: {fileID: 557003440}
   m_Layer: 5
   m_Name: Curtian
   m_TagString: Untagged
@@ -3082,6 +3127,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 557003434}
   m_CullTransparentMesh: 1
+--- !u!114 &557003440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 557003434}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 657f10c3bfc7b384bb7b407bab6d64da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CurtainEffect
+  curtainAnimator: {fileID: 557003436}
+  canvasGroup: {fileID: 557003437}
+  triggerCloseName: Close
+  triggerOpenName: Open
 --- !u!1 &559135513
 GameObject:
   m_ObjectHideFlags: 0
@@ -3369,7 +3430,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 671133216}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 333587172}
+        m_TargetAssemblyTypeName: InfoMenuController, Assembly-CSharp
+        m_MethodName: CloseInfo
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &671133216
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3555,9 +3628,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 2083335847}
-        m_TargetAssemblyTypeName: EndGameUIController, Assembly-CSharp
-        m_MethodName: OnClickMainMenu
-        m_Mode: 5
+        m_TargetAssemblyTypeName: EndGameUI, Assembly-CSharp
+        m_MethodName: OnClickExitToMenu
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -4764,6 +4837,7 @@ GameObject:
   - component: {fileID: 1215555957}
   - component: {fileID: 1215555956}
   - component: {fileID: 1215555955}
+  - component: {fileID: 1215555958}
   m_Layer: 5
   m_Name: Reset
   m_TagString: Untagged
@@ -4834,7 +4908,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1215555956}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1215555958}
+        m_TargetAssemblyTypeName: ResetStageController, Assembly-CSharp
+        m_MethodName: OnClickReset
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1215555956
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4873,6 +4959,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1215555953}
   m_CullTransparentMesh: 1
+--- !u!114 &1215555958
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1215555953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306d0d63dfee24b4882e8458f2aa4d97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ResetStageController
+  curtain: {fileID: 557003440}
+  starSystem: {fileID: 366371547}
 --- !u!1 &1251308469
 GameObject:
   m_ObjectHideFlags: 0
@@ -6961,10 +7061,14 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.size
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Mode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
@@ -6972,7 +7076,15 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1556225877}
     - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Target
+      value: 
+      objectReference: {fileID: 366371547}
+    - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_CallState
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
@@ -6980,8 +7092,20 @@ PrefabInstance:
       value: SendPotionsToDropper
       objectReference: {fileID: 0}
     - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_MethodName
+      value: DeductOneStar
+      objectReference: {fileID: 0}
+    - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
       value: PotionSystem.PotionStagingManager, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_TargetAssemblyTypeName
+      value: HUDStarSystem, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 1453219759432934152, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
     - target: {fileID: 1744695310743316427, guid: 48ecf0b29f63b3e4aa63e8d971ac9517, type: 3}
       propertyPath: m_Color.a
@@ -8161,7 +8285,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2077351567}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 333587172}
+        m_TargetAssemblyTypeName: InfoMenuController, Assembly-CSharp
+        m_MethodName: OpenInfo
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &2077351567
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8252,16 +8388,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EndGameUIController
   endGamePanel: {fileID: 2083335845}
-  txtTitle: {fileID: 1579622062}
-  starImages:
+  txtResult: {fileID: 1579622062}
+  endStarImages:
   - {fileID: 1126633694}
   - {fileID: 92032309}
   - {fileID: 1717164708}
   activeStarSprite: {fileID: 21300000, guid: e0710a40fac87d7479e75966923bdd77, type: 3}
   inactiveStarSprite: {fileID: 21300000, guid: 49b326d8862fc3a41b9d79509277b822, type: 3}
-  btnNextLevel: {fileID: 367969553}
+  btnNext: {fileID: 367969553}
   btnRestart: {fileID: 310502287}
-  btnMainMenu: {fileID: 765292550}
+  btnExitToMenu: {fileID: 765292550}
+  nextStageName: Stage2
+  mainMenuName: MainMenu
 --- !u!114 &2083335848
 MonoBehaviour:
   m_ObjectHideFlags: 0
