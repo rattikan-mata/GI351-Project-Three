@@ -199,8 +199,9 @@ public abstract class TestAnimal : MonoBehaviour
         abilityUnlockedUntil = (potionEffectDuration > 0f) ? Time.time + potionEffectDuration : float.MaxValue;
         Debug.Log($"[{animalName}] ใช้ยา {potion} แล้ว");
 
-        AudioClip drinkClip = drinkPotionSound != null ? drinkPotionSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("AnimalDrink") : null);
-        PlayAnimalSound(drinkClip, drinkPotionVolume);
+        AudioClip drinkClip = ResolveDrinkSound();
+        float volume = (drinkPotionVolume > 0.001f) ? drinkPotionVolume : 1f;
+        PlayAnimalSound(drinkClip, volume);
 
         // --- เปลี่ยนร่างเป็นสไปรต์ใหม่หลังได้รับยา ---
         Sprite customSprite = GetCustomPoweredUpSprite(potion);
@@ -212,6 +213,20 @@ public abstract class TestAnimal : MonoBehaviour
 
         TriggerAuto();
         return true;
+    }
+
+    /// <summary>ดึงคลิปเสียงตอนได้รับยา (จาก Inspector หรือ AudioManager)</summary>
+    protected AudioClip ResolveDrinkSound()
+    {
+        if (drinkPotionSound != null) return drinkPotionSound;
+        if (AudioManager.Instance != null)
+        {
+            return AudioManager.Instance.GetClip("AnimalDrinkPotion")
+                ?? AudioManager.Instance.GetClip("AnimalDrink")
+                ?? AudioManager.Instance.GetClip("AnimalInject")
+                ?? AudioManager.Instance.GetClip("DrinkPotion");
+        }
+        return null;
     }
 
     /// <summary>สไปรต์ร่างใหม่เฉพาะของแต่ละคลาสลูกเมื่อได้ยาแต่ละชนิด (เช่น แมวร่าง Skyward / แพะร่างทุบ) ถ้าคืนค่า null จะใช้ Powered Up Sprite ปกติ</summary>
@@ -236,6 +251,18 @@ public abstract class TestAnimal : MonoBehaviour
 
     [Tooltip("AudioSource ประจำตัวสัตว์ (ถ้าเว้นว่างจะค้นหาให้อัตโนมัติ)")]
     [SerializeField] protected AudioSource animalAudioSource;
+
+    protected AudioSource EnsureAudioSource()
+    {
+        if (animalAudioSource == null) animalAudioSource = GetComponent<AudioSource>();
+        if (animalAudioSource == null)
+        {
+            animalAudioSource = gameObject.AddComponent<AudioSource>();
+            animalAudioSource.playOnAwake = false;
+            animalAudioSource.spatialBlend = 0f;
+        }
+        return animalAudioSource;
+    }
     #endregion
 
     #region Unity Lifecycle
@@ -250,7 +277,7 @@ public abstract class TestAnimal : MonoBehaviour
         UpdateGravityState();
 
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-        if (animalAudioSource == null) animalAudioSource = GetComponent<AudioSource>();
+        EnsureAudioSource();
 
         // --- ตั้งค่าสไปรต์เริ่มต้นเป็นแมวเปล่าตอนเริ่มเกม ---
         if (spriteRenderer != null && defaultCatSprite != null)
@@ -523,16 +550,20 @@ public abstract class TestAnimal : MonoBehaviour
         if (clip == null) return;
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlaySFXAt(clip, transform.position, volume, pitchVariance);
-        }
-        else if (animalAudioSource != null)
-        {
-            animalAudioSource.pitch = (pitchVariance > 0f) ? Random.Range(1f - pitchVariance, 1f + pitchVariance) : 1f;
-            animalAudioSource.PlayOneShot(clip, volume);
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, volume, pitchVariance, ignoreCooldown: true);
         }
         else
         {
-            AudioSource.PlayClipAtPoint(clip, transform.position, volume);
+            AudioSource src = EnsureAudioSource();
+            if (src != null)
+            {
+                src.pitch = (pitchVariance > 0f) ? Random.Range(1f - pitchVariance, 1f + pitchVariance) : 1f;
+                src.PlayOneShot(clip, volume);
+            }
+            else
+            {
+                AudioSource.PlayClipAtPoint(clip, transform.position, volume);
+            }
         }
     }
     #endregion

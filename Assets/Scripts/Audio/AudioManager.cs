@@ -13,7 +13,43 @@ using UnityEngine;
 /// </summary>
 public class AudioManager : MonoBehaviour
 {
-    public static AudioManager Instance { get; private set; }
+    private static AudioManager instance;
+    public static AudioManager Instance
+    {
+        get
+        {
+            if (instance == null)
+            {
+                instance = FindObjectOfType<AudioManager>();
+                if (instance == null)
+                {
+#if UNITY_EDITOR
+                    string[] guids = UnityEditor.AssetDatabase.FindAssets("Audio Manager t:Prefab");
+                    if (guids != null && guids.Length > 0)
+                    {
+                        foreach (var g in guids)
+                        {
+                            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(g);
+                            if (path.EndsWith("Audio Manager.prefab", System.StringComparison.OrdinalIgnoreCase))
+                            {
+                                GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                                if (prefab != null)
+                                {
+                                    GameObject go = Instantiate(prefab);
+                                    go.name = "Audio Manager";
+                                    instance = go.GetComponent<AudioManager>();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+#endif
+                }
+            }
+            return instance;
+        }
+        private set => instance = value;
+    }
 
     [System.Serializable]
     public class NamedAudioClip
@@ -74,11 +110,13 @@ public class AudioManager : MonoBehaviour
             "TrampolineBounce",
             "FlameLoop",
             "AnimalDrinkPotion",
+            "AnimalDrink",
             "AnimalCry",
             "GoatPush",
             "GoatSmash",
             "GoatLaser",
             "GoatSkywardLaser",
+            "GoatHavoc",
             "CowFly",
             "CowBounce",
             "CowRam",
@@ -448,6 +486,96 @@ public class AudioManager : MonoBehaviour
         source.PlayOneShot(clip, finalVolume);
     }
 
+    /// <summary>แปลงชื่อเรียกเสียงแบบย่อ/ทางเลือก ให้ตรงกับคีย์มาตรฐานในคลังเสียง</summary>
+    public static string ResolveSoundAlias(string soundName)
+    {
+        if (string.IsNullOrEmpty(soundName)) return null;
+        switch (soundName.Trim().ToLowerInvariant())
+        {
+            case "animaldrink":
+            case "animalinject":
+            case "drinkpotion":
+            case "potiondrink":
+            case "animaldrinkpotion":
+                return "AnimalDrinkPotion";
+
+            case "animalcry":
+            case "cry":
+                return "AnimalCry";
+
+            case "belt":
+            case "beltloop":
+            case "beltrunning":
+                return "BeltRunning";
+
+            case "flame":
+            case "flameloop":
+            case "flamethrower":
+            case "fire":
+                return "FlameLoop";
+
+            case "dropper":
+            case "droppershoot":
+            case "dartgun":
+            case "dartshoot":
+                return "DropperShoot";
+
+            case "trampoline":
+            case "tempoline":
+            case "trampolinebounce":
+            case "bounce":
+                return "TrampolineBounce";
+
+            case "boxbreak":
+            case "woodboxdestory":
+            case "boxdestroy":
+                return "BoxBreak";
+
+            case "boxpush":
+            case "woodslide":
+            case "boxslide":
+                return "BoxPush";
+
+            case "switch":
+            case "switchpress":
+            case "button":
+            case "buttonpress":
+                return "SwitchPress";
+
+            case "dooropen":
+                return "DoorOpen";
+
+            case "doorclose":
+                return "DoorClose";
+
+            case "doorbreak":
+                return "DoorBreak";
+
+            case "goatpush":
+            case "goat":
+            case "pusheranimalpush":
+            case "goatorange":
+                return "GoatPush";
+
+            case "goatsmash":
+                return "GoatSmash";
+
+            case "goatlaser":
+                return "GoatLaser";
+
+            case "goatskywardlaser":
+                return "GoatSkywardLaser";
+
+            case "goathavoc":
+            case "havoc":
+            case "pusheranimalhavoc":
+                return "GoatHavoc";
+
+            default:
+                return null;
+        }
+    }
+
     /// <summary>เล่นเสียง SFX ผ่านชื่อที่ลงทะเบียนไว้ใน Inspector</summary>
     public void PlaySFX(string soundName, float volumeScale = 1f, float pitchVariance = 0f, bool ignoreCooldown = false)
     {
@@ -456,7 +584,17 @@ public class AudioManager : MonoBehaviour
 
         if (sfxDict == null) BuildSfxDictionary();
 
-        if (sfxDict != null && sfxDict.TryGetValue(soundName, out NamedAudioClip namedClip))
+        NamedAudioClip namedClip = null;
+        if (sfxDict != null)
+        {
+            if (!sfxDict.TryGetValue(soundName, out namedClip) || namedClip.clip == null)
+            {
+                string alias = ResolveSoundAlias(soundName);
+                if (!string.IsNullOrEmpty(alias)) sfxDict.TryGetValue(alias, out namedClip);
+            }
+        }
+
+        if (namedClip != null && namedClip.clip != null)
         {
             MarkSoundPlayed(namedClip.clip, soundName);
             PlaySFX(namedClip.clip, volumeScale, pitchVariance, ignoreCooldown: true);
@@ -511,12 +649,24 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    /// <summary>ดึง AudioClip จากคลังเสียง Sound Library ผ่านชื่อ</summary>
+    /// <summary>ดึง AudioClip จากคลังเสียง Sound Library ผ่านชื่อ (รองรับชื่อทางเลือก)</summary>
     public AudioClip GetClip(string soundName)
     {
         if (string.IsNullOrEmpty(soundName)) return null;
         if (sfxDict == null) BuildSfxDictionary();
-        return (sfxDict != null && sfxDict.TryGetValue(soundName, out NamedAudioClip item)) ? item.clip : null;
+
+        if (sfxDict != null && sfxDict.TryGetValue(soundName, out NamedAudioClip item) && item.clip != null)
+        {
+            return item.clip;
+        }
+
+        string alias = ResolveSoundAlias(soundName);
+        if (!string.IsNullOrEmpty(alias) && sfxDict != null && sfxDict.TryGetValue(alias, out NamedAudioClip aliasItem) && aliasItem.clip != null)
+        {
+            return aliasItem.clip;
+        }
+
+        return null;
     }
 
     private AudioSource GetAvailableSfxSource()

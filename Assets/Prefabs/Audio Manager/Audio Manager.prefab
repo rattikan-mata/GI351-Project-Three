@@ -72,31 +72,37 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: e5da4756f4f637f4aa828f8c1de51753, type: 3}
     defaultVolume: 1
   - name: DropperShoot
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: b3baa886b67bb1641a68796f046bc460, type: 3}
     defaultVolume: 1
   - name: TrampolineBounce
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 8fc305b5456f4a34abb75a5c1c32fc61, type: 3}
     defaultVolume: 1
   - name: FlameLoop
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: f0cd2beaa7cd3254e9555ae00266a5ae, type: 3}
     defaultVolume: 1
   - name: AnimalDrinkPotion
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 03f8f8bd36c48a84791bf2e829d640e9, type: 3}
+    defaultVolume: 1
+  - name: AnimalDrink
+    clip: {fileID: 8300000, guid: 03f8f8bd36c48a84791bf2e829d640e9, type: 3}
     defaultVolume: 1
   - name: AnimalCry
     clip: {fileID: 0}
     defaultVolume: 1
   - name: GoatPush
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 22fcad673effb60419651af57d414081, type: 3}
     defaultVolume: 1
   - name: GoatSmash
     clip: {fileID: 0}
     defaultVolume: 1
   - name: GoatLaser
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 62cadb875d4056a42a6a2f3e935ce787, type: 3}
     defaultVolume: 1
   - name: GoatSkywardLaser
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 963247a4b05e5014887e6c0ac3541d3f, type: 3}
+    defaultVolume: 1
+  - name: GoatHavoc
+    clip: {fileID: 8300000, guid: 432e60343d74b124892f029450c7cd74, type: 3}
     defaultVolume: 1
   - name: CowFly
     clip: {fileID: 0}

@@ -113,6 +113,24 @@ public class FlameThrower : MonoBehaviour
     #endregion
 
     #region Unity Lifecycle
+    private void Awake()
+    {
+        EnsureAudioSource();
+    }
+
+    private AudioSource EnsureAudioSource()
+    {
+        if (loopSound == null) loopSound = GetComponent<AudioSource>();
+        if (loopSound == null)
+        {
+            loopSound = gameObject.AddComponent<AudioSource>();
+            loopSound.playOnAwake = false;
+            loopSound.loop = true;
+            loopSound.spatialBlend = 0f;
+        }
+        return loopSound;
+    }
+
     private void OnEnable()
     {
         if (switches == null) return;
@@ -132,6 +150,10 @@ public class FlameThrower : MonoBehaviour
             }
         }
         SetFiring(false);
+        if (loopSound != null && loopSound.isPlaying)
+        {
+            loopSound.Stop();
+        }
     }
 
     private void Start()
@@ -139,6 +161,31 @@ public class FlameThrower : MonoBehaviour
         cycleOn = true;
         cycleTimer = -cycleStartDelay;
         Evaluate();
+        UpdateAudio();
+    }
+
+    private void Update()
+    {
+        if (IsFiring)
+        {
+            if (loopSound == null || flameSound == null || !loopSound.isPlaying)
+            {
+                UpdateAudio();
+            }
+            else
+            {
+                // ซิงค์ระดับเสียงแบบ Real-time ตาม Master / SFX Volume ใน AudioManager
+                float clipBase = (AudioManager.Instance != null && loopSound.clip != null) ? AudioManager.Instance.GetClipBaseVolume(loopSound.clip) : 1f;
+                float targetVol = (AudioManager.Instance != null)
+                    ? (AudioManager.Instance.IsMuted ? 0f : AudioManager.Instance.MasterVolume * AudioManager.Instance.SfxVolume * clipBase * flameVolume)
+                    : flameVolume;
+                loopSound.volume = targetVol;
+            }
+        }
+        else if (loopSound != null && loopSound.isPlaying)
+        {
+            loopSound.Stop();
+        }
     }
 
     private void FixedUpdate()
@@ -225,9 +272,26 @@ public class FlameThrower : MonoBehaviour
         return requireAll ? all : any;
     }
 
+    private AudioClip ResolveFlameSound()
+    {
+        if (flameSound != null) return flameSound;
+        if (AudioManager.Instance != null)
+        {
+            flameSound = AudioManager.Instance.GetClip("FlameLoop")
+                      ?? AudioManager.Instance.GetClip("Flame")
+                      ?? AudioManager.Instance.GetClip("FlameThrower")
+                      ?? AudioManager.Instance.GetClip("Fire");
+        }
+        return flameSound;
+    }
+
     private void SetFiring(bool firing)
     {
-        if (IsFiring == firing && Application.isPlaying && (flameVisual == null || flameVisual.activeSelf == firing)) return;
+        if (IsFiring == firing && Application.isPlaying && (flameVisual == null || flameVisual.activeSelf == firing))
+        {
+            UpdateAudio();
+            return;
+        }
         IsFiring = firing;
 
         if (flameVisual != null) flameVisual.SetActive(firing);
@@ -236,31 +300,41 @@ public class FlameThrower : MonoBehaviour
             if (firing && !flameParticles.isPlaying) flameParticles.Play();
             else if (!firing && flameParticles.isPlaying) flameParticles.Stop();
         }
-        if (loopSound == null) loopSound = GetComponent<AudioSource>();
-        if (loopSound != null)
+
+        UpdateAudio();
+    }
+
+    private void UpdateAudio()
+    {
+        AudioSource src = EnsureAudioSource();
+        if (src == null) return;
+
+        AudioClip clip = ResolveFlameSound();
+
+        if (IsFiring && clip != null)
         {
-            if (firing)
+            if (src.clip != clip)
             {
-                if (flameSound == null && AudioManager.Instance != null)
-                    flameSound = AudioManager.Instance.GetClip("FlameLoop");
-
-                if (flameSound != null && loopSound.clip != flameSound)
-                {
-                    loopSound.clip = flameSound;
-                    loopSound.loop = true;
-                }
-
-                float clipBase = (AudioManager.Instance != null && loopSound.clip != null) ? AudioManager.Instance.GetClipBaseVolume(loopSound.clip) : 1f;
-                float targetVol = (AudioManager.Instance != null)
-                    ? (AudioManager.Instance.IsMuted ? 0f : AudioManager.Instance.MasterVolume * AudioManager.Instance.SfxVolume * clipBase * flameVolume)
-                    : flameVolume;
-                loopSound.volume = targetVol;
-
-                if (!loopSound.isPlaying) loopSound.Play();
+                src.clip = clip;
+                src.loop = true;
             }
-            else if (loopSound.isPlaying)
+
+            float clipBase = (AudioManager.Instance != null) ? AudioManager.Instance.GetClipBaseVolume(clip) : 1f;
+            float targetVol = (AudioManager.Instance != null)
+                ? (AudioManager.Instance.IsMuted ? 0f : AudioManager.Instance.MasterVolume * AudioManager.Instance.SfxVolume * clipBase * flameVolume)
+                : flameVolume;
+            src.volume = targetVol;
+
+            if (!src.isPlaying)
             {
-                loopSound.Stop();
+                src.Play();
+            }
+        }
+        else
+        {
+            if (src.isPlaying)
+            {
+                src.Stop();
             }
         }
     }
