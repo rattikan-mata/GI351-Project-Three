@@ -1,0 +1,118 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &866906506320099223
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6164351066017261808}
+  - component: {fileID: 6521689523526645081}
+  m_Layer: 0
+  m_Name: Audio Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6164351066017261808
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866906506320099223}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.19621, y: 4.46786, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6521689523526645081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866906506320099223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eba6731938b90e645861d24c66ab0f10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AudioManager
+  defaultMasterVolume: 1
+  defaultBgmVolume: 0.75
+  defaultSfxVolume: 1
+  defaultBgmClip: {fileID: 0}
+  autoPlayBgmOnStart: 1
+  sfxLibrary:
+  - name: BoxBreak
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: BoxPush
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: SwitchPress
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: DoorOpen
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: DoorClose
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: DoorBreak
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: BeltRunning
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: DropperShoot
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: TrampolineBounce
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: FlameLoop
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: AnimalDrinkPotion
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: AnimalCry
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: GoatPush
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: GoatSmash
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: GoatLaser
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: GoatSkywardLaser
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CowFly
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CowBounce
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CowRam
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CatVomit
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CatBubble
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CatBubblePop
+    clip: {fileID: 0}
+    defaultVolume: 1

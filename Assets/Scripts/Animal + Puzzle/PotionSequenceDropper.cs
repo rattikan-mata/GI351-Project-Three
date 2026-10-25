@@ -74,6 +74,15 @@ public class PotionSequenceDropper : MonoBehaviour
     [SerializeField] private float switchWaitTimeout = 8f;
     #endregion
 
+    #region Audio
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงตอนยิง/ปล่อยยา (ถ้ามี DartGun สามารถใส่เสียงใน DartGun หรือใส่ตรงนี้ได้)")]
+    [SerializeField] private AudioClip shootSound;
+
+    [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวเครื่องให้อัตโนมัติ)")]
+    [SerializeField] private AudioSource audioSource;
+    #endregion
+
     #region State
     public bool IsDispensing { get; private set; }
     #endregion
@@ -95,6 +104,7 @@ public class PotionSequenceDropper : MonoBehaviour
             for (int i = 0; i < targetSwitches.Length; i++)
                 targetSwitchNames[i] = targetSwitches[i] != null ? targetSwitches[i].name : null;
         }
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
     }
 
     private void OnEnable()
@@ -264,7 +274,7 @@ public class PotionSequenceDropper : MonoBehaviour
             if (dartGun != null)
             {
                 // ปืนหมุนไปเล็งสัตว์ แล้วยิงเข็ม (รอเล็งเสร็จก่อนค่อยไปต่อ)
-                yield return dartGun.AimAndFire(type, animal, potionSpeed);
+                yield return dartGun.AimAndFire(type, animal, potionSpeed, shootSound);
                 p = dartGun.LastDart;
             }
             else
@@ -272,6 +282,7 @@ public class PotionSequenceDropper : MonoBehaviour
                 Vector3 pos = (dropPoint != null) ? dropPoint.position : transform.position;
                 p = Instantiate(potionPrefab, pos, Quaternion.identity);
                 p.Init(type, animal, pathPoints, potionSpeed);
+                PlayShootSound();
             }
 
             if (!waitForAnimalToFinish) continue;
@@ -319,5 +330,24 @@ public class PotionSequenceDropper : MonoBehaviour
 
     /// <summary>สัตว์ที่ปืนนี้ยิง</summary>
     public TestAnimal TargetAnimal => targetAnimal;
+
+    private void PlayShootSound()
+    {
+        AudioClip clip = shootSound != null ? shootSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("DropperShoot") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position);
+        }
+        else if (audioSource != null)
+        {
+            audioSource.PlayOneShot(clip);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position);
+        }
+    }
     #endregion
 }

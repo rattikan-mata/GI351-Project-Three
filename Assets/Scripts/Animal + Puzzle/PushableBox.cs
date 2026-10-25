@@ -94,6 +94,18 @@ public class PushableBox : MonoBehaviour
     [SerializeField] private bool destroyOnBreak = true;
     #endregion
 
+    #region Audio
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงตอนกล่องแตก")]
+    [SerializeField] private AudioClip breakSound;
+
+    [Tooltip("เสียงตอนกล่องโดนผลัก/เลื่อน")]
+    [SerializeField] private AudioClip pushSound;
+
+    [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวกล่องให้อัตโนมัติ)")]
+    [SerializeField] private AudioSource audioSource;
+    #endregion
+
     #region Gravity
     [Header("Gravity (แรงโน้มถ่วง)")]
     [Tooltip("ติ๊กไว้ = กล่องตกตามแรงโน้มถ่วง (ใช้ค่า Physics 2D Gravity ของโปรเจกต์)")]
@@ -161,6 +173,7 @@ public class PushableBox : MonoBehaviour
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.gravityScale = 0f; // จำลองเอง เพื่อไม่ให้แมวเดินชนแล้วกล่องเลื่อน
         col = GetComponent<Collider2D>();
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
     }
 
     private void FixedUpdate()
@@ -336,6 +349,8 @@ public class PushableBox : MonoBehaviour
         if (IsBroken) return;
         IsBroken = true;
 
+        PlayBreakSound();
+
         Debug.Log($"[PushableBox] กล่อง {name} แตกแล้ว!");
 
         if (breakEffectPrefab != null)
@@ -376,6 +391,44 @@ public class PushableBox : MonoBehaviour
             yield return null;
         }
         if (!IsBroken) transform.position = originalPos;
+    }
+
+    private float lastPushSoundTime = -1f;
+
+    private void PlayPushSound()
+    {
+        AudioClip clip = pushSound != null ? pushSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("BoxPush") : null);
+        if (clip == null) return;
+        if (Time.time - lastPushSoundTime < 0.2f) return;
+        lastPushSoundTime = Time.time;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position);
+        }
+        else if (audioSource != null)
+        {
+            audioSource.PlayOneShot(clip);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position);
+        }
+    }
+
+    private void PlayBreakSound()
+    {
+        AudioClip clip = breakSound != null ? breakSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("BoxBreak") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position);
+        }
     }
     #endregion
 
@@ -444,6 +497,7 @@ public class PushableBox : MonoBehaviour
                 float addDist = GetFreeDistance(direction, remainingSlideDistance + distance, pusher);
                 remainingSlideDistance = addDist;
                 currentSlideSpeed = Mathf.Max(currentSlideSpeed, speed);
+                PlayPushSound();
                 return true;
             }
             return false;
@@ -457,6 +511,7 @@ public class PushableBox : MonoBehaviour
             currentSlideDirection = direction;
             remainingSlideDistance = freeDist;
             currentSlideSpeed = speed;
+            PlayPushSound();
             currentSlideCoroutine = StartCoroutine(SlideRoutine(pusher));
             return true;
         }

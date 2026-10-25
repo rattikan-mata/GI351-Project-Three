@@ -54,6 +54,15 @@ public class ConveyorBelt : MonoBehaviour
     [SerializeField] private string onBoolParameter = "On";
     #endregion
 
+    #region Audio
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงตอนสายพานทำงาน (จะเล่นวนลูปอัตโนมัติเมื่อสายพานเปิด)")]
+    [SerializeField] private AudioClip runningSound;
+
+    [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวสายพานให้อัตโนมัติ)")]
+    [SerializeField] private AudioSource audioSource;
+    #endregion
+
     #region State
     public bool IsPowered { get; private set; }
 
@@ -67,6 +76,12 @@ public class ConveyorBelt : MonoBehaviour
     {
         GetComponent<Collider2D>().isTrigger = true;
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        if (audioSource != null && runningSound != null)
+        {
+            audioSource.clip = runningSound;
+            audioSource.loop = true;
+        }
     }
 
     private void OnEnable()
@@ -84,12 +99,17 @@ public class ConveyorBelt : MonoBehaviour
             if (sw != null) sw.StateChanged -= OnSwitchChanged;
         }
         ClearAnimalCarry();
+        if (audioSource != null && audioSource.isPlaying)
+        {
+            audioSource.Stop();
+        }
     }
 
     private void Start()
     {
         Evaluate();
         ApplyVisual();
+        UpdateAudio();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -164,7 +184,42 @@ public class ConveyorBelt : MonoBehaviour
 
         IsPowered = shouldRun;
         ApplyVisual();
+        UpdateAudio();
         if (!IsPowered) ClearAnimalCarry();
+    }
+
+    private void UpdateAudio()
+    {
+        if (audioSource == null) return;
+
+        if (runningSound == null && AudioManager.Instance != null)
+            runningSound = AudioManager.Instance.GetClip("BeltRunning");
+
+        if (runningSound != null && audioSource.clip != runningSound)
+        {
+            audioSource.clip = runningSound;
+            audioSource.loop = true;
+        }
+
+        if (IsPowered && runningSound != null)
+        {
+            float targetVol = (AudioManager.Instance != null)
+                ? (AudioManager.Instance.IsMuted ? 0f : AudioManager.Instance.MasterVolume * AudioManager.Instance.SfxVolume)
+                : 1f;
+            audioSource.volume = targetVol;
+
+            if (!audioSource.isPlaying)
+            {
+                audioSource.Play();
+            }
+        }
+        else
+        {
+            if (audioSource.isPlaying)
+            {
+                audioSource.Stop();
+            }
+        }
     }
 
     private bool ShouldRun()

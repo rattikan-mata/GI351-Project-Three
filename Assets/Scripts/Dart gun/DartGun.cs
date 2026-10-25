@@ -66,6 +66,15 @@ public class DartGun : MonoBehaviour
     [SerializeField] private float needleProtrusion = 0.7f;
     #endregion
 
+    #region Audio
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงตอนยิงเข็มยา")]
+    [SerializeField] private AudioClip shootSound;
+
+    [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวปืนให้อัตโนมัติ)")]
+    [SerializeField] private AudioSource audioSource;
+    #endregion
+
     /// <summary>เข็มที่เพิ่งยิงออกไปล่าสุด (null ถ้าถึงเป้าและถูกทำลายแล้ว)</summary>
     public PotionProjectile LastDart { get; private set; }
 
@@ -78,6 +87,7 @@ public class DartGun : MonoBehaviour
         if (aimPivot == null) aimPivot = transform;
         restRotation = aimPivot.localRotation;
         if (barrelRenderer != null) barrelRestLocalPos = barrelRenderer.transform.localPosition;
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
         CreateLoadedNeedle();
     }
 
@@ -131,7 +141,7 @@ public class DartGun : MonoBehaviour
     }
 
     /// <summary>หมุนตัวถังไปหาสัตว์ เมื่อเล็งตรงแล้วยิงเข็มชนิด type ออกไป (เรียกด้วย yield return)</summary>
-    public IEnumerator AimAndFire(PotionType type, TestAnimal target, float dartSpeed)
+    public IEnumerator AimAndFire(PotionType type, TestAnimal target, float dartSpeed, AudioClip fallbackShootSound = null)
     {
         LastDart = null;
         if (target == null) yield break;
@@ -159,7 +169,30 @@ public class DartGun : MonoBehaviour
 
         aimPivot.rotation = Quaternion.Euler(0f, 0f, AngleTo(target.transform.position));
         LastDart = SpawnDart(type, target, dartSpeed);
+        PlayShootSound(fallbackShootSound);
         StartCoroutine(RecoilRoutine());
+    }
+
+    public void PlayShootSound(AudioClip fallbackClip = null)
+    {
+        AudioClip clip = shootSound != null ? shootSound : fallbackClip;
+        if (clip == null && AudioManager.Instance != null)
+            clip = AudioManager.Instance.GetClip("DropperShoot");
+
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position);
+        }
+        else if (audioSource != null)
+        {
+            audioSource.PlayOneShot(clip);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position);
+        }
     }
 
     private float AngleTo(Vector3 worldPos)

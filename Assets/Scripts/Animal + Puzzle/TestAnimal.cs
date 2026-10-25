@@ -199,6 +199,8 @@ public abstract class TestAnimal : MonoBehaviour
         abilityUnlockedUntil = (potionEffectDuration > 0f) ? Time.time + potionEffectDuration : float.MaxValue;
         Debug.Log($"[{animalName}] ใช้ยา {potion} แล้ว");
 
+        PlayAnimalSound(drinkPotionSound);
+
         // --- เปลี่ยนร่างเป็นสไปรต์ใหม่หลังได้รับยา ---
         Sprite customSprite = GetCustomPoweredUpSprite(potion);
         Sprite targetSprite = (customSprite != null) ? customSprite : poweredUpSprite;
@@ -215,6 +217,18 @@ public abstract class TestAnimal : MonoBehaviour
     protected virtual Sprite GetCustomPoweredUpSprite(PotionType potion) => null;
     #endregion
 
+    #region Audio
+    [Header("Audio (เสียงสัตว์)")]
+    [Tooltip("เสียงตอนสัตว์ได้รับยา / ดื่มยา")]
+    [SerializeField] protected AudioClip drinkPotionSound;
+
+    [Tooltip("เสียงร้องของสัตว์")]
+    [SerializeField] protected AudioClip animalCrySound;
+
+    [Tooltip("AudioSource ประจำตัวสัตว์ (ถ้าเว้นว่างจะค้นหาให้อัตโนมัติ)")]
+    [SerializeField] protected AudioSource animalAudioSource;
+    #endregion
+
     #region Unity Lifecycle
     protected virtual void Awake()
     {
@@ -227,6 +241,7 @@ public abstract class TestAnimal : MonoBehaviour
         UpdateGravityState();
 
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        if (animalAudioSource == null) animalAudioSource = GetComponent<AudioSource>();
 
         // --- ตั้งค่าสไปรต์เริ่มต้นเป็นแมวเปล่าตอนเริ่มเกม ---
         if (spriteRenderer != null && defaultCatSprite != null)
@@ -481,6 +496,27 @@ public abstract class TestAnimal : MonoBehaviour
             case AutoDirection.UpLeft: return new Vector2(-1f, 1f).normalized;
             case AutoDirection.DownRight: return new Vector2(1f, -1f).normalized;
             default: return new Vector2(-1f, -1f).normalized;
+        }
+    }
+    #endregion
+
+    #region Audio API
+    /// <summary>เล่นเสียงของสัตว์ ผ่าน AudioManager (ถ้ามี) หรือ AudioSource ประจำตัว</summary>
+    public void PlayAnimalSound(AudioClip clip, float volume = 1f, float pitchVariance = 0.05f)
+    {
+        if (clip == null) return;
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, volume, pitchVariance);
+        }
+        else if (animalAudioSource != null)
+        {
+            animalAudioSource.pitch = (pitchVariance > 0f) ? Random.Range(1f - pitchVariance, 1f + pitchVariance) : 1f;
+            animalAudioSource.PlayOneShot(clip, volume);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position, volume);
         }
     }
     #endregion

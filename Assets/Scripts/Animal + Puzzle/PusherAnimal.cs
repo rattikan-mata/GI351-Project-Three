@@ -30,6 +30,12 @@ public class PusherAnimal : TestAnimal
 
     [Tooltip("ทิศกล่องต้องตรงกับทิศที่เล็งแค่ไหนถึงจะดัน (1 = ตรงเป๊ะ, 0 = ขอแค่อยู่ครึ่งวงกลมข้างหน้า)")]
     [SerializeField, Range(0f, 1f)] private float aimAlignment = 0.5f;
+
+    [Tooltip("เสียงเอฟเฟกต์ตอนแพะออกแรงผลักกล่อง")]
+    [SerializeField] private AudioClip pushSound;
+
+    [Tooltip("เสียงเอฟเฟกต์ตอนแพะทุบ/ชนทำลายกล่อง")]
+    [SerializeField] private AudioClip smashSound;
     #endregion
 
     #region Combo Settings
@@ -390,11 +396,13 @@ public class PusherAnimal : TestAnimal
         {
             if (!box.IsDestructible || !box.CanAnimalDestroyBox(this)) return false;
             StopMoving();
+            PlayAnimalSound(smashSound);
             box.TriggerDestructionSequence(this, dir);
             return true;
         }
 
         StopMoving();
+        PlayAnimalSound(pushSound);
         return box.TryPush(dir, pushDistance, pushSpeed, this);
     }
 
