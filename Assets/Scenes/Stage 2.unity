@@ -1647,8 +1647,8 @@ MonoBehaviour:
   - {fileID: 1290773384}
   - {fileID: 864150474}
   - {fileID: 235419572}
-  activeStarSprite: {fileID: 21300000, guid: e0710a40fac87d7479e75966923bdd77, type: 3}
-  inactiveStarSprite: {fileID: 21300000, guid: 49b326d8862fc3a41b9d79509277b822, type: 3}
+  activeStarSprite: {fileID: 21300000, guid: edcb2d81e2f715e4eb4c9420d889fc37, type: 3}
+  inactiveStarSprite: {fileID: 21300000, guid: 1b9cdae079a01ba4083c856535433d3a, type: 3}
   endGameUI: {fileID: 714931066}
 --- !u!114 &290409708
 MonoBehaviour:
@@ -3290,8 +3290,8 @@ MonoBehaviour:
   - {fileID: 217346913}
   - {fileID: 1379029817}
   - {fileID: 2063725780}
-  activeStarSprite: {fileID: 21300000, guid: e0710a40fac87d7479e75966923bdd77, type: 3}
-  inactiveStarSprite: {fileID: 21300000, guid: 49b326d8862fc3a41b9d79509277b822, type: 3}
+  activeStarSprite: {fileID: 21300000, guid: edcb2d81e2f715e4eb4c9420d889fc37, type: 3}
+  inactiveStarSprite: {fileID: 21300000, guid: 1b9cdae079a01ba4083c856535433d3a, type: 3}
   btnNext: {fileID: 1448082105}
   btnRestart: {fileID: 1059933999}
   btnExitToMenu: {fileID: 269075004}
