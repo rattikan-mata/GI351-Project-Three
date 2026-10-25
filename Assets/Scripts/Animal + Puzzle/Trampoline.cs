@@ -45,7 +45,12 @@ public class Trampoline : MonoBehaviour
 
     [SerializeField, Min(0.02f)] private float squashDuration = 0.18f;
 
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงตอนเด้ง")]
     [SerializeField] private AudioClip bounceSound;
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงเด้ง (0 - 1)")]
+    [SerializeField] private float bounceVolume = 1f;
     [SerializeField] private AudioSource audioSource;
     #endregion
 
@@ -159,7 +164,13 @@ public class Trampoline : MonoBehaviour
 
     private void PlayFeedback()
     {
-        if (bounceSound != null && audioSource != null) audioSource.PlayOneShot(bounceSound);
+        AudioClip clip = bounceSound != null ? bounceSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("TrampolineBounce") : null);
+        if (clip != null)
+        {
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySFXAt(clip, transform.position, bounceVolume);
+            else if (audioSource != null) audioSource.PlayOneShot(clip, bounceVolume);
+            else AudioSource.PlayClipAtPoint(clip, transform.position, bounceVolume);
+        }
 
         if (visualTarget != null)
         {

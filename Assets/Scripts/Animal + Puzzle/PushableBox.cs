@@ -98,9 +98,11 @@ public class PushableBox : MonoBehaviour
     [Header("Audio (เสียง)")]
     [Tooltip("เสียงตอนกล่องแตก")]
     [SerializeField] private AudioClip breakSound;
+    [Range(0f, 1f)] [SerializeField] private float breakVolume = 1f;
 
     [Tooltip("เสียงตอนกล่องโดนผลัก/เลื่อน")]
     [SerializeField] private AudioClip pushSound;
+    [Range(0f, 1f)] [SerializeField] private float pushVolume = 1f;
 
     [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวกล่องให้อัตโนมัติ)")]
     [SerializeField] private AudioSource audioSource;
@@ -404,15 +406,15 @@ public class PushableBox : MonoBehaviour
 
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlaySFXAt(clip, transform.position);
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, pushVolume);
         }
         else if (audioSource != null)
         {
-            audioSource.PlayOneShot(clip);
+            audioSource.PlayOneShot(clip, pushVolume);
         }
         else
         {
-            AudioSource.PlayClipAtPoint(clip, transform.position);
+            AudioSource.PlayClipAtPoint(clip, transform.position, pushVolume);
         }
     }
 
@@ -423,11 +425,11 @@ public class PushableBox : MonoBehaviour
 
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlaySFXAt(clip, transform.position);
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, breakVolume);
         }
         else
         {
-            AudioSource.PlayClipAtPoint(clip, transform.position);
+            AudioSource.PlayClipAtPoint(clip, transform.position, breakVolume);
         }
     }
     #endregion

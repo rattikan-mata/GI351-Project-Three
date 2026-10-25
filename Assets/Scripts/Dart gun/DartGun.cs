@@ -71,6 +71,9 @@ public class DartGun : MonoBehaviour
     [Tooltip("เสียงตอนยิงเข็มยา")]
     [SerializeField] private AudioClip shootSound;
 
+    [Tooltip("ปรับระดับเสียงยิงของปืนนี้ (0.0 ถึง 1.0)")]
+    [Range(0f, 1f)] [SerializeField] private float shootVolume = 1f;
+
     [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวปืนให้อัตโนมัติ)")]
     [SerializeField] private AudioSource audioSource;
     #endregion
@@ -183,15 +186,15 @@ public class DartGun : MonoBehaviour
 
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlaySFXAt(clip, transform.position);
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, shootVolume);
         }
         else if (audioSource != null)
         {
-            audioSource.PlayOneShot(clip);
+            audioSource.PlayOneShot(clip, shootVolume);
         }
         else
         {
-            AudioSource.PlayClipAtPoint(clip, transform.position);
+            AudioSource.PlayClipAtPoint(clip, transform.position, shootVolume);
         }
     }
 

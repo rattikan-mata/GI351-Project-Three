@@ -199,7 +199,8 @@ public abstract class TestAnimal : MonoBehaviour
         abilityUnlockedUntil = (potionEffectDuration > 0f) ? Time.time + potionEffectDuration : float.MaxValue;
         Debug.Log($"[{animalName}] ใช้ยา {potion} แล้ว");
 
-        PlayAnimalSound(drinkPotionSound);
+        AudioClip drinkClip = drinkPotionSound != null ? drinkPotionSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("AnimalDrink") : null);
+        PlayAnimalSound(drinkClip, drinkPotionVolume);
 
         // --- เปลี่ยนร่างเป็นสไปรต์ใหม่หลังได้รับยา ---
         Sprite customSprite = GetCustomPoweredUpSprite(potion);
@@ -222,8 +223,16 @@ public abstract class TestAnimal : MonoBehaviour
     [Tooltip("เสียงตอนสัตว์ได้รับยา / ดื่มยา")]
     [SerializeField] protected AudioClip drinkPotionSound;
 
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงตอนได้รับยา (0 - 1)")]
+    [SerializeField] protected float drinkPotionVolume = 1f;
+
     [Tooltip("เสียงร้องของสัตว์")]
     [SerializeField] protected AudioClip animalCrySound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงร้อง (0 - 1)")]
+    [SerializeField] protected float animalCryVolume = 1f;
 
     [Tooltip("AudioSource ประจำตัวสัตว์ (ถ้าเว้นว่างจะค้นหาให้อัตโนมัติ)")]
     [SerializeField] protected AudioSource animalAudioSource;
@@ -501,6 +510,13 @@ public abstract class TestAnimal : MonoBehaviour
     #endregion
 
     #region Audio API
+    /// <summary>เล่นเสียงร้องของสัตว์</summary>
+    public void PlayCrySound()
+    {
+        AudioClip clip = animalCrySound != null ? animalCrySound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip($"{animalName}Cry") : null);
+        PlayAnimalSound(clip, animalCryVolume);
+    }
+
     /// <summary>เล่นเสียงของสัตว์ ผ่าน AudioManager (ถ้ามี) หรือ AudioSource ประจำตัว</summary>
     public void PlayAnimalSound(AudioClip clip, float volume = 1f, float pitchVariance = 0.05f)
     {

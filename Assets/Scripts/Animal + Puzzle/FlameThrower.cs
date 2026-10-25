@@ -77,7 +77,7 @@ public class FlameThrower : MonoBehaviour
     public UnityEvent<PushableBox> onBoxBurned;
     #endregion
 
-    #region Visual
+    #region Visual & Audio
     [Header("Visual (Optional)")]
     [Tooltip("(ไม่บังคับ) Particle ไฟ จะถูกเปิด/ปิดตามสถานะไฟ")]
     [SerializeField] private ParticleSystem flameParticles;
@@ -85,6 +85,15 @@ public class FlameThrower : MonoBehaviour
     [Tooltip("(ไม่บังคับ) วัตถุภาพไฟ จะถูกเปิด/ปิดตามสถานะไฟ")]
     [SerializeField] private GameObject flameVisual;
 
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงไฟพ่น (เล่นวนลูปขณะไฟพ่น)")]
+    [SerializeField] private AudioClip flameSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงไฟพ่น (0 - 1)")]
+    [SerializeField] private float flameVolume = 1f;
+
+    [Tooltip("AudioSource สำหรับเสียงไฟพ่น (ถ้าเว้นว่างจะค้นหาให้อัตโนมัติ)")]
     [SerializeField] private AudioSource loopSound;
     #endregion
 
@@ -227,10 +236,32 @@ public class FlameThrower : MonoBehaviour
             if (firing && !flameParticles.isPlaying) flameParticles.Play();
             else if (!firing && flameParticles.isPlaying) flameParticles.Stop();
         }
+        if (loopSound == null) loopSound = GetComponent<AudioSource>();
         if (loopSound != null)
         {
-            if (firing && !loopSound.isPlaying) loopSound.Play();
-            else if (!firing && loopSound.isPlaying) loopSound.Stop();
+            if (firing)
+            {
+                if (flameSound == null && AudioManager.Instance != null)
+                    flameSound = AudioManager.Instance.GetClip("FlameLoop");
+
+                if (flameSound != null && loopSound.clip != flameSound)
+                {
+                    loopSound.clip = flameSound;
+                    loopSound.loop = true;
+                }
+
+                float clipBase = (AudioManager.Instance != null && loopSound.clip != null) ? AudioManager.Instance.GetClipBaseVolume(loopSound.clip) : 1f;
+                float targetVol = (AudioManager.Instance != null)
+                    ? (AudioManager.Instance.IsMuted ? 0f : AudioManager.Instance.MasterVolume * AudioManager.Instance.SfxVolume * clipBase * flameVolume)
+                    : flameVolume;
+                loopSound.volume = targetVol;
+
+                if (!loopSound.isPlaying) loopSound.Play();
+            }
+            else if (loopSound.isPlaying)
+            {
+                loopSound.Stop();
+            }
         }
     }
 

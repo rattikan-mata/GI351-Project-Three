@@ -46,30 +46,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
   defaultMasterVolume: 1
   defaultBgmVolume: 0.75
-  defaultSfxVolume: 1
+  defaultSfxVolume: 0.115
   defaultBgmClip: {fileID: 0}
   autoPlayBgmOnStart: 1
   sfxLibrary:
   - name: BoxBreak
-    clip: {fileID: 0}
-    defaultVolume: 1
+    clip: {fileID: 8300000, guid: 503f9855681b00a45b629e1dc1a41167, type: 3}
+    defaultVolume: 0.403
   - name: BoxPush
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 5b3df9463b498b54c848ff6eddc90a33, type: 3}
     defaultVolume: 1
   - name: SwitchPress
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 6cafe97fc0d61cf44b2e8517d183bf1f, type: 3}
     defaultVolume: 1
   - name: DoorOpen
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: d2263280b0ba93845a2f3f4950cc9077, type: 3}
     defaultVolume: 1
   - name: DoorClose
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 8fcda0be9b0c8f04690122eb31f143c2, type: 3}
     defaultVolume: 1
   - name: DoorBreak
     clip: {fileID: 0}
     defaultVolume: 1
   - name: BeltRunning
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: e5da4756f4f637f4aa828f8c1de51753, type: 3}
     defaultVolume: 1
   - name: DropperShoot
     clip: {fileID: 0}
@@ -105,6 +105,9 @@ MonoBehaviour:
     clip: {fileID: 0}
     defaultVolume: 1
   - name: CowRam
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CowTeleport
     clip: {fileID: 0}
     defaultVolume: 1
   - name: CatVomit

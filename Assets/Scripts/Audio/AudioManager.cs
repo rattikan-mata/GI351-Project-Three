@@ -21,17 +21,21 @@ public class AudioManager : MonoBehaviour
         public string name;
         public AudioClip clip;
         [Range(0f, 1f)] public float defaultVolume = 1f;
+        [Tooltip("ระยะเวลาคูลดาวน์ก่อนที่เสียงนี้จะเล่นซ้ำได้อีก (วินาที) เช่น 0.05 ถึง 0.3 ป้องกันเสียงดังซ้อนรัวๆ (0 = ไม่มีคูลดาวน์)")]
+        [Min(0f)] public float cooldown = 0.05f;
 
         public NamedAudioClip()
         {
             defaultVolume = 1f;
+            cooldown = 0.05f;
         }
 
-        public NamedAudioClip(string name, AudioClip clip = null, float defaultVolume = 1f)
+        public NamedAudioClip(string name, AudioClip clip = null, float defaultVolume = 1f, float cooldown = 0.05f)
         {
             this.name = name;
             this.clip = clip;
             this.defaultVolume = defaultVolume;
+            this.cooldown = cooldown;
         }
     }
 
@@ -40,6 +44,10 @@ public class AudioManager : MonoBehaviour
     [Range(0f, 1f)] [SerializeField] private float defaultMasterVolume = 1f;
     [Range(0f, 1f)] [SerializeField] private float defaultBgmVolume = 0.75f;
     [Range(0f, 1f)] [SerializeField] private float defaultSfxVolume = 1f;
+
+    [Header("SFX Cooldown Settings (ป้องกันเสียงซ้อนกันรัวๆ)")]
+    [Tooltip("ระยะคูลดาวน์เริ่มต้นสำหรับเสียงที่ไม่ได้ตั้งค่าคูลดาวน์แยกไว้ (วินาที)")]
+    [Min(0f)] [SerializeField] private float defaultSfxCooldown = 0.05f;
 
     [Header("Default Music (BGM ตอนเริ่มเกม)")]
     [Tooltip("เพลงประกอบพื้นหลังที่จะเล่นทันทีเมื่อเริ่มเกม (ถ้ามี)")]
@@ -74,6 +82,7 @@ public class AudioManager : MonoBehaviour
             "CowFly",
             "CowBounce",
             "CowRam",
+            "CowTeleport",
             "CatVomit",
             "CatBubble",
             "CatBubblePop"
@@ -86,6 +95,7 @@ public class AudioManager : MonoBehaviour
             {
                 existing.Add(item.name);
                 if (item.defaultVolume <= 0.001f) item.defaultVolume = 1f;
+                if (item.cooldown < 0f) item.cooldown = 0.05f;
             }
         }
 
@@ -93,7 +103,8 @@ public class AudioManager : MonoBehaviour
         {
             if (!existing.Contains(key))
             {
-                sfxLibrary.Add(new NamedAudioClip(key, null, 1f));
+                float cd = (key == "BoxPush" || key == "SwitchPress") ? 0.15f : (key == "CatVomit" ? 0.2f : (key == "CowTeleport" ? 0.1f : 0.05f));
+                sfxLibrary.Add(new NamedAudioClip(key, null, 1f, cd));
                 existing.Add(key);
             }
         }
@@ -110,6 +121,10 @@ public class AudioManager : MonoBehaviour
     private readonly List<AudioSource> sfxSourcePool = new List<AudioSource>();
     private const int SFX_POOL_SIZE = 12;
     private Dictionary<string, NamedAudioClip> sfxDict;
+    private Dictionary<AudioClip, float> clipVolumeDict;
+    private Dictionary<AudioClip, float> clipCooldownDict;
+    private readonly Dictionary<AudioClip, float> lastPlayTimeByClip = new Dictionary<AudioClip, float>();
+    private readonly Dictionary<string, float> lastPlayTimeByName = new Dictionary<string, float>(System.StringComparer.OrdinalIgnoreCase);
     #endregion
 
     #region State & Properties
@@ -151,6 +166,12 @@ public class AudioManager : MonoBehaviour
             PlayBGM(defaultBgmClip);
         }
     }
+
+    private void OnValidate()
+    {
+        BuildSfxDictionary();
+        UpdateAllVolumes();
+    }
     #endregion
 
     #region Initialization
@@ -180,13 +201,99 @@ public class AudioManager : MonoBehaviour
     private void BuildSfxDictionary()
     {
         sfxDict = new Dictionary<string, NamedAudioClip>(System.StringComparer.OrdinalIgnoreCase);
+        clipVolumeDict = new Dictionary<AudioClip, float>();
+        clipCooldownDict = new Dictionary<AudioClip, float>();
+
         foreach (var item in sfxLibrary)
         {
-            if (item != null && !string.IsNullOrEmpty(item.name) && item.clip != null)
+            if (item != null)
             {
-                sfxDict[item.name] = item;
+                if (!string.IsNullOrEmpty(item.name))
+                {
+                    sfxDict[item.name] = item;
+                }
+
+                if (item.clip != null)
+                {
+                    clipVolumeDict[item.clip] = item.defaultVolume;
+                    clipCooldownDict[item.clip] = item.cooldown;
+                }
             }
         }
+    }
+
+    /// <summary>ดึงระดับความดังพื้นฐานของคลิปเสียงที่ตั้งไว้ใน Sound Library</summary>
+    public float GetClipBaseVolume(AudioClip clip)
+    {
+        if (clip == null) return 1f;
+        if (clipVolumeDict == null) BuildSfxDictionary();
+        return (clipVolumeDict != null && clipVolumeDict.TryGetValue(clip, out float v)) ? v : 1f;
+    }
+
+    /// <summary>ดึงระดับความดังพื้นฐานของเสียงผ่านชื่อที่ตั้งไว้ใน Sound Library</summary>
+    public float GetSoundBaseVolume(string soundName)
+    {
+        if (string.IsNullOrEmpty(soundName)) return 1f;
+        if (sfxDict == null) BuildSfxDictionary();
+        return (sfxDict != null && sfxDict.TryGetValue(soundName, out NamedAudioClip item)) ? item.defaultVolume : 1f;
+    }
+
+    /// <summary>ดึงระยะคูลดาวน์ของคลิปเสียง (วินาที)</summary>
+    public float GetClipCooldown(AudioClip clip)
+    {
+        if (clip == null) return defaultSfxCooldown;
+        if (clipCooldownDict == null) BuildSfxDictionary();
+        return (clipCooldownDict != null && clipCooldownDict.TryGetValue(clip, out float cd)) ? cd : defaultSfxCooldown;
+    }
+
+    /// <summary>ดึงระยะคูลดาวน์ของเสียงผ่านชื่อ (วินาที)</summary>
+    public float GetSoundCooldown(string soundName)
+    {
+        if (string.IsNullOrEmpty(soundName)) return defaultSfxCooldown;
+        if (sfxDict == null) BuildSfxDictionary();
+        return (sfxDict != null && sfxDict.TryGetValue(soundName, out NamedAudioClip item)) ? item.cooldown : defaultSfxCooldown;
+    }
+
+    /// <summary>ตรวจว่าคลิปเสียงนี้พ้นระยะคูลดาวน์แล้วหรือยัง (true = พร้อมเล่น)</summary>
+    public bool CanPlaySFX(AudioClip clip)
+    {
+        if (clip == null) return false;
+        float cd = GetClipCooldown(clip);
+        if (cd <= 0.0001f) return true;
+
+        if (lastPlayTimeByClip.TryGetValue(clip, out float lastTime))
+        {
+            if (Time.unscaledTime - lastTime < cd) return false;
+        }
+        return true;
+    }
+
+    /// <summary>ตรวจว่าเสียงตามชื่อนี้พ้นระยะคูลดาวน์แล้วหรือยัง (true = พร้อมเล่น)</summary>
+    public bool CanPlaySFX(string soundName)
+    {
+        if (string.IsNullOrEmpty(soundName)) return false;
+        float cd = GetSoundCooldown(soundName);
+        if (cd <= 0.0001f) return true;
+
+        if (lastPlayTimeByName.TryGetValue(soundName, out float lastTime))
+        {
+            if (Time.unscaledTime - lastTime < cd) return false;
+        }
+        return true;
+    }
+
+    private void MarkSoundPlayed(AudioClip clip, string soundName = null)
+    {
+        float now = Time.unscaledTime;
+        if (clip != null) lastPlayTimeByClip[clip] = now;
+        if (!string.IsNullOrEmpty(soundName)) lastPlayTimeByName[soundName] = now;
+    }
+
+    /// <summary>รีเซ็ตคูลดาวน์ของเสียงทั้งหมด</summary>
+    public void ResetAllCooldowns()
+    {
+        lastPlayTimeByClip.Clear();
+        lastPlayTimeByName.Clear();
     }
 
     private void LoadPreferences()
@@ -325,28 +432,34 @@ public class AudioManager : MonoBehaviour
 
     #region SFX Playback
     /// <summary>เล่นเสียง SFX 2D ผ่านคลิปเสียง</summary>
-    public void PlaySFX(AudioClip clip, float volumeScale = 1f, float pitchVariance = 0f)
+    public void PlaySFX(AudioClip clip, float volumeScale = 1f, float pitchVariance = 0f, bool ignoreCooldown = false)
     {
         if (clip == null || IsMuted) return;
+        if (!ignoreCooldown && !CanPlaySFX(clip)) return;
+
+        MarkSoundPlayed(clip);
 
         AudioSource source = GetAvailableSfxSource();
         if (source == null) return;
 
         source.pitch = (pitchVariance > 0f) ? Random.Range(1f - pitchVariance, 1f + pitchVariance) : 1f;
-        float finalVolume = MasterVolume * SfxVolume * Mathf.Clamp01(volumeScale);
+        float clipBaseVol = GetClipBaseVolume(clip);
+        float finalVolume = MasterVolume * SfxVolume * clipBaseVol * Mathf.Clamp01(volumeScale);
         source.PlayOneShot(clip, finalVolume);
     }
 
     /// <summary>เล่นเสียง SFX ผ่านชื่อที่ลงทะเบียนไว้ใน Inspector</summary>
-    public void PlaySFX(string soundName, float volumeScale = 1f, float pitchVariance = 0f)
+    public void PlaySFX(string soundName, float volumeScale = 1f, float pitchVariance = 0f, bool ignoreCooldown = false)
     {
-        if (string.IsNullOrEmpty(soundName)) return;
+        if (string.IsNullOrEmpty(soundName) || IsMuted) return;
+        if (!ignoreCooldown && !CanPlaySFX(soundName)) return;
 
         if (sfxDict == null) BuildSfxDictionary();
 
         if (sfxDict != null && sfxDict.TryGetValue(soundName, out NamedAudioClip namedClip))
         {
-            PlaySFX(namedClip.clip, volumeScale * namedClip.defaultVolume, pitchVariance);
+            MarkSoundPlayed(namedClip.clip, soundName);
+            PlaySFX(namedClip.clip, volumeScale, pitchVariance, ignoreCooldown: true);
         }
         else
         {
@@ -355,11 +468,15 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>เล่นเสียง SFX ณ ตำแหน่งพิกัดในโลกเกม 3D/2D</summary>
-    public void PlaySFXAt(AudioClip clip, Vector3 position, float volumeScale = 1f, float pitchVariance = 0f)
+    public void PlaySFXAt(AudioClip clip, Vector3 position, float volumeScale = 1f, float pitchVariance = 0f, bool ignoreCooldown = false)
     {
         if (clip == null || IsMuted) return;
+        if (!ignoreCooldown && !CanPlaySFX(clip)) return;
 
-        float finalVolume = MasterVolume * SfxVolume * Mathf.Clamp01(volumeScale);
+        MarkSoundPlayed(clip);
+
+        float clipBaseVol = GetClipBaseVolume(clip);
+        float finalVolume = MasterVolume * SfxVolume * clipBaseVol * Mathf.Clamp01(volumeScale);
         float pitch = (pitchVariance > 0f) ? Random.Range(1f - pitchVariance, 1f + pitchVariance) : 1f;
 
         // สร้าง GameObject เล่นเสียงชั่วคราว ณ ตำแหน่งนั้น
@@ -377,12 +494,16 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>เล่นเสียง SFX ผ่านชื่อ ณ ตำแหน่งพิกัด</summary>
-    public void PlaySFXAt(string soundName, Vector3 position, float volumeScale = 1f, float pitchVariance = 0f)
+    public void PlaySFXAt(string soundName, Vector3 position, float volumeScale = 1f, float pitchVariance = 0f, bool ignoreCooldown = false)
     {
+        if (string.IsNullOrEmpty(soundName) || IsMuted) return;
+        if (!ignoreCooldown && !CanPlaySFX(soundName)) return;
+
         AudioClip clip = GetClip(soundName);
         if (clip != null)
         {
-            PlaySFXAt(clip, position, volumeScale, pitchVariance);
+            MarkSoundPlayed(clip, soundName);
+            PlaySFXAt(clip, position, volumeScale, pitchVariance, ignoreCooldown: true);
         }
         else
         {

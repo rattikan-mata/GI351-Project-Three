@@ -79,6 +79,10 @@ public class PotionSequenceDropper : MonoBehaviour
     [Tooltip("เสียงตอนยิง/ปล่อยยา (ถ้ามี DartGun สามารถใส่เสียงใน DartGun หรือใส่ตรงนี้ได้)")]
     [SerializeField] private AudioClip shootSound;
 
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงยิงยา (0 - 1)")]
+    [SerializeField] private float shootVolume = 1f;
+
     [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวเครื่องให้อัตโนมัติ)")]
     [SerializeField] private AudioSource audioSource;
     #endregion
@@ -338,15 +342,15 @@ public class PotionSequenceDropper : MonoBehaviour
 
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlaySFXAt(clip, transform.position);
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, shootVolume);
         }
         else if (audioSource != null)
         {
-            audioSource.PlayOneShot(clip);
+            audioSource.PlayOneShot(clip, shootVolume);
         }
         else
         {
-            AudioSource.PlayClipAtPoint(clip, transform.position);
+            AudioSource.PlayClipAtPoint(clip, transform.position, shootVolume);
         }
     }
     #endregion

@@ -70,6 +70,10 @@ public class FloorSwitch : MonoBehaviour
     [Tooltip("เสียงตอนกดปุ่มสวิตช์")]
     [SerializeField] private AudioClip pressSound;
 
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงกดสวิตช์ (0 - 1)")]
+    [SerializeField] private float pressVolume = 1f;
+
     [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวสวิตช์ให้อัตโนมัติ)")]
     [SerializeField] private AudioSource audioSource;
     #endregion
@@ -237,15 +241,15 @@ public class FloorSwitch : MonoBehaviour
 
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlaySFXAt(clip, transform.position);
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, pressVolume);
         }
         else if (audioSource != null)
         {
-            audioSource.PlayOneShot(clip);
+            audioSource.PlayOneShot(clip, pressVolume);
         }
         else
         {
-            AudioSource.PlayClipAtPoint(clip, transform.position);
+            AudioSource.PlayClipAtPoint(clip, transform.position, pressVolume);
         }
     }
 

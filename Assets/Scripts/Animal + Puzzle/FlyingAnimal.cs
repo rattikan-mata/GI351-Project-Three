@@ -36,6 +36,13 @@ public class FlyingAnimal : TestAnimal
 
     [Tooltip("เสียงตอนพุ่งชนความเร็วสูง (Surge / Ramming)")]
     [SerializeField] private AudioClip ramSound;
+
+    [Tooltip("เสียงตอนวาร์ป (Teleport / TP ในโหมด Havoc)")]
+    [SerializeField] private AudioClip teleportSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงวาร์ป (0 - 1)")]
+    [SerializeField] private float teleportVolume = 1f;
     #endregion
 
     #region Combo Settings
@@ -1643,6 +1650,8 @@ public class FlyingAnimal : TestAnimal
 
     private void TeleportTo(Vector3 destination)
     {
+        PlayTeleportSound();
+
         // เอฟเฟกต์ควันตอนเริ่มวาร์ปจากจุดเดิม
         if (smokeEffectPrefab != null) Instantiate(smokeEffectPrefab, transform.position, Quaternion.identity);
 
@@ -1654,6 +1663,15 @@ public class FlyingAnimal : TestAnimal
         if (smokeEffectPrefab != null) Instantiate(smokeEffectPrefab, destination, Quaternion.identity);
 
         Debug.Log($"[{animalName}] ควอนตั้มวาร์ป (TP) ไปยังจุด {destination} สำเร็จ!");
+    }
+
+    private void PlayTeleportSound()
+    {
+        AudioClip clip = teleportSound != null ? teleportSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("CowTeleport") : null);
+        if (clip != null)
+        {
+            PlayAnimalSound(clip, teleportVolume);
+        }
     }
 
     private void Vanish()

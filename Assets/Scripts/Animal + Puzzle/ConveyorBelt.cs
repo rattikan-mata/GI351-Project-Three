@@ -59,6 +59,10 @@ public class ConveyorBelt : MonoBehaviour
     [Tooltip("เสียงตอนสายพานทำงาน (จะเล่นวนลูปอัตโนมัติเมื่อสายพานเปิด)")]
     [SerializeField] private AudioClip runningSound;
 
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงสายพานทำงาน (0 - 1)")]
+    [SerializeField] private float runningVolume = 1f;
+
     [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวสายพานให้อัตโนมัติ)")]
     [SerializeField] private AudioSource audioSource;
     #endregion
@@ -76,12 +80,20 @@ public class ConveyorBelt : MonoBehaviour
     {
         GetComponent<Collider2D>().isTrigger = true;
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+        EnsureAudioSource();
+    }
+
+    private AudioSource EnsureAudioSource()
+    {
         if (audioSource == null) audioSource = GetComponent<AudioSource>();
-        if (audioSource != null && runningSound != null)
+        if (audioSource == null)
         {
-            audioSource.clip = runningSound;
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
             audioSource.loop = true;
+            audioSource.spatialBlend = 0f;
         }
+        return audioSource;
     }
 
     private void OnEnable()
@@ -110,6 +122,25 @@ public class ConveyorBelt : MonoBehaviour
         Evaluate();
         ApplyVisual();
         UpdateAudio();
+    }
+
+    private void Update()
+    {
+        if (IsPowered)
+        {
+            if (audioSource == null || runningSound == null || !audioSource.isPlaying)
+            {
+                UpdateAudio();
+            }
+            else
+            {
+                float clipBase = (AudioManager.Instance != null && runningSound != null) ? AudioManager.Instance.GetClipBaseVolume(runningSound) : 1f;
+                float targetVol = (AudioManager.Instance != null)
+                    ? (AudioManager.Instance.IsMuted ? 0f : AudioManager.Instance.MasterVolume * AudioManager.Instance.SfxVolume * clipBase * runningVolume)
+                    : runningVolume;
+                audioSource.volume = targetVol;
+            }
+        }
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -190,34 +221,41 @@ public class ConveyorBelt : MonoBehaviour
 
     private void UpdateAudio()
     {
-        if (audioSource == null) return;
+        AudioSource src = EnsureAudioSource();
+        if (src == null) return;
 
         if (runningSound == null && AudioManager.Instance != null)
-            runningSound = AudioManager.Instance.GetClip("BeltRunning");
-
-        if (runningSound != null && audioSource.clip != runningSound)
         {
-            audioSource.clip = runningSound;
-            audioSource.loop = true;
+            runningSound = AudioManager.Instance.GetClip("BeltRunning")
+                        ?? AudioManager.Instance.GetClip("Belt")
+                        ?? AudioManager.Instance.GetClip("Conveyor")
+                        ?? AudioManager.Instance.GetClip("ConveyorBelt");
+        }
+
+        if (runningSound != null && src.clip != runningSound)
+        {
+            src.clip = runningSound;
+            src.loop = true;
         }
 
         if (IsPowered && runningSound != null)
         {
+            float clipBase = (AudioManager.Instance != null) ? AudioManager.Instance.GetClipBaseVolume(runningSound) : 1f;
             float targetVol = (AudioManager.Instance != null)
-                ? (AudioManager.Instance.IsMuted ? 0f : AudioManager.Instance.MasterVolume * AudioManager.Instance.SfxVolume)
-                : 1f;
-            audioSource.volume = targetVol;
+                ? (AudioManager.Instance.IsMuted ? 0f : AudioManager.Instance.MasterVolume * AudioManager.Instance.SfxVolume * clipBase * runningVolume)
+                : runningVolume;
+            src.volume = targetVol;
 
-            if (!audioSource.isPlaying)
+            if (!src.isPlaying)
             {
-                audioSource.Play();
+                src.Play();
             }
         }
         else
         {
-            if (audioSource.isPlaying)
+            if (src.isPlaying)
             {
-                audioSource.Stop();
+                src.Stop();
             }
         }
     }
