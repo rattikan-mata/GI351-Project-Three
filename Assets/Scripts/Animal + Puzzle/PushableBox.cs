@@ -391,6 +391,17 @@ public class PushableBox : MonoBehaviour
     {
         gravityHoldCount = Mathf.Max(0, gravityHoldCount - 1);
     }
+
+    /// <summary>ดีดกล่องด้วยความเร็ว (เช่น เทรมโพลีน): แกน Y ใช้ระบบแรงโน้มถ่วงของกล่อง ส่วนแกน X จะเลื่อนผ่าน TryPush</summary>
+    public void Launch(Vector2 velocity)
+    {
+        if (IsBroken || isProcessingHit) return;
+        verticalSpeed = velocity.y;
+        if (Mathf.Abs(velocity.x) > 0.05f)
+        {
+            TryPush(new Vector2(Mathf.Sign(velocity.x), 0f), Mathf.Abs(velocity.x) * 0.5f, Mathf.Abs(velocity.x));
+        }
+    }
     #endregion
 
     /// <summary>Layer ที่เป็นสิ่งกีดขวาง (รวม Wall และ Box อื่นด้วย)</summary>

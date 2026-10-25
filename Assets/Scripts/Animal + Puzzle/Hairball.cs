@@ -675,5 +675,15 @@ public class Hairball : MonoBehaviour
         velocity = Vector2.zero;
         isGrounded = true;
     }
+
+    /// <summary>ดีดก้อนขนด้วยความเร็วที่กำหนด (เช่น เทรมโพลีน) แล้วให้แรงโน้มถ่วง/การกลิ้งทำงานต่อ</summary>
+    public void Launch(Vector2 newVelocity)
+    {
+        velocity = newVelocity;
+        isGrounded = false;
+        traveled = 0f;
+        range = Mathf.Max(range, 20f);
+        lingerTimer = 0f;
+    }
     #endregion
 }
