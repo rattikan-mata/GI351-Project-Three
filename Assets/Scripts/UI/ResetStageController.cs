@@ -20,7 +20,7 @@ public class ResetStageController : MonoBehaviour
 
         if (curtain != null)
         {
-            curtain.PlayClose(() =>
+            curtain.PlayFullResetSequence(() =>
             {
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             });
