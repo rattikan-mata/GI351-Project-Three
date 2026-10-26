@@ -17,7 +17,6 @@ public class UIButtonSound : MonoBehaviour
         Next
     }
 
-    [Header("เลือกประเภทเสียงของปุ่มนี้")]
     [SerializeField] private SoundType soundType;
 
     private void Awake()
