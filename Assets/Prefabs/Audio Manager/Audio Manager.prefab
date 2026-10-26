@@ -1,0 +1,127 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &866906506320099223
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6164351066017261808}
+  - component: {fileID: 6521689523526645081}
+  m_Layer: 0
+  m_Name: Audio Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6164351066017261808
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866906506320099223}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.19621, y: 4.46786, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6521689523526645081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866906506320099223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eba6731938b90e645861d24c66ab0f10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AudioManager
+  defaultMasterVolume: 1
+  defaultBgmVolume: 0.75
+  defaultSfxVolume: 0.115
+  defaultBgmClip: {fileID: 0}
+  autoPlayBgmOnStart: 1
+  sfxLibrary:
+  - name: BoxBreak
+    clip: {fileID: 8300000, guid: 503f9855681b00a45b629e1dc1a41167, type: 3}
+    defaultVolume: 0.403
+  - name: BoxPush
+    clip: {fileID: 8300000, guid: 5b3df9463b498b54c848ff6eddc90a33, type: 3}
+    defaultVolume: 1
+  - name: SwitchPress
+    clip: {fileID: 8300000, guid: 6cafe97fc0d61cf44b2e8517d183bf1f, type: 3}
+    defaultVolume: 1
+  - name: DoorOpen
+    clip: {fileID: 8300000, guid: d2263280b0ba93845a2f3f4950cc9077, type: 3}
+    defaultVolume: 1
+  - name: DoorClose
+    clip: {fileID: 8300000, guid: 8fcda0be9b0c8f04690122eb31f143c2, type: 3}
+    defaultVolume: 1
+  - name: DoorBreak
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: BeltRunning
+    clip: {fileID: 8300000, guid: e5da4756f4f637f4aa828f8c1de51753, type: 3}
+    defaultVolume: 1
+  - name: DropperShoot
+    clip: {fileID: 8300000, guid: b3baa886b67bb1641a68796f046bc460, type: 3}
+    defaultVolume: 1
+  - name: TrampolineBounce
+    clip: {fileID: 8300000, guid: 8fc305b5456f4a34abb75a5c1c32fc61, type: 3}
+    defaultVolume: 1
+  - name: FlameLoop
+    clip: {fileID: 8300000, guid: f0cd2beaa7cd3254e9555ae00266a5ae, type: 3}
+    defaultVolume: 1
+  - name: AnimalDrinkPotion
+    clip: {fileID: 8300000, guid: 03f8f8bd36c48a84791bf2e829d640e9, type: 3}
+    defaultVolume: 1
+  - name: AnimalDrink
+    clip: {fileID: 8300000, guid: 03f8f8bd36c48a84791bf2e829d640e9, type: 3}
+    defaultVolume: 1
+  - name: AnimalCry
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: GoatPush
+    clip: {fileID: 8300000, guid: 22fcad673effb60419651af57d414081, type: 3}
+    defaultVolume: 1
+  - name: GoatSmash
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: GoatLaser
+    clip: {fileID: 8300000, guid: 62cadb875d4056a42a6a2f3e935ce787, type: 3}
+    defaultVolume: 1
+  - name: GoatSkywardLaser
+    clip: {fileID: 8300000, guid: 963247a4b05e5014887e6c0ac3541d3f, type: 3}
+    defaultVolume: 1
+  - name: GoatHavoc
+    clip: {fileID: 8300000, guid: 432e60343d74b124892f029450c7cd74, type: 3}
+    defaultVolume: 1
+  - name: CowFly
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CowBounce
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CowRam
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CowTeleport
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CatVomit
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CatBubble
+    clip: {fileID: 0}
+    defaultVolume: 1
+  - name: CatBubblePop
+    clip: {fileID: 0}
+    defaultVolume: 1

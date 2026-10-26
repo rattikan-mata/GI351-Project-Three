@@ -99,6 +99,33 @@ public class Door : MonoBehaviour
     [SerializeField] private string openBoolParameter = "Open";
     #endregion
 
+    #region Audio
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงตอนประตูเปิด")]
+    [SerializeField] private AudioClip openSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังเสียงตอนประตูเปิด (0 - 1)")]
+    [SerializeField] private float openVolume = 1f;
+
+    [Tooltip("เสียงตอนประตูปิด")]
+    [SerializeField] private AudioClip closeSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังเสียงตอนประตูปิด (0 - 1)")]
+    [SerializeField] private float closeVolume = 1f;
+
+    [Tooltip("เสียงตอนประตูแตก (จะทำงานเฉพาะเมื่อประตูพัง/แตกจริงๆ เท่านั้น)")]
+    [SerializeField] private AudioClip breakSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังเสียงตอนประตูแตก (0 - 1)")]
+    [SerializeField] private float breakVolume = 1f;
+
+    [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวประตูให้อัตโนมัติ)")]
+    [SerializeField] private AudioSource audioSource;
+    #endregion
+
     #region State
     public bool IsOpen { get; private set; }
     public bool IsBroken { get; private set; }
@@ -108,7 +135,13 @@ public class Door : MonoBehaviour
     public void RemoteToggle()
     {
         if (IsBroken) return;
+        bool wasOpen = IsOpen;
         IsOpen = !IsOpen;
+        if (IsOpen != wasOpen)
+        {
+            if (IsOpen) PlayOpenSound();
+            else PlayCloseSound();
+        }
         ApplyState();
     }
 
@@ -122,6 +155,7 @@ public class Door : MonoBehaviour
     {
         if (blockingCollider == null) blockingCollider = GetComponent<Collider2D>();
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
         CachePositions();
         IsOpen = startsOpen;
@@ -240,7 +274,13 @@ public class Door : MonoBehaviour
                 return;
             }
 
+            bool wasOpen = IsOpen;
             IsOpen = !IsOpen;
+            if (IsOpen != wasOpen)
+            {
+                if (IsOpen) PlayOpenSound();
+                else PlayCloseSound();
+            }
             ApplyState();
         }
     }
@@ -315,6 +355,8 @@ public class Door : MonoBehaviour
         IsBroken = true;
         IsOpen = true;
 
+        PlayBreakSound();
+
         Debug.Log($"[Door] ประตู {name} พังแล้ว!");
 
         if (blockingCollider != null)
@@ -375,6 +417,36 @@ public class Door : MonoBehaviour
             animator.SetBool(openBoolParameter, IsOpen);
         }
         // สถานะการชนอัปเดตใน Update (ปิดการชนเมื่อประตูเลื่อนถึงจุดเปิดแล้ว / กลับมาขวางทันทีที่เริ่มปิด)
+    }
+
+    private void PlayOpenSound()
+    {
+        AudioClip clip = openSound != null ? openSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("DoorOpen") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFXAt(clip, transform.position, openVolume);
+        else if (audioSource != null) audioSource.PlayOneShot(clip, openVolume);
+        else AudioSource.PlayClipAtPoint(clip, transform.position, openVolume);
+    }
+
+    private void PlayCloseSound()
+    {
+        AudioClip clip = closeSound != null ? closeSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("DoorClose") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFXAt(clip, transform.position, closeVolume);
+        else if (audioSource != null) audioSource.PlayOneShot(clip, closeVolume);
+        else AudioSource.PlayClipAtPoint(clip, transform.position, closeVolume);
+    }
+
+    private void PlayBreakSound()
+    {
+        AudioClip clip = breakSound != null ? breakSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("DoorBreak") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFXAt(clip, transform.position, breakVolume);
+        else if (audioSource != null) audioSource.PlayOneShot(clip, breakVolume);
+        else AudioSource.PlayClipAtPoint(clip, transform.position, breakVolume);
     }
     #endregion
 

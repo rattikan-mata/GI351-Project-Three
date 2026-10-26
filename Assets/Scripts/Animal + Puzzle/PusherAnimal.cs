@@ -30,6 +30,20 @@ public class PusherAnimal : TestAnimal
 
     [Tooltip("ทิศกล่องต้องตรงกับทิศที่เล็งแค่ไหนถึงจะดัน (1 = ตรงเป๊ะ, 0 = ขอแค่อยู่ครึ่งวงกลมข้างหน้า)")]
     [SerializeField, Range(0f, 1f)] private float aimAlignment = 0.5f;
+
+    [Tooltip("เสียงเอฟเฟกต์ตอนแพะออกแรงผลักกล่อง")]
+    [SerializeField] private AudioClip pushSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงตอนผลัก (0 - 1)")]
+    [SerializeField] private float pushVolume = 1f;
+
+    [Tooltip("เสียงเอฟเฟกต์ตอนแพะทุบ/ชนทำลายกล่อง")]
+    [SerializeField] private AudioClip smashSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงตอนทุบ (0 - 1)")]
+    [SerializeField] private float smashVolume = 1f;
     #endregion
 
     #region Combo Settings
@@ -159,6 +173,17 @@ public class PusherAnimal : TestAnimal
 
     [Tooltip("จำนวนวัตถุสูงสุดที่เลเซอร์จากฟ้าทะลุผ่านได้ (99 = ไม่จำกัด)")]
     [SerializeField] private int skywardMaxPierceCount = 99;
+
+    [Header("Havoc (ส้ม+เขียว): ถล่มทุกอย่างที่พังได้ทั้งฉาก")]
+    [Tooltip("เสียงเอฟเฟกต์ตอนแพะใช้พลัง Havoc ถล่มทุกอย่าง (ถ้าเว้นว่างจะค้นหาจาก AudioManager: 'GoatHavoc')")]
+    [SerializeField] private AudioClip havocSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียง Havoc (0 - 1)")]
+    [SerializeField] private float havocVolume = 1f;
+
+    [Tooltip("สไปรต์ร่างแพะตอนได้รับยา Havoc (เว้นว่าง = ใช้ Powered Up Sprite ปกติ)")]
+    [SerializeField] private Sprite havocFormSprite;
 
     [Header("Surge (ฟ้า+ส้ม): ยากราวิตี้ กระโดดแตะเพดานแล้วเดินบนเพดาน")]
     [Tooltip("Layer ของพื้น/เพดาน ใช้หาเพดานที่จะกระโดดไปแตะ และหาพื้นตอนกลับลง เว้นว่าง = ทุก Layer ที่ไม่ใช่ Trigger")]
@@ -352,14 +377,17 @@ public class PusherAnimal : TestAnimal
 
         smashMode = IsDualMode && potion == smashPotion;
 
-        Sprite s = smashMode ? smashFormSprite : pushFormSprite;
+        Sprite s = (potion == PotionType.Havoc && havocFormSprite != null)
+            ? havocFormSprite
+            : (smashMode ? smashFormSprite : pushFormSprite);
         if (s != null && spriteRenderer != null) spriteRenderer.sprite = s;
 
-        Debug.Log($"[{animalName}] โหมด: {(smashMode ? "ทำลายกล่อง" : "ดันกล่อง")}");
+        Debug.Log($"[{animalName}] โหมด: {(smashMode ? "ทำลายกล่อง" : (potion == PotionType.Havoc ? "Havoc" : "ดันกล่อง"))}");
     }
 
     protected override Sprite GetCustomPoweredUpSprite(PotionType potion)
     {
+        if (potion == PotionType.Havoc && havocFormSprite != null) return havocFormSprite;
         return smashMode ? smashFormSprite : pushFormSprite;
     }
     #endregion
@@ -390,12 +418,57 @@ public class PusherAnimal : TestAnimal
         {
             if (!box.IsDestructible || !box.CanAnimalDestroyBox(this)) return false;
             StopMoving();
+            AudioClip smashClip = ResolveSmashSound();
+            float vol = (smashVolume > 0.001f) ? smashVolume : 1f;
+            PlayAnimalSound(smashClip, vol);
             box.TriggerDestructionSequence(this, dir);
             return true;
         }
 
         StopMoving();
+        AudioClip clip = ResolvePushSound();
+        float pVol = (pushVolume > 0.001f) ? pushVolume : 1f;
+        PlayAnimalSound(clip, pVol);
         return box.TryPush(dir, pushDistance, pushSpeed, this);
+    }
+
+    private AudioClip ResolvePushSound()
+    {
+        if (pushSound != null) return pushSound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatPush")
+                          ?? AudioManager.Instance.GetClip("Goat")
+                          ?? AudioManager.Instance.GetClip("PusherAnimalPush");
+            if (clip != null) { pushSound = clip; return pushSound; }
+        }
+#if UNITY_EDITOR
+        pushSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audioes/Animal/Goat/Goat orange V2.mp3");
+        if (pushSound != null) return pushSound;
+
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Goat orange V2 t:AudioClip");
+        if (guids == null || guids.Length == 0) guids = UnityEditor.AssetDatabase.FindAssets("Goat Orange t:AudioClip");
+        if (guids != null && guids.Length > 0)
+        {
+            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+            pushSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            return pushSound;
+        }
+#endif
+        return null;
+    }
+
+    private AudioClip ResolveSmashSound()
+    {
+        if (smashSound != null) return smashSound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatSmash")
+                          ?? AudioManager.Instance.GetClip("GoatPush")
+                          ?? AudioManager.Instance.GetClip("Goat");
+            if (clip != null) return clip;
+        }
+        return null;
     }
 
     private PushableBox FindBoxInFront(Vector2 dir)
@@ -438,7 +511,21 @@ public class PusherAnimal : TestAnimal
         base.Awake();
         bodyCollider = GetComponent<Collider2D>();
         EnsureSkywardLaserPrefab();
+        ResolveHavocSound();
+        ResolvePushSound();
+        ResolveLaserSound();
+        ResolveSkywardSound();
     }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (havocSound == null) ResolveHavocSound();
+        if (pushSound == null) ResolvePushSound();
+        if (laserSound == null) ResolveLaserSound();
+        if (skywardSound == null) ResolveSkywardSound();
+    }
+#endif
 
     protected override void Start()
     {
@@ -784,9 +871,10 @@ public class PusherAnimal : TestAnimal
 
     private void SpawnLaserVisual(Vector2 from, Vector2 to, Vector2 dir, bool hasHit, RaycastHit2D hitInfo)
     {
-        if (laserSound != null)
+        AudioClip soundToPlay = ResolveLaserSound();
+        if (soundToPlay != null)
         {
-            AudioSource.PlayClipAtPoint(laserSound, from);
+            PlayAnimalSound(soundToPlay);
         }
 
         // เอฟเฟกต์ตรงปากกระบอก/จุดยิง (Muzzle Flash)
@@ -1098,11 +1186,59 @@ public class PusherAnimal : TestAnimal
         return true;
     }
 
+    private AudioClip ResolveLaserSound()
+    {
+        if (laserSound != null) return laserSound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatLaser");
+            if (clip != null) { laserSound = clip; return laserSound; }
+        }
+#if UNITY_EDITOR
+        laserSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audioes/Animal/Goat/Goat Green.mp3");
+        if (laserSound != null) return laserSound;
+
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Goat Green t:AudioClip");
+        if (guids != null && guids.Length > 0)
+        {
+            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+            laserSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            return laserSound;
+        }
+#endif
+        return null;
+    }
+
+    private AudioClip ResolveSkywardSound()
+    {
+        if (skywardSound != null) return skywardSound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatSkywardLaser")
+                          ?? AudioManager.Instance.GetClip("GoatLaser");
+            if (clip != null) { skywardSound = clip; return skywardSound; }
+        }
+#if UNITY_EDITOR
+        skywardSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audioes/Animal/Goat/Laser Skyward.mp3");
+        if (skywardSound != null) return skywardSound;
+
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Laser Skyward t:AudioClip");
+        if (guids != null && guids.Length > 0)
+        {
+            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+            skywardSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            return skywardSound;
+        }
+#endif
+        return null;
+    }
+
     private void SpawnSkywardVisual(Vector2 from, Vector2 to, GameObject prefab, GameObject hitPrefab, AudioClip sound, bool hasHit, RaycastHit2D hitInfo)
     {
-        if (sound != null)
+        AudioClip soundToPlay = (sound != null) ? sound : ResolveSkywardSound();
+        if (soundToPlay != null)
         {
-            AudioSource.PlayClipAtPoint(sound, to);
+            PlayAnimalSound(soundToPlay);
         }
 
         if (hasHit && hitPrefab != null)
@@ -1321,6 +1457,15 @@ public class PusherAnimal : TestAnimal
     {
         StopMoving();
 
+        AudioClip clip = ResolveHavocSound();
+        float vol = (havocVolume > 0.001f) ? havocVolume : 1f;
+        if (clip != null)
+        {
+            PlayAnimalSound(clip, vol);
+        }
+
+        Debug.Log($"[{animalName}] Havoc: SmashEverything! Sound: {(clip != null ? clip.name : "None")}");
+
         foreach (var box in FindObjectsByType<PushableBox>(FindObjectsSortMode.None))
         {
             if (box.IsDestructible && !box.IsBroken) box.BreakBox();
@@ -1330,6 +1475,33 @@ public class PusherAnimal : TestAnimal
             if (door.IsBreakable && !door.IsBroken) door.BreakDoor();
         }
         return true;
+    }
+
+    private AudioClip ResolveHavocSound()
+    {
+        if (havocSound != null) return havocSound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatHavoc")
+                          ?? AudioManager.Instance.GetClip("Havoc")
+                          ?? AudioManager.Instance.GetClip("Goat Havoc")
+                          ?? AudioManager.Instance.GetClip("GoatSmash");
+            if (clip != null) { havocSound = clip; return havocSound; }
+        }
+#if UNITY_EDITOR
+        havocSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audioes/Animal/Goat/Goat Havoc.mp3");
+        if (havocSound != null) return havocSound;
+
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Goat Havoc t:AudioClip");
+        if (guids == null || guids.Length == 0) guids = UnityEditor.AssetDatabase.FindAssets("Havoc t:AudioClip");
+        if (guids != null && guids.Length > 0)
+        {
+            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+            havocSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            return havocSound;
+        }
+#endif
+        return null;
     }
 
     #region Ceiling Walk (Gravity Potion)

@@ -38,6 +38,16 @@ public class HairballAnimal : TestAnimal
 
     [Tooltip("ติ๊กไว้ = ตอนอ้วกจะหยุดเดินทันที")]
     [SerializeField] private bool stopMovingWhenVomiting = true;
+
+    [Header("Audio (เสียงเฉพาะของแมวก้อนขน)")]
+    [Tooltip("เสียงตอนอ้วก/คายก้อนขน")]
+    [SerializeField] private AudioClip vomitSound;
+
+    [Tooltip("เสียงตอนเป่าฟองสบู่")]
+    [SerializeField] private AudioClip bubbleSound;
+
+    [Tooltip("เสียงตอนฟองสบู่แตก")]
+    [SerializeField] private AudioClip bubblePopSound;
     #endregion
 
     #region Bubble Settings (ฟ้า/Light: เป่าฟองสบู่ดันกล่อง)
@@ -482,6 +492,7 @@ public class HairballAnimal : TestAnimal
 
         Vector2 spawnPos = rb.position + spawnOffset;
         GameObject go = Instantiate(prefabToUse, spawnPos, Quaternion.identity);
+        PlayAnimalSound(vomitSound);
 
         if (!go.TryGetComponent<Hairball>(out var ball))
         {
@@ -560,6 +571,7 @@ public class HairballAnimal : TestAnimal
         Vector2 spawnPos = rb.position + spawnOffset;
 
         GameObject go = Instantiate(prefabToUse, spawnPos, Quaternion.identity);
+        PlayAnimalSound(bubbleSound);
 
         if (!go.TryGetComponent<Hairball>(out var ball))
         {
@@ -686,6 +698,7 @@ public class HairballAnimal : TestAnimal
             {
                 Instantiate(bubblePopEffectPrefab, activeBubbleShield.transform.position, Quaternion.identity);
             }
+            PlayAnimalSound(bubblePopSound);
             Destroy(activeBubbleShield);
             activeBubbleShield = null;
             bubbleShieldRenderer = null;

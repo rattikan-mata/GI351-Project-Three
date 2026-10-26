@@ -210,12 +210,12 @@ MonoBehaviour:
   laserColor: {r: 1, g: 0, b: 0.11646581, a: 1}
   laserWidth: 0.18
   laserDisplaySeconds: 0.3
-  laserSound: {fileID: 0}
+  laserSound: {fileID: 8300000, guid: 62cadb875d4056a42a6a2f3e935ce787, type: 3}
   allowGreenPotionLaser: 1
   skywardLaserPrefab: {fileID: 7499313619155134211, guid: 2c132e66f0375104e9a502a85b74eddd, type: 3}
   skyLaserHeight: 15
   skywardHitPrefab: {fileID: 0}
-  skywardSound: {fileID: 0}
+  skywardSound: {fileID: 8300000, guid: 963247a4b05e5014887e6c0ac3541d3f, type: 3}
   skywardLaserColor: {r: 0.3, g: 1, b: 0.85, a: 1}
   skywardLaserWidth: 0.25
   skywardDisplaySeconds: 0.35
@@ -259,3 +259,5 @@ MonoBehaviour:
   smashPotion: 0
   smashFormSprite: {fileID: 0}
   pushFormSprite: {fileID: 0}
+  pushSound: {fileID: 8300000, guid: 22fcad673effb60419651af57d414081, type: 3}
+  havocSound: {fileID: 8300000, guid: 432e60343d74b124892f029450c7cd74, type: 3}

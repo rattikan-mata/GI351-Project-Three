@@ -199,6 +199,10 @@ public abstract class TestAnimal : MonoBehaviour
         abilityUnlockedUntil = (potionEffectDuration > 0f) ? Time.time + potionEffectDuration : float.MaxValue;
         Debug.Log($"[{animalName}] ใช้ยา {potion} แล้ว");
 
+        AudioClip drinkClip = ResolveDrinkSound();
+        float volume = (drinkPotionVolume > 0.001f) ? drinkPotionVolume : 1f;
+        PlayAnimalSound(drinkClip, volume);
+
         // --- เปลี่ยนร่างเป็นสไปรต์ใหม่หลังได้รับยา ---
         Sprite customSprite = GetCustomPoweredUpSprite(potion);
         Sprite targetSprite = (customSprite != null) ? customSprite : poweredUpSprite;
@@ -211,8 +215,54 @@ public abstract class TestAnimal : MonoBehaviour
         return true;
     }
 
+    /// <summary>ดึงคลิปเสียงตอนได้รับยา (จาก Inspector หรือ AudioManager)</summary>
+    protected AudioClip ResolveDrinkSound()
+    {
+        if (drinkPotionSound != null) return drinkPotionSound;
+        if (AudioManager.Instance != null)
+        {
+            return AudioManager.Instance.GetClip("AnimalDrinkPotion")
+                ?? AudioManager.Instance.GetClip("AnimalDrink")
+                ?? AudioManager.Instance.GetClip("AnimalInject")
+                ?? AudioManager.Instance.GetClip("DrinkPotion");
+        }
+        return null;
+    }
+
     /// <summary>สไปรต์ร่างใหม่เฉพาะของแต่ละคลาสลูกเมื่อได้ยาแต่ละชนิด (เช่น แมวร่าง Skyward / แพะร่างทุบ) ถ้าคืนค่า null จะใช้ Powered Up Sprite ปกติ</summary>
     protected virtual Sprite GetCustomPoweredUpSprite(PotionType potion) => null;
+    #endregion
+
+    #region Audio
+    [Header("Audio (เสียงสัตว์)")]
+    [Tooltip("เสียงตอนสัตว์ได้รับยา / ดื่มยา")]
+    [SerializeField] protected AudioClip drinkPotionSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงตอนได้รับยา (0 - 1)")]
+    [SerializeField] protected float drinkPotionVolume = 1f;
+
+    [Tooltip("เสียงร้องของสัตว์")]
+    [SerializeField] protected AudioClip animalCrySound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงร้อง (0 - 1)")]
+    [SerializeField] protected float animalCryVolume = 1f;
+
+    [Tooltip("AudioSource ประจำตัวสัตว์ (ถ้าเว้นว่างจะค้นหาให้อัตโนมัติ)")]
+    [SerializeField] protected AudioSource animalAudioSource;
+
+    protected AudioSource EnsureAudioSource()
+    {
+        if (animalAudioSource == null) animalAudioSource = GetComponent<AudioSource>();
+        if (animalAudioSource == null)
+        {
+            animalAudioSource = gameObject.AddComponent<AudioSource>();
+            animalAudioSource.playOnAwake = false;
+            animalAudioSource.spatialBlend = 0f;
+        }
+        return animalAudioSource;
+    }
     #endregion
 
     #region Unity Lifecycle
@@ -227,6 +277,7 @@ public abstract class TestAnimal : MonoBehaviour
         UpdateGravityState();
 
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        EnsureAudioSource();
 
         // --- ตั้งค่าสไปรต์เริ่มต้นเป็นแมวเปล่าตอนเริ่มเกม ---
         if (spriteRenderer != null && defaultCatSprite != null)
@@ -481,6 +532,38 @@ public abstract class TestAnimal : MonoBehaviour
             case AutoDirection.UpLeft: return new Vector2(-1f, 1f).normalized;
             case AutoDirection.DownRight: return new Vector2(1f, -1f).normalized;
             default: return new Vector2(-1f, -1f).normalized;
+        }
+    }
+    #endregion
+
+    #region Audio API
+    /// <summary>เล่นเสียงร้องของสัตว์</summary>
+    public void PlayCrySound()
+    {
+        AudioClip clip = animalCrySound != null ? animalCrySound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip($"{animalName}Cry") : null);
+        PlayAnimalSound(clip, animalCryVolume);
+    }
+
+    /// <summary>เล่นเสียงของสัตว์ ผ่าน AudioManager (ถ้ามี) หรือ AudioSource ประจำตัว</summary>
+    public void PlayAnimalSound(AudioClip clip, float volume = 1f, float pitchVariance = 0.05f)
+    {
+        if (clip == null) return;
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, volume, pitchVariance, ignoreCooldown: true);
+        }
+        else
+        {
+            AudioSource src = EnsureAudioSource();
+            if (src != null)
+            {
+                src.pitch = (pitchVariance > 0f) ? Random.Range(1f - pitchVariance, 1f + pitchVariance) : 1f;
+                src.PlayOneShot(clip, volume);
+            }
+            else
+            {
+                AudioSource.PlayClipAtPoint(clip, transform.position, volume);
+            }
         }
     }
     #endregion

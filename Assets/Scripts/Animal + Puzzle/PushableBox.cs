@@ -94,6 +94,20 @@ public class PushableBox : MonoBehaviour
     [SerializeField] private bool destroyOnBreak = true;
     #endregion
 
+    #region Audio
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงตอนกล่องแตก")]
+    [SerializeField] private AudioClip breakSound;
+    [Range(0f, 1f)] [SerializeField] private float breakVolume = 1f;
+
+    [Tooltip("เสียงตอนกล่องโดนผลัก/เลื่อน")]
+    [SerializeField] private AudioClip pushSound;
+    [Range(0f, 1f)] [SerializeField] private float pushVolume = 1f;
+
+    [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวกล่องให้อัตโนมัติ)")]
+    [SerializeField] private AudioSource audioSource;
+    #endregion
+
     #region Gravity
     [Header("Gravity (แรงโน้มถ่วง)")]
     [Tooltip("ติ๊กไว้ = กล่องตกตามแรงโน้มถ่วง (ใช้ค่า Physics 2D Gravity ของโปรเจกต์)")]
@@ -161,6 +175,7 @@ public class PushableBox : MonoBehaviour
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.gravityScale = 0f; // จำลองเอง เพื่อไม่ให้แมวเดินชนแล้วกล่องเลื่อน
         col = GetComponent<Collider2D>();
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
     }
 
     private void FixedUpdate()
@@ -336,6 +351,8 @@ public class PushableBox : MonoBehaviour
         if (IsBroken) return;
         IsBroken = true;
 
+        PlayBreakSound();
+
         Debug.Log($"[PushableBox] กล่อง {name} แตกแล้ว!");
 
         if (breakEffectPrefab != null)
@@ -377,6 +394,44 @@ public class PushableBox : MonoBehaviour
         }
         if (!IsBroken) transform.position = originalPos;
     }
+
+    private float lastPushSoundTime = -1f;
+
+    private void PlayPushSound()
+    {
+        AudioClip clip = pushSound != null ? pushSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("BoxPush") : null);
+        if (clip == null) return;
+        if (Time.time - lastPushSoundTime < 0.2f) return;
+        lastPushSoundTime = Time.time;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, pushVolume);
+        }
+        else if (audioSource != null)
+        {
+            audioSource.PlayOneShot(clip, pushVolume);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position, pushVolume);
+        }
+    }
+
+    private void PlayBreakSound()
+    {
+        AudioClip clip = breakSound != null ? breakSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("BoxBreak") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, breakVolume);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position, breakVolume);
+        }
+    }
     #endregion
 
     #region Gravity API
@@ -390,6 +445,17 @@ public class PushableBox : MonoBehaviour
     public void RemoveGravityHold()
     {
         gravityHoldCount = Mathf.Max(0, gravityHoldCount - 1);
+    }
+
+    /// <summary>ดีดกล่องด้วยความเร็ว (เช่น เทรมโพลีน): แกน Y ใช้ระบบแรงโน้มถ่วงของกล่อง ส่วนแกน X จะเลื่อนผ่าน TryPush</summary>
+    public void Launch(Vector2 velocity)
+    {
+        if (IsBroken || isProcessingHit) return;
+        verticalSpeed = velocity.y;
+        if (Mathf.Abs(velocity.x) > 0.05f)
+        {
+            TryPush(new Vector2(Mathf.Sign(velocity.x), 0f), Mathf.Abs(velocity.x) * 0.5f, Mathf.Abs(velocity.x));
+        }
     }
     #endregion
 
@@ -433,6 +499,7 @@ public class PushableBox : MonoBehaviour
                 float addDist = GetFreeDistance(direction, remainingSlideDistance + distance, pusher);
                 remainingSlideDistance = addDist;
                 currentSlideSpeed = Mathf.Max(currentSlideSpeed, speed);
+                PlayPushSound();
                 return true;
             }
             return false;
@@ -446,6 +513,7 @@ public class PushableBox : MonoBehaviour
             currentSlideDirection = direction;
             remainingSlideDistance = freeDist;
             currentSlideSpeed = speed;
+            PlayPushSound();
             currentSlideCoroutine = StartCoroutine(SlideRoutine(pusher));
             return true;
         }

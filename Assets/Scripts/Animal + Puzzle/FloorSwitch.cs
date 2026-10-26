@@ -65,6 +65,19 @@ public class FloorSwitch : MonoBehaviour
     [SerializeField] private ButtonAnimMode animMode = ButtonAnimMode.HoldWhilePressed;
     #endregion
 
+    #region Audio
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงตอนกดปุ่มสวิตช์")]
+    [SerializeField] private AudioClip pressSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงกดสวิตช์ (0 - 1)")]
+    [SerializeField] private float pressVolume = 1f;
+
+    [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวสวิตช์ให้อัตโนมัติ)")]
+    [SerializeField] private AudioSource audioSource;
+    #endregion
+
     #region State
     public bool IsActive { get; private set; }
     public event Action<FloorSwitch> StateChanged;
@@ -86,6 +99,7 @@ public class FloorSwitch : MonoBehaviour
         Collider2D col = GetComponent<Collider2D>();
         if (col != null) col.isTrigger = true;
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
         EnsureButtonCap();
         ApplyVisual();
@@ -216,7 +230,27 @@ public class FloorSwitch : MonoBehaviour
         ApplyVisual();
 
         UpdateCapPosition();
+        PlayPressSound();
         StateChanged?.Invoke(this);
+    }
+
+    private void PlayPressSound()
+    {
+        AudioClip clip = pressSound != null ? pressSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("SwitchPress") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, pressVolume);
+        }
+        else if (audioSource != null)
+        {
+            audioSource.PlayOneShot(clip, pressVolume);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position, pressVolume);
+        }
     }
 
     private void UpdateCapPosition()
