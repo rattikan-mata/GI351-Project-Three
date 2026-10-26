@@ -5,8 +5,8 @@ public class SceneNavManager : MonoBehaviour
 {
     public void LoadScene(string sceneName)
     {
-        HUDStarSystem.ResetStarsForNewStage();
         Time.timeScale = 1f;
+        HUDStarSystem.ResetStarsForNewStage();
         SceneManager.LoadScene(sceneName);
     }
 
