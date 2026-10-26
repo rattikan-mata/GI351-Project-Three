@@ -72,7 +72,7 @@ MonoBehaviour:
     defaultVolume: 1
     cooldown: 0.05
   - name: DoorBreak
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 503f9855681b00a45b629e1dc1a41167, type: 3}
     defaultVolume: 1
     cooldown: 0.05
   - name: BeltRunning
@@ -80,8 +80,8 @@ MonoBehaviour:
     defaultVolume: 1
     cooldown: 0.05
   - name: DropperShoot
-    clip: {fileID: 8300000, guid: b3baa886b67bb1641a68796f046bc460, type: 3}
-    defaultVolume: 1
+    clip: {fileID: 8300000, guid: 51a2d8abc3a6eca42990390c2c185494, type: 3}
+    defaultVolume: 0.331
     cooldown: 0.05
   - name: TrampolineBounce
     clip: {fileID: 8300000, guid: 8fc305b5456f4a34abb75a5c1c32fc61, type: 3}
@@ -123,32 +123,40 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: 432e60343d74b124892f029450c7cd74, type: 3}
     defaultVolume: 1
     cooldown: 0.05
-  - name: CowFly
-    clip: {fileID: 0}
+  - name: GoatGravity
+    clip: {fileID: 8300000, guid: bdd6b193169ceb24b83bb95a8bbc4073, type: 3}
     defaultVolume: 1
     cooldown: 0.05
-  - name: CowBounce
-    clip: {fileID: 0}
+  - name: CowFly
+    clip: {fileID: 8300000, guid: 963ea39ff87ec4d498e4648912e2bb4b, type: 3}
     defaultVolume: 1
+    cooldown: 0.3
+  - name: CowBounce
+    clip: {fileID: 8300000, guid: c464a076a673b0e458dc3a37706022a8, type: 3}
+    defaultVolume: 0.812
     cooldown: 0.05
   - name: CowRam
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 1d35611369fafa34ba55a30da34d09ee, type: 3}
     defaultVolume: 1
     cooldown: 0.05
   - name: CowTeleport
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 514ec4b789c46d2439763e23a543dd69, type: 3}
     defaultVolume: 1
     cooldown: 0.05
   - name: CatVomit
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 2eebc6a752785df4d8e590de9901926c, type: 3}
     defaultVolume: 1
     cooldown: 0.05
   - name: CatBubble
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 486b09c62f83cd044806461239d5c03e, type: 3}
     defaultVolume: 1
     cooldown: 0.05
   - name: CatBubblePop
-    clip: {fileID: 0}
+    clip: {fileID: 8300000, guid: 93858bf50043614479d2ef9f7573eac7, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: CatSkyward
+    clip: {fileID: 8300000, guid: d5b0f2a808fcfdd499b4db408ca028fc, type: 3}
     defaultVolume: 1
     cooldown: 0.05
   - name: TrayPick

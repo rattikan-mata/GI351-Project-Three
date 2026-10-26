@@ -186,6 +186,13 @@ public class PusherAnimal : TestAnimal
     [SerializeField] private Sprite havocFormSprite;
 
     [Header("Surge (ฟ้า+ส้ม): ยากราวิตี้ กระโดดแตะเพดานแล้วเดินบนเพดาน")]
+    [Tooltip("เสียงเอฟเฟกต์ตอนสลับกราวิตี้ / กระโดดแตะเพดาน / สลับทิศทางเดินบนเพดาน (ถ้าเว้นว่างจะค้นหาจาก AudioManager: 'GoatGravity')")]
+    [SerializeField] private AudioClip gravitySound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงสลับกราวิตี้ (0 - 1)")]
+    [SerializeField] private float gravityVolume = 1f;
+
     [Tooltip("Layer ของพื้น/เพดาน ใช้หาเพดานที่จะกระโดดไปแตะ และหาพื้นตอนกลับลง เว้นว่าง = ทุก Layer ที่ไม่ใช่ Trigger")]
     [SerializeField] private LayerMask ceilingLayers;
 
@@ -515,6 +522,7 @@ public class PusherAnimal : TestAnimal
         ResolvePushSound();
         ResolveLaserSound();
         ResolveSkywardSound();
+        ResolveGravitySound();
     }
 
 #if UNITY_EDITOR
@@ -524,6 +532,7 @@ public class PusherAnimal : TestAnimal
         if (pushSound == null) ResolvePushSound();
         if (laserSound == null) ResolveLaserSound();
         if (skywardSound == null) ResolveSkywardSound();
+        if (gravitySound == null) ResolveGravitySound();
     }
 #endif
 
@@ -1219,15 +1228,29 @@ public class PusherAnimal : TestAnimal
             if (clip != null) { skywardSound = clip; return skywardSound; }
         }
 #if UNITY_EDITOR
-        skywardSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audioes/Animal/Goat/Laser Skyward.mp3");
-        if (skywardSound != null) return skywardSound;
+        string[] candidates = new[]
+        {
+            "Assets/Audioes/Animal/Goat/Laser Skyward.mp3",
+            "Assets/Audioes/Animal/Goat/laser skyward.mp3"
+        };
+        foreach (var p in candidates)
+        {
+            skywardSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(p);
+            if (skywardSound != null) return skywardSound;
+        }
 
-        string[] guids = UnityEditor.AssetDatabase.FindAssets("Laser Skyward t:AudioClip");
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Laser Skyward t:AudioClip", new[] { "Assets/Audioes/Animal/Goat" });
         if (guids != null && guids.Length > 0)
         {
-            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
-            skywardSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
-            return skywardSound;
+            foreach (var g in guids)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(g);
+                if (path.StartsWith("Assets/Audioes/Animal/Goat/", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    skywardSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                    if (skywardSound != null) return skywardSound;
+                }
+            }
         }
 #endif
         return null;
@@ -1492,16 +1515,76 @@ public class PusherAnimal : TestAnimal
         havocSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audioes/Animal/Goat/Goat Havoc.mp3");
         if (havocSound != null) return havocSound;
 
-        string[] guids = UnityEditor.AssetDatabase.FindAssets("Goat Havoc t:AudioClip");
-        if (guids == null || guids.Length == 0) guids = UnityEditor.AssetDatabase.FindAssets("Havoc t:AudioClip");
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Goat Havoc t:AudioClip", new[] { "Assets/Audioes/Animal/Goat" });
+        if (guids == null || guids.Length == 0) guids = UnityEditor.AssetDatabase.FindAssets("Havoc t:AudioClip", new[] { "Assets/Audioes/Animal/Goat" });
         if (guids != null && guids.Length > 0)
         {
-            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
-            havocSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
-            return havocSound;
+            foreach (var g in guids)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(g);
+                if (path.StartsWith("Assets/Audioes/Animal/Goat/", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    havocSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                    if (havocSound != null) return havocSound;
+                }
+            }
         }
 #endif
         return null;
+    }
+
+    private AudioClip ResolveGravitySound()
+    {
+        if (gravitySound != null) return gravitySound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatGravity")
+                          ?? AudioManager.Instance.GetClip("GoatSurge")
+                          ?? AudioManager.Instance.GetClip("Gravity");
+            if (clip != null) { gravitySound = clip; return gravitySound; }
+        }
+#if UNITY_EDITOR
+        string[] candidatePaths = new[]
+        {
+            "Assets/Audioes/Animal/Goat/goat Surge.mp3",
+            "Assets/Audioes/Animal/Goat/Goat Surge.mp3",
+            "Assets/Audioes/Animal/Goat/Goat Gravity.mp3",
+            "Assets/Audioes/Animal/Goat/goat Gravity.mp3"
+        };
+        foreach (var path in candidatePaths)
+        {
+            var loaded = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            if (loaded != null) { gravitySound = loaded; return gravitySound; }
+        }
+
+        // ค้นหาเฉพาะในโฟลเดอร์ Goat เท่านั้น ป้องกันการหลุดไปจับไฟล์ของวัว (Cow Surge / Cow Blue)
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Surge t:AudioClip", new[] { "Assets/Audioes/Animal/Goat" });
+        if (guids == null || guids.Length == 0)
+            guids = UnityEditor.AssetDatabase.FindAssets("Gravity t:AudioClip", new[] { "Assets/Audioes/Animal/Goat" });
+        if (guids != null && guids.Length > 0)
+        {
+            foreach (var g in guids)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(g);
+                if (path.StartsWith("Assets/Audioes/Animal/Goat/", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    gravitySound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                    if (gravitySound != null) return gravitySound;
+                }
+            }
+        }
+#endif
+        return null;
+    }
+
+    private void PlayGravitySound()
+    {
+        AudioClip clip = ResolveGravitySound();
+        if (clip != null)
+        {
+            float vol = (gravityVolume > 0.001f) ? gravityVolume : 1f;
+            PlayAnimalSound(clip, vol);
+        }
     }
 
     #region Ceiling Walk (Gravity Potion)
@@ -1517,6 +1600,7 @@ public class PusherAnimal : TestAnimal
                     return false;
                 }
                 ceilingWalkDir = (FacingDirection.x < 0f) ? -1f : 1f;
+                PlayGravitySound();
                 StartCoroutine(RiseToCeilingRoutine(y));
                 return true;
 
@@ -1524,6 +1608,7 @@ public class PusherAnimal : TestAnimal
                 // ติดอยู่บนเพดานตลอดไป: ถ้ากดใช้ความสามารถอีกครั้งจะสลับทิศทางเดิน
                 ceilingWalkDir = -ceilingWalkDir;
                 bounceCooldown = 0.2f;
+                PlayGravitySound();
                 return true;
         }
         return false; // กำลังขึ้นอยู่
@@ -1588,6 +1673,7 @@ public class PusherAnimal : TestAnimal
         if (!TryFindSurface(Vector2.down, out float floorY)) floorY = groundYBeforeRise;
 
         ceilingState = CeilingState.Falling;
+        PlayGravitySound();
         StopMoving();
         SetExternalMotion(true);
         bodyCollider.excludeLayers = ~0;
