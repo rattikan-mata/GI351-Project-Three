@@ -14,6 +14,11 @@ public class HUDStarSystem : MonoBehaviour
     public static int CurrentStars { get; private set; } = 3;
     public static int AttemptCount { get; private set; } = 0;
 
+    private void Awake()
+    {
+        Time.timeScale = 1f;
+    }
+
     private void Start()
     {
         RefreshVisuals();

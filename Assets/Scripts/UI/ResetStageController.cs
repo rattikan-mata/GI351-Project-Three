@@ -6,11 +6,16 @@ public class ResetStageController : MonoBehaviour
     [SerializeField] private CurtainEffect curtain;
     [SerializeField] private HUDStarSystem starSystem;
 
-    public void OnClickReset()
+    public void OnClickResetStage()
     {
         if (starSystem != null)
         {
             starSystem.DeductOneStar();
+        }
+
+        if (AudioUI.Instance != null)
+        {
+            AudioUI.Instance.PlaySFX(AudioUI.Instance.sfxStarDeduct);
         }
 
         if (HUDStarSystem.CurrentStars <= 0)
@@ -20,7 +25,7 @@ public class ResetStageController : MonoBehaviour
 
         if (curtain != null)
         {
-            curtain.PlayFullResetSequence(() =>
+            curtain.PlayCurtainTransition(() =>
             {
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             });

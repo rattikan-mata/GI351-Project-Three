@@ -6,27 +6,25 @@ using TMPro;
 
 public class EndGameUI : MonoBehaviour
 {
-    [Header("UI Panels & Text")]
+    [Header("Panels & Text")]
     [SerializeField] private GameObject endGamePanel;
     [SerializeField] private TextMeshProUGUI txtResult;
 
-    [Header("Stars Display")]
+    [Header("Stars")]
     [SerializeField] private Image[] endStarImages;
     [SerializeField] private Sprite activeStarSprite;
     [SerializeField] private Sprite inactiveStarSprite;
 
-    [Header("Star Animation Settings (Script)")]
-    [Tooltip("ระยะเวลารอระหว่างดาวแต่ละดวง (วินาที)")]
+    [Header("Star Animation")]
     [SerializeField] private float delayBetweenStars = 0.4f;
-    [Tooltip("ความเร็วในการเด้งขยายของดาวแต่ละดวง (วินาที)")]
     [SerializeField] private float starPopDuration = 0.25f;
 
-    [Header("EndGame Buttons")]
+    [Header("Buttons")]
     [SerializeField] private GameObject btnNext;
     [SerializeField] private GameObject btnRestart;
     [SerializeField] private GameObject btnExitToMenu;
 
-    [Header("Scene Navigation Config")]
+    [Header("Scene")]
     [SerializeField] private string nextStageName = "Stage2";
     [SerializeField] private string mainMenuName = "MainMenu";
 
@@ -40,12 +38,18 @@ public class EndGameUI : MonoBehaviour
 
     public void OpenWinScreen()
     {
+        Time.timeScale = 1f;
         endGamePanel.SetActive(true);
         txtResult.text = "VICTORY";
 
         btnNext.SetActive(true);
         btnRestart.SetActive(true);
         btnExitToMenu.SetActive(true);
+
+        if (AudioUI.Instance != null)
+        {
+            AudioUI.Instance.PlaySFX(AudioUI.Instance.sfxWin);
+        }
 
         int starsEarned = HUDStarSystem.CurrentStars;
 
@@ -55,12 +59,18 @@ public class EndGameUI : MonoBehaviour
 
     public void OpenLoseScreen()
     {
+        Time.timeScale = 1f;
         endGamePanel.SetActive(true);
         txtResult.text = "DEFEAT";
 
         btnNext.SetActive(false);
         btnRestart.SetActive(true);
         btnExitToMenu.SetActive(true);
+
+        if (AudioUI.Instance != null)
+        {
+            AudioUI.Instance.PlaySFX(AudioUI.Instance.sfxLose);
+        }
 
         if (starRoutine != null) StopCoroutine(starRoutine);
         starRoutine = StartCoroutine(AnimateStarsSequential(0));
@@ -87,8 +97,13 @@ public class EndGameUI : MonoBehaviour
                 endStarImages[i].sprite = activeStarSprite;
                 endStarImages[i].color = Color.white;
 
-                yield return StartCoroutine(PopStar(endStarImages[i].transform));
+                if (AudioUI.Instance != null)
+                {
+                    float pitch = 1.0f + (i * 0.2f);
+                    AudioUI.Instance.PlaySFX(AudioUI.Instance.sfxStarCount, pitch);
+                }
 
+                yield return StartCoroutine(PopStar(endStarImages[i].transform));
                 yield return new WaitForSecondsRealtime(delayBetweenStars);
             }
         }
@@ -121,7 +136,7 @@ public class EndGameUI : MonoBehaviour
         starTransform.localScale = endScale;
     }
 
-    // --- Buttons Action ---
+    // --- Button Actions ---
     public void OnClickNext()
     {
         Time.timeScale = 1f;
