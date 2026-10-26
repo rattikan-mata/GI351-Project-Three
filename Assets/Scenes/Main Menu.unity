@@ -848,6 +848,18 @@ MonoBehaviour:
           m_StringArgument: Stage 1
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 4915070074508983391}
+        m_TargetAssemblyTypeName: AudioUI, Assembly-CSharp
+        m_MethodName: PlayBtnPlay
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1020387157
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1118,6 +1130,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 4915070074508983391}
+        m_TargetAssemblyTypeName: AudioUI, Assembly-CSharp
+        m_MethodName: PlayBtnExit
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &2089164603
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1168,6 +1192,62 @@ PrefabInstance:
       propertyPath: m_Name
       value: AudioUI
       objectReference: {fileID: 0}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxTab
+      value: 
+      objectReference: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxWin
+      value: 
+      objectReference: {fileID: 8300000, guid: fbe8d6029971d8c418853eaa926c2bad, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxExit
+      value: 
+      objectReference: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxLose
+      value: 
+      objectReference: {fileID: 8300000, guid: 2e59394fdf0b60a4ab3057922def1e1f, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxNext
+      value: 
+      objectReference: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxPlay
+      value: 
+      objectReference: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxQuit
+      value: 
+      objectReference: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxReset
+      value: 
+      objectReference: {fileID: 8300000, guid: 7f1cd5b9f7136b041b1da3706dde3542, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxResume
+      value: 
+      objectReference: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxCurtain
+      value: 
+      objectReference: {fileID: 8300000, guid: 8045d575466515745b4b33503e879c25, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxRestart
+      value: 
+      objectReference: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxMainMenu
+      value: 
+      objectReference: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxStarCount
+      value: 
+      objectReference: {fileID: 8300000, guid: 59a4905185099eb4db20e3bdcd3750d8, type: 3}
+    - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+      propertyPath: sfxStarDeduct
+      value: 
+      objectReference: {fileID: 8300000, guid: 7f1cd5b9f7136b041b1da3706dde3542, type: 3}
     - target: {fileID: 5582164417615704394, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -1213,6 +1293,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+--- !u!114 &4915070074508983391 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
+  m_PrefabInstance: {fileID: 4915070074508983390}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af97be1153d6a0e409e3ef5b0b658b6a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AudioUI
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
