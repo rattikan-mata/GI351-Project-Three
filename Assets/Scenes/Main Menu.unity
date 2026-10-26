@@ -1259,7 +1259,7 @@ PrefabInstance:
     - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
       propertyPath: sfxCurtain
       value: 
-      objectReference: {fileID: 8300000, guid: 8045d575466515745b4b33503e879c25, type: 3}
+      objectReference: {fileID: 8300000, guid: 64db606a6ff3a0248aa93b9deb7ad07b, type: 3}
     - target: {fileID: 763774305483906519, guid: 4e6f251193e8a654eb75809fce1d57e5, type: 3}
       propertyPath: sfxRestart
       value: 

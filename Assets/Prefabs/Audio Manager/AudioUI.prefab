@@ -152,7 +152,7 @@ MonoBehaviour:
   sfxMainMenu: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
   sfxRestart: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
   sfxNext: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
-  sfxCurtain: {fileID: 8300000, guid: 8045d575466515745b4b33503e879c25, type: 3}
+  sfxCurtain: {fileID: 8300000, guid: 64db606a6ff3a0248aa93b9deb7ad07b, type: 3}
   sfxStarDeduct: {fileID: 8300000, guid: 7f1cd5b9f7136b041b1da3706dde3542, type: 3}
   sfxWin: {fileID: 8300000, guid: fbe8d6029971d8c418853eaa926c2bad, type: 3}
   sfxLose: {fileID: 8300000, guid: 2e59394fdf0b60a4ab3057922def1e1f, type: 3}
