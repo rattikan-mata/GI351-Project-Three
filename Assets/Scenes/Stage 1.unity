@@ -1101,6 +1101,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6981963038372988400, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
+      propertyPath: havocDestination
+      value: 
+      objectReference: {fileID: 627154022}
+    - target: {fileID: 6981963038372988400, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
+      propertyPath: targetDestination
+      value: 
+      objectReference: {fileID: 627154022}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3219,6 +3227,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8720426379642202039, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
   m_PrefabInstance: {fileID: 1143194703}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &627154022 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5137231243203932422, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
+  m_PrefabInstance: {fileID: 207957488}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &629217599 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6066909442961026395, guid: ca9f6800a73c829429dc1b3828c985e9, type: 3}
@@ -3581,6 +3594,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1424346890}
     m_Modifications:
+    - target: {fileID: 638540066612953218, guid: 2471f67dbea11a34f9932526f5b2465c, type: 3}
+      propertyPath: pushDirection
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1280557578164829464, guid: 2471f67dbea11a34f9932526f5b2465c, type: 3}
       propertyPath: m_Name
       value: Strong cat

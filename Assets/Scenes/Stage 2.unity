@@ -2029,9 +2029,17 @@ PrefabInstance:
       value: 2.331256
       objectReference: {fileID: 0}
     - target: {fileID: 6981963038372988400, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
+      propertyPath: havocDestination
+      value: 
+      objectReference: {fileID: 511775308}
+    - target: {fileID: 6981963038372988400, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
       propertyPath: midwayResetPoint
       value: 
       objectReference: {fileID: 511775307}
+    - target: {fileID: 6981963038372988400, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
+      propertyPath: targetDestination
+      value: 
+      objectReference: {fileID: 511775308}
     - target: {fileID: 6981963038372988400, guid: d96f11091c8339444bdd4ec489d6ce54, type: 3}
       propertyPath: skywardDestination
       value: 
