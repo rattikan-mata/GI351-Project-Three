@@ -143,17 +143,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioUI
   uiSource: {fileID: 1630094063304364810}
-  sfxPlay: {fileID: 0}
-  sfxExit: {fileID: 0}
-  sfxTab: {fileID: 0}
-  sfxResume: {fileID: 0}
-  sfxQuit: {fileID: 0}
-  sfxReset: {fileID: 0}
-  sfxMainMenu: {fileID: 0}
-  sfxRestart: {fileID: 0}
-  sfxNext: {fileID: 0}
-  sfxCurtain: {fileID: 0}
-  sfxStarDeduct: {fileID: 0}
-  sfxWin: {fileID: 0}
-  sfxLose: {fileID: 0}
-  sfxStarCount: {fileID: 0}
+  sfxPlay: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+  sfxExit: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+  sfxTab: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+  sfxResume: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+  sfxQuit: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+  sfxReset: {fileID: 8300000, guid: 7f1cd5b9f7136b041b1da3706dde3542, type: 3}
+  sfxMainMenu: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+  sfxRestart: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+  sfxNext: {fileID: 8300000, guid: 8c3a8ed1ba721bf45820a9c809034c02, type: 3}
+  sfxCurtain: {fileID: 8300000, guid: 8045d575466515745b4b33503e879c25, type: 3}
+  sfxStarDeduct: {fileID: 8300000, guid: 7f1cd5b9f7136b041b1da3706dde3542, type: 3}
+  sfxWin: {fileID: 8300000, guid: fbe8d6029971d8c418853eaa926c2bad, type: 3}
+  sfxLose: {fileID: 8300000, guid: 2e59394fdf0b60a4ab3057922def1e1f, type: 3}
+  sfxStarCount: {fileID: 8300000, guid: 59a4905185099eb4db20e3bdcd3750d8, type: 3}
