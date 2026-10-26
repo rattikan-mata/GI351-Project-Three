@@ -95,6 +95,7 @@ namespace PotionSystem
         {
             if (!IsOccupied) return;
             if (!TryTake(out PotionInstance taken)) return;
+            CraftingSfx.Play(CraftingSfx.PotionPick);
 
             var go = new GameObject("DraggedPotion_FromStaging");
             go.transform.position = CraftingSprites2D.MouseWorldPosition();
@@ -254,6 +255,7 @@ namespace PotionSystem
                     // วางลงช่องที่ปล่อยเมาส์ ถ้าช่องนั้นมียาอยู่แล้วหรือปล่อยไม่ตรงช่อง -> ลงช่องว่างช่องแรก
                     if (display.Slot.TryAddAt(slotIndex, potion) || display.Slot.TryAdd(potion))
                     {
+                        CraftingSfx.Play(CraftingSfx.PotionPlace);
                         Finish();
                         return;
                     }
@@ -269,6 +271,7 @@ namespace PotionSystem
                         PotionInstance displaced = other.StoredInstance;
                         other.Place(potion);
                         if (displaced != null) origin.Place(displaced);
+                        CraftingSfx.Play(CraftingSfx.PotionPlace);
                         Finish();
                         return;
                     }

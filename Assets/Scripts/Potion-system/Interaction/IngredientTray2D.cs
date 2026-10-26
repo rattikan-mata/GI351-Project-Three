@@ -153,6 +153,7 @@ namespace PotionSystem
         {
             if (State != TrayState.Ready) return;
             dragging = true;
+            CraftingSfx.Play(CraftingSfx.TrayPick);
             col.enabled = false; // กันตัวเองบังตอนตรวจว่าปล่อยโดนหม้อหรือไม่
             grabOffset = transform.position - CraftingSprites2D.MouseWorldPosition();
             SetOrderOffset(50);

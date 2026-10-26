@@ -47,81 +47,151 @@ MonoBehaviour:
   defaultMasterVolume: 1
   defaultBgmVolume: 0.75
   defaultSfxVolume: 0.115
+  defaultSfxCooldown: 0.05
   defaultBgmClip: {fileID: 0}
   autoPlayBgmOnStart: 1
   sfxLibrary:
   - name: BoxBreak
     clip: {fileID: 8300000, guid: 503f9855681b00a45b629e1dc1a41167, type: 3}
     defaultVolume: 0.403
+    cooldown: 0.05
   - name: BoxPush
     clip: {fileID: 8300000, guid: 5b3df9463b498b54c848ff6eddc90a33, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: SwitchPress
     clip: {fileID: 8300000, guid: 6cafe97fc0d61cf44b2e8517d183bf1f, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: DoorOpen
     clip: {fileID: 8300000, guid: d2263280b0ba93845a2f3f4950cc9077, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: DoorClose
     clip: {fileID: 8300000, guid: 8fcda0be9b0c8f04690122eb31f143c2, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: DoorBreak
     clip: {fileID: 0}
     defaultVolume: 1
+    cooldown: 0.05
   - name: BeltRunning
     clip: {fileID: 8300000, guid: e5da4756f4f637f4aa828f8c1de51753, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: DropperShoot
     clip: {fileID: 8300000, guid: b3baa886b67bb1641a68796f046bc460, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: TrampolineBounce
     clip: {fileID: 8300000, guid: 8fc305b5456f4a34abb75a5c1c32fc61, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: FlameLoop
     clip: {fileID: 8300000, guid: f0cd2beaa7cd3254e9555ae00266a5ae, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: AnimalDrinkPotion
     clip: {fileID: 8300000, guid: 03f8f8bd36c48a84791bf2e829d640e9, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: AnimalDrink
     clip: {fileID: 8300000, guid: 03f8f8bd36c48a84791bf2e829d640e9, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: AnimalCry
     clip: {fileID: 0}
     defaultVolume: 1
+    cooldown: 0.05
   - name: GoatPush
     clip: {fileID: 8300000, guid: 22fcad673effb60419651af57d414081, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: GoatSmash
     clip: {fileID: 0}
     defaultVolume: 1
+    cooldown: 0.05
   - name: GoatLaser
     clip: {fileID: 8300000, guid: 62cadb875d4056a42a6a2f3e935ce787, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: GoatSkywardLaser
     clip: {fileID: 8300000, guid: 963247a4b05e5014887e6c0ac3541d3f, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: GoatHavoc
     clip: {fileID: 8300000, guid: 432e60343d74b124892f029450c7cd74, type: 3}
     defaultVolume: 1
+    cooldown: 0.05
   - name: CowFly
     clip: {fileID: 0}
     defaultVolume: 1
+    cooldown: 0.05
   - name: CowBounce
     clip: {fileID: 0}
     defaultVolume: 1
+    cooldown: 0.05
   - name: CowRam
     clip: {fileID: 0}
     defaultVolume: 1
+    cooldown: 0.05
   - name: CowTeleport
     clip: {fileID: 0}
     defaultVolume: 1
+    cooldown: 0.05
   - name: CatVomit
     clip: {fileID: 0}
     defaultVolume: 1
+    cooldown: 0.05
   - name: CatBubble
     clip: {fileID: 0}
     defaultVolume: 1
+    cooldown: 0.05
   - name: CatBubblePop
     clip: {fileID: 0}
     defaultVolume: 1
+    cooldown: 0.05
+  - name: TrayPick
+    clip: {fileID: 8300000, guid: 7d544aeff425fde4fa8af93c9b75c7fd, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: TrayDrop
+    clip: {fileID: 8300000, guid: f07fbb12fe9cfab4db13e69661ee66f8, type: 3}
+    defaultVolume: 1
+    cooldown: 0.1
+  - name: TrayReject
+    clip: {fileID: 8300000, guid: 6aa0fa067532e09408dc68befd3ae696, type: 3}
+    defaultVolume: 1
+    cooldown: 0.15
+  - name: TrayReady
+    clip: {fileID: 8300000, guid: 64322590cf967444d9ccf129c1d5c409, type: 3}
+    defaultVolume: 1
+    cooldown: 0.3
+  - name: PotBrew
+    clip: {fileID: 8300000, guid: 76107d49c9b2e224d9d8aff73ff80bc5, type: 3}
+    defaultVolume: 1
+    cooldown: 1
+  - name: PotionCrafted
+    clip: {fileID: 8300000, guid: 251044372d7764140b4d26c7e4a18598, type: 3}
+    defaultVolume: 1
+    cooldown: 0.2
+  - name: PotionCraftedCombo
+    clip: {fileID: 8300000, guid: 284ce5ed5b67eaf40a64dd36c67b930d, type: 3}
+    defaultVolume: 1
+    cooldown: 0.2
+  - name: PotionPlace
+    clip: {fileID: 8300000, guid: 0a68b6a71174a0f49b65bafc8c968c36, type: 3}
+    defaultVolume: 1
+    cooldown: 0.08
+  - name: PotionPlaceFail
+    clip: {fileID: 8300000, guid: 46c5a1a491dc51b4ca3b4417d8477439, type: 3}
+    defaultVolume: 1
+    cooldown: 0.15
+  - name: PotionTrash
+    clip: {fileID: 8300000, guid: f8e53a45cfd42fd4dbdafcecf2ef8300, type: 3}
+    defaultVolume: 1
+    cooldown: 0.1
+  - name: SendPotion
+    clip: {fileID: 8300000, guid: 55a988f4dbb3f7947aa19e450556a9c7, type: 3}
+    defaultVolume: 1
+    cooldown: 0.3

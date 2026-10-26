@@ -89,6 +89,7 @@ namespace PotionSystem
         {
             ring.Show();
             ring.SetProgress(0f);
+            CraftingSfx.Play(CraftingSfx.PotBrew);
 
             float elapsed = 0f;
             while (elapsed < brewSeconds)

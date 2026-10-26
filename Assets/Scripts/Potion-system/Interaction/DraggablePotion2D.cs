@@ -38,6 +38,7 @@ namespace PotionSystem
         {
             if (potion == null) return;
             dragging = true;
+            CraftingSfx.Play(CraftingSfx.PotionPick);
             if (col != null) col.enabled = false;
             grabOffset = transform.position - CraftingSprites2D.MouseWorldPosition();
             sr.sortingOrder = homeSortingOrder + 50;
@@ -64,7 +65,11 @@ namespace PotionSystem
                 if (stagingSlot != null)
                 {
                     if (stagingSlot.TryAssignPotion(resultSlot, slotIndex, potion))
+                    {
+                        CraftingSfx.Play(CraftingSfx.PotionPlace);
                         return; // วางสำเร็จ ResultSlot จะอัปเดตตัวเอง
+                    }
+                    CraftingSfx.Play(CraftingSfx.PotionPlaceFail);
                 }
 
                 // 2. ปล่อยลงถังขยะ
@@ -86,7 +91,10 @@ namespace PotionSystem
 
                     // ช่องเดิม = ไม่ต้องทำอะไร ปล่อยให้กลับที่เดิมด้านล่าง
                     if (targetIndex != slotIndex && resultSlot.TryMove(slotIndex, targetIndex))
+                    {
+                        CraftingSfx.Play(CraftingSfx.PotionPlace);
                         return; // ResultSlotDisplay2D จะสร้างภาพใหม่เอง
+                    }
                     break;
                 }
             }

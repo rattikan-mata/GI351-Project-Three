@@ -28,6 +28,7 @@ namespace PotionSystem
             if (!slot.TryTake(index, out _)) return false;
 
             Debug.Log($"[Trash] ทิ้งยา {potion.DisplayName}");
+            CraftingSfx.Play(CraftingSfx.PotionTrash);
             return true;
         }
     }

@@ -106,6 +106,8 @@ namespace PotionSystem
                 return;
             }
 
+            CraftingSfx.Play(CraftingSfx.SendPotion);
+
             if (count >= minPotionsForSequence && dispenseSequentially)
             {
                 // มียาตั้งแต่ขั้นต่ำขึ้นไป -> ส่งตามลำดับสวิตช์ (Switch Progression)

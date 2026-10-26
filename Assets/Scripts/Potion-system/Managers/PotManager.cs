@@ -152,6 +152,9 @@ namespace PotionSystem
             contents.Clear(); // ทำลายวัตถุดิบถาวร (ไม่ Refund)
             NotifyContentsChanged();
             OnCrafted?.Invoke(potion);
+
+            bool isCombo = potion.Kind == PotionKind.Skyward || potion.Kind == PotionKind.Havoc || potion.Kind == PotionKind.Surge;
+            CraftingSfx.Play(isCombo ? CraftingSfx.PotionCraftedCombo : CraftingSfx.PotionCrafted);
             return CraftResult.Success;
         }
 

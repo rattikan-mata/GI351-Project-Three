@@ -283,9 +283,11 @@ namespace PotionSystem
             if (result != AddMaterialResult.Success)
             {
                 Debug.Log($"[Tray] ใส่ถาดลงหม้อไม่ได้: {result}");
+                CraftingSfx.Play(CraftingSfx.TrayReject);
                 return false;
             }
 
+            CraftingSfx.Play(CraftingSfx.TrayDrop);
             row.Remove(tray);
             row.Add(tray); // ช่องสุดท้าย ถาดอื่นเลื่อนมาข้างหน้า
             UpdateHomes();
@@ -313,6 +315,7 @@ namespace PotionSystem
             if (rerollAfterCooldown)
                 tray.SetBlueprint(PickReplacement(tray));
             tray.SetState(TrayState.Ready);
+            CraftingSfx.Play(CraftingSfx.TrayReady); // คูลดาวน์พร้อมกันหลายถาด: cooldown ของเสียงกันดังซ้อน
         }
 
         private PotionBlueprint PickReplacement(IngredientTray2D tray)
