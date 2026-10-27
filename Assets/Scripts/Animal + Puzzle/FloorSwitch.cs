@@ -286,7 +286,7 @@ public class FloorSwitch : MonoBehaviour
 
     private void AnimateBounce()
     {
-        if (buttonCap == null) return;
+        if (buttonCap == null || !isActiveAndEnabled) return; // ปิดอยู่ (เช่นตอนหยุดเล่น) สตาร์ท Coroutine ไม่ได้
         EnsureButtonCap();
         if (animCoroutine != null) StopCoroutine(animCoroutine);
         animCoroutine = StartCoroutine(BounceRoutine());
@@ -331,7 +331,7 @@ public class FloorSwitch : MonoBehaviour
 
     private void AnimateTo(Vector3 targetPos)
     {
-        if (buttonCap == null) return;
+        if (buttonCap == null || !isActiveAndEnabled) return; // ปิดอยู่ (เช่นตอนหยุดเล่น) สตาร์ท Coroutine ไม่ได้
         EnsureButtonCap();
         if (animCoroutine != null) StopCoroutine(animCoroutine);
         animCoroutine = StartCoroutine(MoveToRoutine(targetPos));

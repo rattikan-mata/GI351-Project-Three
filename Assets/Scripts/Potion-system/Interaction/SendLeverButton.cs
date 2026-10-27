@@ -36,6 +36,11 @@ namespace PotionSystem
             rect = (RectTransform)transform;
             if (image == null) image = GetComponent<Image>();
             if (manager == null) manager = FindAnyObjectByType<PotionStagingManager>();
+
+            // ไม่มีการตั้ง onClick ในซีน (เช่นอยู่ใน prefab ชุดควบคุม) ให้ผูกส่งยาให้เอง
+            var button = GetComponent<Button>();
+            if (button != null && manager != null && button.onClick.GetPersistentEventCount() == 0)
+                button.onClick.AddListener(manager.SendPotionsToDropper);
         }
 
         private void OnEnable()
