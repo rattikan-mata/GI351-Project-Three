@@ -52,8 +52,18 @@ namespace PotionSystem
             if (rng == null) rng = useSeed ? new System.Random(seed) : new System.Random();
             ResetVersion++;
 
-            foreach (var slot in slots)
-                if (slot != null) slot.Set(null, 0);
+            // ล็อกชนิดยาประจำช่อง: ช่องที่ i = ชนิดที่ i ของรายการยาในด่าน (ไม่นับซ้ำ) ช่องที่เกินจะไม่ล็อก
+            var kinds = new List<PotionData>();
+            foreach (var p in levelPotions)
+                if (p != null && !kinds.Exists(k => k.Kind == p.Kind)) kinds.Add(p);
+
+            for (int i = 0; i < slots.Length; i++)
+            {
+                var slot = slots[i];
+                if (slot == null) continue;
+                slot.Set(null, 0);
+                slot.Lock(i < kinds.Count ? kinds[i] : null);
+            }
 
             for (int i = 0; i < startingPotions; i++)
             {
@@ -73,14 +83,14 @@ namespace PotionSystem
             return valid[rng.Next(valid.Count)];
         }
 
-        /// <summary>ใส่ยา 1 ขวดลงชั้น: ชนิดเดิมซ้อนจำนวน / ชนิดใหม่ลงช่องว่างช่องแรก คืน false ถ้าไม่มีที่</summary>
+        /// <summary>ใส่ยา 1 ขวดลงชั้น: ลงช่องที่ล็อกชนิดนี้ไว้ (จำนวนเพิ่ม) ถ้าไม่มีช่องล็อกชนิดนี้ ลงช่องไม่ล็อกช่องแรกที่ว่าง คืน false ถ้าไม่มีที่</summary>
         public bool Add(PotionData potion)
         {
             if (potion == null) return false;
 
             foreach (var slot in slots)
             {
-                if (slot != null && slot.Potion != null && slot.Potion.Kind == potion.Kind)
+                if (slot != null && slot.Potion != null && slot.Potion.Kind == potion.Kind && (slot.IsLocked || slot.Count > 0))
                 {
                     slot.Set(slot.Potion, slot.Count + 1);
                     OnChanged?.Invoke();
@@ -90,7 +100,7 @@ namespace PotionSystem
 
             foreach (var slot in slots)
             {
-                if (slot != null && slot.IsEmpty)
+                if (slot != null && slot.IsEmpty && !slot.IsLocked)
                 {
                     slot.Set(potion, 1);
                     OnChanged?.Invoke();
@@ -110,7 +120,7 @@ namespace PotionSystem
 
             potion = slot.Potion;
             int left = slot.Count - 1;
-            slot.Set(left > 0 ? potion : null, left);
+            slot.Set(potion, left); // ช่องที่ล็อกชนิดไว้ยังแสดงรูปแบบจาง (x0) เมื่อหมด
             OnChanged?.Invoke();
             return true;
         }

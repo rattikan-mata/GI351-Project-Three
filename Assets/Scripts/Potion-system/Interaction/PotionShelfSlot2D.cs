@@ -27,9 +27,27 @@ namespace PotionSystem
         private SpriteRenderer iconRenderer;
         private TextMeshPro countLabel;
 
-        public PotionData Potion { get; private set; }
+        [Header("ช่องว่าง (ยาหมด)")]
+        [Tooltip("ความทึบของรูปตอนยาในช่องหมด (x0) ยิ่งน้อยยิ่งจาง")]
+        [SerializeField, Range(0.05f, 1f)] private float emptyAlpha = 0.4f;
+        [Tooltip("ความสว่างของรูปตอนยาหมด 1 = สีเดิม ต่ำลง = หม่นลง เหมือนปุ่มกดไม่ได้")]
+        [SerializeField, Range(0.3f, 1f)] private float emptyBrightness = 0.65f;
+
+        private PotionData lockedPotion;
+        private PotionData shownPotion;
+
+        /// <summary>ยาที่ช่องนี้แสดงอยู่ (ช่องที่ล็อกชนิดไว้ = ชนิดที่ล็อกเสมอ แม้ยาหมด)</summary>
+        public PotionData Potion => lockedPotion != null ? lockedPotion : shownPotion;
+        public bool IsLocked => lockedPotion != null;
         public int Count { get; private set; }
         public bool IsEmpty => Potion == null || Count <= 0;
+
+        /// <summary>ล็อกชนิดยาของช่องนี้ (แสดงรูปตลอด ยาหมดจะเป็น x0 และจาง) null = ไม่ล็อก ช่องว่างจะซ่อน</summary>
+        public void Lock(PotionData potion)
+        {
+            lockedPotion = potion;
+            Refresh();
+        }
 
         private void Awake()
         {
@@ -42,8 +60,8 @@ namespace PotionSystem
         /// <summary>ตั้งยาและจำนวนของช่องนี้ (PotionShelf เป็นคนเรียก)</summary>
         public void Set(PotionData potion, int count)
         {
-            Potion = count > 0 ? potion : null;
             Count = Mathf.Max(0, count);
+            shownPotion = Count > 0 ? potion : null;
             Refresh();
         }
 
@@ -86,7 +104,8 @@ namespace PotionSystem
         {
             if (iconRenderer == null || countLabel == null) return;
 
-            bool show = !IsEmpty;
+            // ช่องที่ล็อกชนิดแสดงตลอด (ยาหมดก็ยังเห็น x0 แบบจาง) ช่องที่ไม่ล็อกแสดงเมื่อมียา
+            bool show = Potion != null;
             iconRenderer.enabled = show;
             countLabel.enabled = show;
             if (!show) return;
@@ -98,6 +117,12 @@ namespace PotionSystem
                 if (h > 0.0001f) iconRenderer.transform.localScale = Vector3.one * (iconHeight / h);
             }
             countLabel.text = "x" + Count;
+
+            // ยาหมด: หม่นและจางเหมือนปุ่มที่กดไม่ได้
+            bool empty = Count <= 0;
+            var c = iconRenderer.color;
+            iconRenderer.color = empty ? new Color(c.r * emptyBrightness, c.g * emptyBrightness, c.b * emptyBrightness, emptyAlpha) : new Color(c.r, c.g, c.b, 1f);
+            countLabel.alpha = empty ? emptyAlpha + 0.2f : 1f;
         }
     }
 }

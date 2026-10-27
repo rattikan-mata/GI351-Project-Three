@@ -203,3 +203,11 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: 55a988f4dbb3f7947aa19e450556a9c7, type: 3}
     defaultVolume: 1
     cooldown: 0.3
+  - name: LeverReturn
+    clip: {fileID: 8300000, guid: 340e71cafd173ff40b5ee1cebb93f3ca, type: 3}
+    defaultVolume: 1
+    cooldown: 0.1
+  - name: NextShot
+    clip: {fileID: 8300000, guid: db187fc9c77249043821dda6042ceee4, type: 3}
+    defaultVolume: 1
+    cooldown: 0.1

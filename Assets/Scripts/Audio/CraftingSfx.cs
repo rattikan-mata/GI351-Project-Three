@@ -13,7 +13,9 @@ public static class CraftingSfx
     public const string PotionCraftedCombo = "PotionCraftedCombo"; // ได้ยาผสม (Skyward/Havoc/Surge)
     public const string PotionPlace = "PotionPlace";           // วางขวดยาลงช่อง/คืนเข้าชั้น
     public const string PotionPlaceFail = "PotionPlaceFail";   // ทำไม่ได้ (เช่น ปรุงครบจำนวนแล้ว)
-    public const string SendPotion = "SendPotion";             // กดปุ่มส่งยา
+    public const string SendPotion = "SendPotion";             // โยกคันโยกส่งยาลง
+    public const string NextShot = "NextShot";                 // กดปุ่ม ▶ ยิงปืนตัวถัดไป
+    public const string LeverReturn ="LeverReturn";           // คันโยกส่งยากลับขึ้นที่เดิม
 
     public static void Play(string soundName, float volumeScale = 1f, float pitchVariance = 0f)
     {

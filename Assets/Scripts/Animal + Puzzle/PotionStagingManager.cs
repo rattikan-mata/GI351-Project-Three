@@ -24,6 +24,12 @@ namespace PotionSystem
         [Tooltip("ติ๊กไว้ = ต้องใส่ยาครบทุกช่องก่อนถึงกดส่งได้ (นับเฉพาะช่องที่ผูก Dropper ที่มีสัตว์เป้าหมายแล้ว)\nไม่ครบ = ส่งไม่ได้ ช่องที่ยังว่างจะกะพริบบอก")]
         [SerializeField] private bool requireAllSlotsFilled = true;
 
+        [Tooltip("ติ๊กไว้ = กดส่ง 1 ครั้งยิงยา 1 ขวด (ช่องแรกที่มียาก่อน) คันโยกเด้งกลับ แล้วกดอีกทีเพื่อยิงขวดถัดไป\nกดครั้งแรกต้องใส่ยาครบทุกช่องตามกฎด้านบน ครั้งต่อไปไม่ต้องครบ\nไม่ติ๊ก = กดครั้งเดียวส่งทั้งหมดตามลำดับสวิตช์ (แบบเดิม)")]
+        [SerializeField] private bool stepByStepSend = true;
+
+        [Tooltip("โหมดทีละขวด: ติ๊กไว้ = พอสัตว์ที่ได้ยาทำงานสำเร็จ (สวิตช์เป้าหมายถูกกด) หรือหยุดนิ่งแล้ว จะยิงขวดถัดไปให้เอง\nไม่ติ๊ก = ต้องกดปุ่ม ▶ เองเท่านั้น (ปุ่ม ▶ กดยิงก่อนได้เสมอ ไม่ต้องรอ)")]
+        [SerializeField] private bool autoAdvance = true;
+
         [Header("Mapping (PotionKind -> PotionType สำหรับสัตว์)")]
         [SerializeField] private PotionType redMapping = PotionType.Strength;   // ยาแดง  -> ยากล้ามผลักกล่อง
         [SerializeField] private PotionType blueMapping = PotionType.Light;     // ยาฟ้า  -> ยาบิน
@@ -50,8 +56,26 @@ namespace PotionSystem
 
         private Coroutine sendRoutine;
         private bool isSendingSequentially;
+        private bool stepBatchActive; // โหมดทีละขวด: ยิงขวดแรกไปแล้ว ขวดที่เหลือกดยิงต่อได้เลย
+        private Coroutine autoRoutine;
+        private int lastFiredIndex = -1;
 
         public bool IsBusy => isSendingSequentially;
+
+        /// <summary>โหมดทีละขวด: คันโยกเริ่มชุดยิง ปุ่ม ▶ ยิงขวดถัดไป</summary>
+        public bool StepByStep => stepByStepSend;
+        /// <summary>โหมดทีละขวด: อยู่ระหว่างชุดยิง (ยิงขวดแรกแล้ว ยังมียาเหลือในช่อง)</summary>
+        public bool IsBatchActive => stepBatchActive;
+        public int RemainingPotions => GetOccupiedSlotCount();
+
+        /// <summary>คันโยกกดแล้วยิงได้ (คันโยกโยกลง)</summary>
+        public event Action SendAccepted;
+        /// <summary>คันโยกกดแล้วยิงไม่ได้ เช่น ยาไม่ครบช่อง หรืออยู่กลางชุดยิงอยู่ (คันโยกสั่น)</summary>
+        public event Action SendRejected;
+        /// <summary>ปุ่ม ▶ กดแล้วยิงไม่ได้ (ปุ่มสั่น)</summary>
+        public event Action NextRejected;
+        /// <summary>ชุดยิงจบ (ยิงขวดสุดท้ายแล้ว หรือรีเซ็ตพัซเซิลแล้วคืนยาเข้าชั้น) คันโยกเด้งกลับ</summary>
+        public event Action BatchEnded;
 
         // ชื่อสวิตช์ประจำแต่ละขั้น ใช้ผูกใหม่หลังรีเซ็ตพัซเซิล
         private string[] stageSwitchNames;
@@ -69,12 +93,136 @@ namespace PotionSystem
                 stageSwitchNames[i] = stageSwitches[i] != null ? stageSwitches[i].name : null;
         }
 
-        /// <summary>รีเซ็ตพัซเซิล: หยุดการส่งยาที่ค้างอยู่ (ยาที่ส่งไปแล้วไม่คืน ยาที่ยังอยู่ในช่องพักไม่ถูกแตะ)</summary>
+        private void Update()
+        {
+            // ยาในช่องหมดระหว่างชุดยิง (เช่น ลากกลับเข้าชั้นเอง) = ชุดจบ
+            if (stepBatchActive && GetOccupiedSlotCount() == 0) EndBatch();
+        }
+
+        private void EndBatch()
+        {
+            StopAutoAdvance();
+            if (!stepBatchActive) return;
+            stepBatchActive = false;
+            BatchEnded?.Invoke();
+        }
+
+        private void StopAutoAdvance()
+        {
+            if (autoRoutine != null) StopCoroutine(autoRoutine);
+            autoRoutine = null;
+        }
+
+        /// <summary>เริ่มเฝ้าสัตว์ของนัดที่เพิ่งยิง: พอสำเร็จ/หยุดนิ่ง ยิงขวดถัดไปให้เอง (ถ้าอยู่ในชุดยิงและเปิด Auto Advance)</summary>
+        private void BeginAutoAdvance()
+        {
+            StopAutoAdvance();
+            if (!autoAdvance || !stepBatchActive || lastFiredIndex < 0) return;
+            autoRoutine = StartCoroutine(AutoAdvanceRoutine(lastFiredIndex));
+        }
+
+        private IEnumerator AutoAdvanceRoutine(int index)
+        {
+            var dropper = droppers[index];
+            var target = GetTargetSwitch(index, index);
+            bool triggered = false;
+            Action<FloorSwitch> onChanged = sw => { if (sw != null && sw.IsActive) triggered = true; };
+            if (target != null) target.StateChanged += onChanged;
+
+            bool finished = false;
+            try
+            {
+                float t = 0f;
+                while (t < stageTimeout)
+                {
+                    t += Time.deltaTime;
+                    if (t >= minShotGap)
+                    {
+                        // สำเร็จ: สวิตช์เป้าหมายถูกกด / ไม่มีสวิตช์และปืนปล่อยเสร็จ / สัตว์ทำงานเสร็จและหยุดนิ่ง
+                        if (target != null && (target.IsActive || triggered)) { finished = true; break; }
+                        if (target == null && !dropper.IsDispensing) { finished = true; break; }
+                        var animal = dropper.TargetAnimal;
+                        if (!dropper.IsDispensing && animal != null && !animal.IsAutoRunning && !animal.IsMoving) { finished = true; break; }
+                    }
+                    yield return null;
+                }
+            }
+            finally
+            {
+                if (target != null) target.StateChanged -= onChanged;
+            }
+
+            // ครบเวลาแล้วสัตว์ยังไม่เสร็จ (ติดอะไรอยู่) = ไม่ยิงต่อเอง ให้ผู้เล่นกด ▶ เอง
+            if (!finished) { autoRoutine = null; yield break; }
+
+            yield return new WaitForSeconds(0.2f);
+
+            float waited = 0f;
+            while (stepBatchActive && waited < 3f)
+            {
+                if (SendNextPotion())
+                {
+                    CraftingSfx.Play(CraftingSfx.NextShot);
+                    autoRoutine = null;
+                    if (GetOccupiedSlotCount() == 0) EndBatch();
+                    else BeginAutoAdvance();
+                    yield break;
+                }
+                waited += Time.deltaTime;
+                yield return null; // ปืนของขวดถัดไปยังไม่ว่าง รอสักครู่
+            }
+            autoRoutine = null;
+        }
+
+        /// <summary>
+        /// รีเซ็ตพัซเซิล: หยุดการส่งยาที่ค้างอยู่ (ยาที่ส่งไปแล้วไม่คืน)
+        /// ถ้ารีเซ็ตกลางชุดยิง ยาที่ยังไม่ถูกใช้ในช่องเด้งกลับเข้าชั้นขวดยา และคันโยกเด้งกลับ
+        /// </summary>
         public void ResetState()
         {
             if (sendRoutine != null) StopCoroutine(sendRoutine);
             sendRoutine = null;
             isSendingSequentially = false;
+            StopAutoAdvance();
+
+            if (stepBatchActive) ReturnUnusedPotionsToShelf();
+        }
+
+        private void ReturnUnusedPotionsToShelf()
+        {
+            var shelf = FindAnyObjectByType<PotionShelf>();
+            foreach (var slot in stagingSlots)
+            {
+                if (slot == null || !slot.IsOccupied) continue;
+                if (shelf != null && shelf.Add(slot.StoredPotion))
+                {
+                    slot.Clear();
+                    CraftingSfx.Play(CraftingSfx.PotionPlace, 1f, 0.05f);
+                }
+            }
+            EndBatch();
+        }
+
+        /// <summary>ผูกกับปุ่ม ▶ : ยิงยาขวดถัดไปของชุดยิงที่เริ่มด้วยคันโยกแล้ว</summary>
+        public void FireNextPotion()
+        {
+            if (!stepByStepSend || !stepBatchActive || GetOccupiedSlotCount() == 0)
+            {
+                CraftingSfx.Play(CraftingSfx.PotionPlaceFail);
+                NextRejected?.Invoke();
+                return;
+            }
+
+            if (!SendNextPotion())
+            {
+                CraftingSfx.Play(CraftingSfx.PotionPlaceFail);
+                NextRejected?.Invoke();
+                return;
+            }
+
+            CraftingSfx.Play(CraftingSfx.NextShot);
+            if (GetOccupiedSlotCount() == 0) EndBatch();
+            else BeginAutoAdvance();
         }
 
         /// <summary>หลังรีเซ็ตพัซเซิล สวิตช์ถูกสร้างใหม่ ผูกกลับด้วยชื่อเดิม</summary>
@@ -105,11 +253,21 @@ namespace PotionSystem
                 return;
             }
 
+            if (stepByStepSend && stepBatchActive)
+            {
+                Debug.Log("[PotionStagingManager] อยู่กลางชุดยิงแล้ว ใช้ปุ่ม ▶ ยิงขวดถัดไป");
+                CraftingSfx.Play(CraftingSfx.PotionPlaceFail);
+                SendRejected?.Invoke();
+                return;
+            }
+
             int count = GetOccupiedSlotCount();
             if (count == 0)
             {
                 Debug.Log("[PotionStagingManager] ไม่มีขวดยาในช่องพัก");
+                stepBatchActive = false;
                 CraftingSfx.Play(CraftingSfx.PotionPlaceFail);
+                SendRejected?.Invoke();
                 return;
             }
 
@@ -119,10 +277,29 @@ namespace PotionSystem
                 CraftingSfx.Play(CraftingSfx.PotionPlaceFail);
                 for (int i = 0; i < stagingSlots.Length; i++)
                     if (IsActiveSlot(i) && !stagingSlots[i].IsOccupied) stagingSlots[i].FlashEmpty();
+                SendRejected?.Invoke();
+                return;
+            }
+
+            if (stepByStepSend)
+            {
+                if (SendNextPotion())
+                {
+                    CraftingSfx.Play(CraftingSfx.SendPotion);
+                    stepBatchActive = GetOccupiedSlotCount() > 0;
+                    BeginAutoAdvance();
+                    SendAccepted?.Invoke();
+                }
+                else
+                {
+                    CraftingSfx.Play(CraftingSfx.PotionPlaceFail);
+                    SendRejected?.Invoke();
+                }
                 return;
             }
 
             CraftingSfx.Play(CraftingSfx.SendPotion);
+            SendAccepted?.Invoke();
 
             if (count >= minPotionsForSequence && dispenseSequentially)
             {
@@ -136,6 +313,36 @@ namespace PotionSystem
                 Debug.Log($"[PotionStagingManager] มียาไม่ครบ ({count}/{stagingSlots.Length}) -> ส่งยาที่มีออกไปทำงานทันที");
                 SendIncompleteImmediate();
             }
+        }
+
+        /// <summary>
+        /// โหมดทีละขวด: ยิงยาจากช่องแรกที่มียา 1 ขวด คืน false ถ้ายิงไม่ได้ (ปืนยังไม่ว่าง/ไม่มีปืนรับ)
+        /// </summary>
+        private bool SendNextPotion()
+        {
+            for (int i = 0; i < stagingSlots.Length; i++)
+            {
+                var slot = stagingSlots[i];
+                if (slot == null || !slot.IsOccupied) continue;
+
+                PotionType pType = ConvertToPotionType(slot.StoredPotion);
+                if (pType == PotionType.None) continue;
+                if (i >= droppers.Length || droppers[i] == null) continue;
+
+                var dropper = droppers[i];
+                if (!dropper.TryAddPotion(pType))
+                {
+                    Debug.Log($"[PotionStagingManager] Dropper ตัวที่ {i + 1} ยังไม่ว่าง รอสักครู่แล้วกดใหม่");
+                    return false;
+                }
+
+                dropper.StartDispensing(ignorePrerequisite: dropper.IsPrerequisiteMet);
+                slot.Clear();
+                lastFiredIndex = i;
+                Debug.Log($"[PotionStagingManager] ยิงยาช่องที่ {i + 1} ไปยัง {dropper.name}");
+                return true;
+            }
+            return false;
         }
 
         /// <summary>
