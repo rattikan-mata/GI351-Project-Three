@@ -171,3 +171,8 @@ MonoBehaviour:
   onSprite: {fileID: 0}
   animator: {fileID: 0}
   onBoolParameter: On
+  startSound: {fileID: 8300000, guid: 1bc8000ff1925ba4a96b751e10f8cf32, type: 3}
+  loopSound: {fileID: 8300000, guid: 0d29903717919884aa58b41d6169fd34, type: 3}
+  runningSound: {fileID: 0}
+  runningVolume: 0.616
+  audioSource: {fileID: 0}

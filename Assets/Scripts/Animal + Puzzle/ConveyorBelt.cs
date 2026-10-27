@@ -56,7 +56,13 @@ public class ConveyorBelt : MonoBehaviour
 
     #region Audio
     [Header("Audio (เสียง)")]
-    [Tooltip("เสียงตอนสายพานทำงาน (จะเล่นวนลูปอัตโนมัติเมื่อสายพานเปิด)")]
+    [Tooltip("เสียงเปิดเครื่อง เล่น 1 ครั้งตอนสายพานเริ่มทำงาน แล้วเสียงวนลูปจะต่อทันที (ใช้คู่กับ Loop Sound)")]
+    [SerializeField] private AudioClip startSound;
+
+    [Tooltip("เสียงวนลูปตอนสายพานทำงาน เริ่มต่อจากเสียงเปิดเครื่องพอดีและวนไปเรื่อยๆ จนสายพานหยุด\nสายพานทุกตัวในฉากใช้เสียงชุดเดียวร่วมกัน ว่างไว้ = ใช้ Running Sound แบบเดิม")]
+    [SerializeField] private AudioClip loopSound;
+
+    [Tooltip("เสียงตอนสายพานทำงานแบบเดิม (วนลูปอย่างเดียว ไม่มีเสียงเปิดเครื่อง) ใช้เมื่อไม่ได้ใส่ Loop Sound")]
     [SerializeField] private AudioClip runningSound;
 
     [Range(0f, 1f)]
@@ -111,6 +117,7 @@ public class ConveyorBelt : MonoBehaviour
             if (sw != null) sw.StateChanged -= OnSwitchChanged;
         }
         ClearAnimalCarry();
+        BeltAudioPlayer.Unregister(this);
         if (audioSource != null && audioSource.isPlaying)
         {
             audioSource.Stop();
@@ -126,6 +133,8 @@ public class ConveyorBelt : MonoBehaviour
 
     private void Update()
     {
+        if (loopSound != null) return; // เสียงชุดเปิดเครื่อง + ลูปจัดการโดย BeltAudioPlayer
+
         if (IsPowered)
         {
             if (audioSource == null || runningSound == null || !audioSource.isPlaying)
@@ -223,6 +232,14 @@ public class ConveyorBelt : MonoBehaviour
     {
         AudioSource src = EnsureAudioSource();
         if (src == null) return;
+
+        if (loopSound != null)
+        {
+            if (src.isPlaying) src.Stop();
+            if (IsPowered) BeltAudioPlayer.Register(this, startSound, loopSound, runningVolume);
+            else BeltAudioPlayer.Unregister(this);
+            return;
+        }
 
         if (runningSound == null && AudioManager.Instance != null)
         {
