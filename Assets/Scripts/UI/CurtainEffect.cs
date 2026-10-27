@@ -10,14 +10,9 @@ public class CurtainEffect : MonoBehaviour
     [SerializeField] private CanvasGroup canvasGroup;
 
     [Header("Movement Settings")]
-    [Tooltip("ความช้าตอนเลื่อนลงมาปิด (วินาที)")]
-    [SerializeField] private float slideDownDuration = 1.0f;
-
-    [Tooltip("ระยะเวลาที่ม่านค้างปิดสนิท (วินาที)")]
-    [SerializeField] private float pauseDuration = 0.3f;
-
-    [Tooltip("ความช้าตอนเลื่อนขึ้นเปิด (วินาที)")]
-    [SerializeField] private float slideUpDuration = 1.0f;
+    [SerializeField] private float slideDownDuration = 0.8f;
+    [SerializeField] private float pauseDuration = 0.2f;
+    [SerializeField] private float slideUpDuration = 0.8f;
 
     private float hiddenPosY = 1080f;
     private float closedPosY = 0f;
@@ -36,33 +31,32 @@ public class CurtainEffect : MonoBehaviour
         if (canvasGroup != null) canvasGroup.blocksRaycasts = false;
     }
 
-    public void PlayFullResetSequence(Action onCompleteCallback)
+    public void PlayCurtainTransition(Action onTransitionComplete)
     {
-        StartCoroutine(ResetSequenceRoutine(onCompleteCallback));
+        StartCoroutine(CurtainSequenceRoutine(onTransitionComplete));
     }
 
-    private IEnumerator ResetSequenceRoutine(Action onCompleteCallback)
+    private IEnumerator CurtainSequenceRoutine(Action onTransitionComplete)
     {
-        if (canvasGroup != null)
+        if (canvasGroup != null) canvasGroup.blocksRaycasts = true;
+
+        if (AudioUI.Instance != null)
         {
-            canvasGroup.blocksRaycasts = true;
+            AudioUI.Instance.PlaySFX(AudioUI.Instance.sfxCurtain);
         }
 
-        yield return StartCoroutine(SlideRoutine(hiddenPosY, closedPosY, slideDownDuration));
+        yield return StartCoroutine(MoveCurtainY(hiddenPosY, closedPosY, slideDownDuration));
 
         yield return new WaitForSecondsRealtime(pauseDuration);
 
-        yield return StartCoroutine(SlideRoutine(closedPosY, hiddenPosY, slideUpDuration));
+        yield return StartCoroutine(MoveCurtainY(closedPosY, hiddenPosY, slideUpDuration));
 
-        if (canvasGroup != null)
-        {
-            canvasGroup.blocksRaycasts = false;
-        }
+        if (canvasGroup != null) canvasGroup.blocksRaycasts = false;
 
-        onCompleteCallback?.Invoke();
+        onTransitionComplete?.Invoke();
     }
 
-    private IEnumerator SlideRoutine(float fromY, float toY, float duration)
+    private IEnumerator MoveCurtainY(float fromY, float toY, float duration)
     {
         float elapsed = 0f;
 
@@ -70,11 +64,9 @@ public class CurtainEffect : MonoBehaviour
         {
             elapsed += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
-
             float smoothT = Mathf.SmoothStep(0f, 1f, t);
-            float currentY = Mathf.Lerp(fromY, toY, smoothT);
 
-            curtainRect.anchoredPosition = new Vector2(curtainRect.anchoredPosition.x, currentY);
+            curtainRect.anchoredPosition = new Vector2(curtainRect.anchoredPosition.x, Mathf.Lerp(fromY, toY, smoothT));
             yield return null;
         }
 

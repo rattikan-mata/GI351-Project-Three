@@ -13,7 +13,6 @@ public class InfoMenuController : MonoBehaviour
         CloseInfo();
     }
 
-    // Button tab
     public void OpenInfo()
     {
         infoPanel.SetActive(true);
@@ -21,7 +20,6 @@ public class InfoMenuController : MonoBehaviour
         Time.timeScale = 0f;
     }
 
-    // Resume
     public void CloseInfo()
     {
         Time.timeScale = 1f;
@@ -29,10 +27,10 @@ public class InfoMenuController : MonoBehaviour
         if (canvasGroup != null) canvasGroup.blocksRaycasts = false;
     }
 
-    // Quit
     public void QuitToMainMenu()
     {
         Time.timeScale = 1f;
+        HUDStarSystem.ResetStarsForNewStage();
         SceneManager.LoadScene(mainMenuSceneName);
     }
 }

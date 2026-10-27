@@ -5,24 +5,17 @@ public class SceneNavManager : MonoBehaviour
 {
     public void LoadScene(string sceneName)
     {
-        HUDStarSystem.ResetStarsForNewStage();
         Time.timeScale = 1f;
+        HUDStarSystem.ResetStarsForNewStage();
         SceneManager.LoadScene(sceneName);
-    }
-
-    public void ReloadCurrentScene()
-    {
-        HUDStarSystem.ResetStarsForNewStage();
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     public void QuitGame()
     {
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
+        #if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+        #else
             Application.Quit();
-#endif
+        #endif
     }
 }
