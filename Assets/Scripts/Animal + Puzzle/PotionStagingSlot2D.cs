@@ -125,6 +125,39 @@ namespace PotionSystem
             StoredInstance = null;
             UpdateVisual();
         }
+
+        /// <summary>กะพริบกรอบเป็นสีแดง บอกผู้เล่นว่าช่องนี้ยังต้องใส่ยา (ใช้ตอนกดส่งแต่ยาไม่ครบ)</summary>
+        public void FlashEmpty()
+        {
+            if (frameRenderer == null || !isActiveAndEnabled) return;
+            if (flashRoutine != null) StopCoroutine(flashRoutine);
+            flashRoutine = StartCoroutine(FlashRoutine());
+        }
+        #endregion
+
+        #region Flash
+        [Header("Flash (กะพริบตอนส่งยาไม่ครบ)")]
+        [SerializeField] private Color flashColor = new Color(1f, 0.3f, 0.3f, 1f);
+        [SerializeField, Min(1)] private int flashCount = 3;
+        [SerializeField, Min(0.02f)] private float flashInterval = 0.12f;
+        private Coroutine flashRoutine;
+
+        private System.Collections.IEnumerator FlashRoutine()
+        {
+            bool wasEnabled = frameRenderer.enabled;
+            Color restColor = frameRenderer.color;
+            frameRenderer.enabled = true;
+            for (int i = 0; i < flashCount; i++)
+            {
+                frameRenderer.color = flashColor;
+                yield return new WaitForSeconds(flashInterval);
+                frameRenderer.color = restColor;
+                yield return new WaitForSeconds(flashInterval);
+            }
+            frameRenderer.enabled = wasEnabled;
+            flashRoutine = null;
+            UpdateVisual(); // คืนกรอบตามสถานะช่องปัจจุบัน (เผื่อมีการวางยาระหว่างกะพริบ)
+        }
         #endregion
 
         #region Visual Update

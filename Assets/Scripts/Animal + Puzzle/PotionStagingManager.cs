@@ -6,18 +6,23 @@ using UnityEngine;
 namespace PotionSystem
 {
     /// <summary>
-    /// จัดการช่องพักยา 3 ช่อง ส่งยาไปยัง Dropper 3 ตัว
-    /// - ถ้ามียาไม่ครบ (เช่น มีแค่ช่อง 3 ช่องเดียว หรือมี 1-2 ขวด): ส่งยาที่มีออกไปทำงานทันที ไม่ต้องรอสวิตช์
-    /// - ถ้าใส่ยาครบทุกช่อง: ส่งตามลำดับสวิตช์ (Switch Progression)
+    /// จัดการช่องเตรียมยิง ส่งยาไปยัง Dropper ตามลำดับช่อง (ช่อง i -> Dropper i)
+    /// จำนวนช่องแล้วแต่ด่าน (ด่าน 1-2 = 3 ช่อง ด่านต่อไป = 4 ช่อง) ใส่ช่องและ Dropper ในซีนให้ครบแล้วผูกที่นี่
+    /// - Require All Slots Filled: ต้องใส่ยาครบทุกช่องที่ผูกปืน/สัตว์แล้วก่อน ถึงกดส่งได้
+    /// - ส่งตั้งแต่ Min Potions For Sequence ขวดขึ้นไป: ปล่อยตามลำดับสวิตช์ (Switch Progression)
     /// </summary>
     public class PotionStagingManager : MonoBehaviour
     {
         [Header("References")]
-        [Tooltip("ช่องพักยาทั้ง 3 ช่อง (Index 0, 1, 2)")]
+        [Tooltip("ช่องเตรียมยิงของด่านนี้ เรียงตามลำดับ (ช่อง 1, 2, 3, 4...)")]
         [SerializeField] private PotionStagingSlot2D[] stagingSlots = new PotionStagingSlot2D[3];
 
-        [Tooltip("เครื่องปล่อยยา (Dropper) ทั้ง 3 เครื่อง แยกตามลำดับช่อง")]
+        [Tooltip("เครื่องปล่อยยา (Dropper) แยกตามลำดับช่อง จำนวนเท่ากับช่องเตรียมยิง")]
         [SerializeField] private PotionSequenceDropper[] droppers = new PotionSequenceDropper[3];
+
+        [Header("Send Rule")]
+        [Tooltip("ติ๊กไว้ = ต้องใส่ยาครบทุกช่องก่อนถึงกดส่งได้ (นับเฉพาะช่องที่ผูก Dropper ที่มีสัตว์เป้าหมายแล้ว)\nไม่ครบ = ส่งไม่ได้ ช่องที่ยังว่างจะกะพริบบอก")]
+        [SerializeField] private bool requireAllSlotsFilled = true;
 
         [Header("Mapping (PotionKind -> PotionType สำหรับสัตว์)")]
         [SerializeField] private PotionType redMapping = PotionType.Strength;   // ยาแดง  -> ยากล้ามผลักกล่อง
@@ -27,14 +32,14 @@ namespace PotionSystem
         [SerializeField] private PotionType havocMapping = PotionType.Havoc;     // เขียว+ส้ม
         [SerializeField] private PotionType surgeMapping = PotionType.Surge;     // ฟ้า+ส้ม
 
-        [Header("Switch Progression (เฉพาะตอนใส่ยาครบทุกช่อง)")]
+        [Header("Switch Progression")]
         [Tooltip("ติ๊กไว้ = เมื่อใส่ยาครบทุกช่อง จะปล่อยยาเรียงทีละขั้นตอนตามลำดับสวิตช์\nไม่ติ๊ก = ปล่อยพร้อมกันเสมอ")]
         [SerializeField] private bool dispenseSequentially = true;
 
         [Tooltip("เว้นอย่างน้อยกี่วินาทีระหว่างการยิงแต่ละนัด (นับหลังสั่งยิง) ก่อนจะเช็คว่าปลดล็อคขั้นถัดไปได้ไหม")]
         [SerializeField] private float minShotGap = 1f;
 
-        [Tooltip("จำนวนยาขั้นต่ำที่ทำให้ส่งตามลำดับสวิตช์ (น้อยกว่านี้ = ส่งทันทีพร้อมกัน) ปืนมี 4 ช่องแล้ว จึงไม่ใช้เงื่อนไข 'ครบทุกช่อง' อีก")]
+        [Tooltip("จำนวนยาขั้นต่ำที่ทำให้ส่งตามลำดับสวิตช์ (น้อยกว่านี้ = ส่งทันทีพร้อมกัน)")]
         [SerializeField, Min(1)] private int minPotionsForSequence = 2;
 
         [Tooltip("สวิตช์เป้าหมายของแต่ละขั้นตอน (ช่อง 1 -> สวิตช์ 1, ช่อง 2 -> สวิตช์ 2, ช่อง 3 -> สวิตช์ 3)")]
@@ -88,8 +93,9 @@ namespace PotionSystem
 
         /// <summary>
         /// ฟังก์ชันผูกกับปุ่ม "ส่งยา"
-        /// - ถ้าใส่ยาครบทุกช่อง: ส่งตามลำดับสวิตช์ (Switch Progression)
-        /// - ถ้ามียาไม่ครบ (เช่น มีแค่ 1 หรือ 2 ขวด): ส่งออกไปทำงานทันที ไม่ต้องรอสวิตช์!
+        /// - Require All Slots Filled: ยังใส่ไม่ครบทุกช่องที่ใช้งาน = ไม่ส่ง และช่องว่างกะพริบ
+        /// - ส่งตั้งแต่ Min Potions For Sequence ขวดขึ้นไป: ส่งตามลำดับสวิตช์ (Switch Progression)
+        /// - น้อยกว่านั้น: ส่งออกไปทำงานทันที ไม่ต้องรอสวิตช์
         /// </summary>
         public void SendPotionsToDropper()
         {
@@ -103,6 +109,16 @@ namespace PotionSystem
             if (count == 0)
             {
                 Debug.Log("[PotionStagingManager] ไม่มีขวดยาในช่องพัก");
+                CraftingSfx.Play(CraftingSfx.PotionPlaceFail);
+                return;
+            }
+
+            if (requireAllSlotsFilled && !AllActiveSlotsFilled())
+            {
+                Debug.Log("[PotionStagingManager] ต้องใส่ยาให้ครบทุกช่องก่อนส่ง");
+                CraftingSfx.Play(CraftingSfx.PotionPlaceFail);
+                for (int i = 0; i < stagingSlots.Length; i++)
+                    if (IsActiveSlot(i) && !stagingSlots[i].IsOccupied) stagingSlots[i].FlashEmpty();
                 return;
             }
 
@@ -380,9 +396,11 @@ namespace PotionSystem
         /// </summary>
         private void EnsureStageSwitchesInitialized()
         {
-            if (stageSwitches == null || stageSwitches.Length < 3)
+            // สวิตช์ประจำขั้นต้องมีอย่างน้อยเท่าจำนวนช่องของด่าน (3 หรือ 4 ช่อง)
+            int stageCount = Mathf.Max(3, stagingSlots != null ? stagingSlots.Length : 0);
+            if (stageSwitches == null || stageSwitches.Length < stageCount)
             {
-                Array.Resize(ref stageSwitches, 3);
+                Array.Resize(ref stageSwitches, stageCount);
             }
 
             bool hasMissing = false;
@@ -454,6 +472,21 @@ namespace PotionSystem
                 if (slot != null && slot.IsOccupied) count++;
             }
             return count;
+        }
+
+        /// <summary>ช่องนี้ใช้งานจริงไหม (มีช่อง และผูก Dropper ที่มีสัตว์เป้าหมายแล้ว)</summary>
+        private bool IsActiveSlot(int i)
+        {
+            return stagingSlots != null && i < stagingSlots.Length && stagingSlots[i] != null
+                && droppers != null && i < droppers.Length && droppers[i] != null && droppers[i].TargetAnimal != null;
+        }
+
+        /// <summary>ทุกช่องที่ใช้งานจริงมียาครบหรือยัง</summary>
+        private bool AllActiveSlotsFilled()
+        {
+            for (int i = 0; i < stagingSlots.Length; i++)
+                if (IsActiveSlot(i) && !stagingSlots[i].IsOccupied) return false;
+            return true;
         }
 
         private PotionType ConvertToPotionType(PotionData potion)
