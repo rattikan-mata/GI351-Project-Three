@@ -37,8 +37,8 @@ namespace PotionSystem
                  "(Canvas Leyer 1 ใน Stage 1 = 3) ไม่มีผลถ้าใส่ Icon Renderer เอง")]
         [SerializeField] private int iconSortingOrder = 10;
 
-        [Tooltip("ขนาดของขวดยาตอนอยู่ในช่องนี้ (1 = ขนาดปกติ, 0.5 = เล็กลงครึ่งหนึ่ง) ไม่กระทบขนาดตอนลาก และไม่กระทบพื้นที่คลิก")]
-        [SerializeField, Range(0.1f, 2f)] private float storedPotionScale = 1f;
+        [Tooltip("กรอบของขวดยาตอนอยู่ในช่องนี้ (หน่วยโลก) ขวดทุกแบบถูกย่อให้พอดีกรอบโดยคงสัดส่วน ใช้ค่าเดียวกับชั้นวางเพื่อให้ขนาดเท่ากัน ไม่กระทบขนาดตอนลาก และไม่กระทบพื้นที่คลิก")]
+        [SerializeField, Min(0.1f)] private float storedBox = 1.0f;
 
         [Tooltip("ขยับรูปยาจากกึ่งกลางช่อง (หน่วย local)")]
         [SerializeField] private Vector2 iconOffset = Vector2.zero;
@@ -46,8 +46,8 @@ namespace PotionSystem
 
         #region Drag Settings
         [Header("Drag")]
-        [Tooltip("ขนาดของขวดยาตอนลาก")]
-        [SerializeField] private float dragScale = 0.8f;
+        [Tooltip("กรอบของขวดยาตอนลาก (หน่วยโลก)")]
+        [SerializeField] private float dragBox = 1.2f;
         [SerializeField] private int dragSortingOrder = 100;
         #endregion
 
@@ -95,7 +95,7 @@ namespace PotionSystem
             if (!IsOccupied) return;
             if (!TryTake(out PotionInstance taken)) return;
             CraftingSfx.Play(CraftingSfx.PotionPick);
-            PotionDragGhost.Spawn(taken, this, null, dragScale, dragSortingOrder);
+            PotionDragGhost.Spawn(taken, this, null, dragBox, dragSortingOrder);
         }
         #endregion
 
@@ -197,8 +197,7 @@ namespace PotionSystem
             iconRenderer.transform.localPosition = iconOffset;
             if (occupied)
             {
-                CraftingSprites2D.Apply(iconRenderer, StoredPotion, CraftingSprites2D.ColorFor(StoredPotion), dragScale);
-                iconRenderer.transform.localScale *= storedPotionScale; // ปรับขนาดยาตอนอยู่ในช่อง (ตั้งใน Inspector)
+                CraftingSprites2D.FitPotion(iconRenderer, StoredPotion, CraftingSprites2D.ColorFor(StoredPotion), storedBox);
             }
         }
         #endregion

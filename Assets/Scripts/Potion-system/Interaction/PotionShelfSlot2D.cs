@@ -13,15 +13,16 @@ namespace PotionSystem
         [SerializeField] private PotionShelf shelf;
 
         [Header("Visual")]
-        [Tooltip("ความสูงของรูปขวดในช่อง (หน่วยโลก) รูปจะคงสัดส่วน")]
-        [SerializeField, Min(0.05f)] private float iconHeight = 0.7f;
+        [Tooltip("กรอบของรูปขวดในช่อง (หน่วยโลก) ขวดทุกแบบถูกย่อให้พอดีกรอบนี้โดยคงสัดส่วน ใช้ค่าเดียวกับช่องเตรียมยิงเพื่อให้ขนาดเท่ากัน")]
+        [SerializeField, Min(0.05f)] private float iconBox = 1.0f;
         [SerializeField] private int sortingOrder = 10;
         [Tooltip("ตำแหน่งตัวเลขจำนวน เทียบกับกลางช่อง")]
         [SerializeField] private Vector2 countOffset = new Vector2(0.3f, -0.3f);
         [SerializeField, Min(0.1f)] private float countFontSize = 3f;
 
         [Header("Drag")]
-        [SerializeField] private float dragScale = 0.8f;
+        [Tooltip("กรอบของขวดตอนลาก (ใหญ่กว่าตอนอยู่ในช่องเล็กน้อยให้รู้สึกว่าหยิบขึ้นมา)")]
+        [SerializeField] private float dragBox = 1.2f;
         [SerializeField] private int dragSortingOrder = 100;
 
         private SpriteRenderer iconRenderer;
@@ -71,7 +72,7 @@ namespace PotionSystem
             if (!shelf.TakeOne(this, out PotionData taken)) return;
 
             CraftingSfx.Play(CraftingSfx.PotionPick);
-            PotionDragGhost.Spawn(new PotionInstance(taken), null, shelf, dragScale, dragSortingOrder);
+            PotionDragGhost.Spawn(new PotionInstance(taken), null, shelf, dragBox, dragSortingOrder);
         }
 
         private void EnsureVisuals()
@@ -110,12 +111,7 @@ namespace PotionSystem
             countLabel.enabled = show;
             if (!show) return;
 
-            CraftingSprites2D.Apply(iconRenderer, Potion, CraftingSprites2D.ColorFor(Potion), iconHeight);
-            if (iconRenderer.sprite != null && Potion.Icon != null)
-            {
-                float h = iconRenderer.sprite.bounds.size.y;
-                if (h > 0.0001f) iconRenderer.transform.localScale = Vector3.one * (iconHeight / h);
-            }
+            CraftingSprites2D.FitPotion(iconRenderer, Potion, CraftingSprites2D.ColorFor(Potion), iconBox);
             countLabel.text = "x" + Count;
 
             // ยาหมด: หม่นและจางเหมือนปุ่มที่กดไม่ได้

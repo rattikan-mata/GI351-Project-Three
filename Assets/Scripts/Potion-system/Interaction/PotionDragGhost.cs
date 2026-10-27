@@ -16,14 +16,14 @@ namespace PotionSystem
         private PotionShelf shelf;
         private bool dropped;
 
-        public static void Spawn(PotionInstance potion, PotionStagingSlot2D origin, PotionShelf shelf, float scale, int sortingOrder)
+        public static void Spawn(PotionInstance potion, PotionStagingSlot2D origin, PotionShelf shelf, float box, int sortingOrder)
         {
             var go = new GameObject("DraggedPotion");
             go.transform.position = CraftingSprites2D.MouseWorldPosition();
 
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sortingOrder = sortingOrder;
-            CraftingSprites2D.Apply(sr, potion.Data, CraftingSprites2D.ColorFor(potion.Data), scale);
+            CraftingSprites2D.FitPotion(sr, potion.Data, CraftingSprites2D.ColorFor(potion.Data), box);
 
             var ghost = go.AddComponent<PotionDragGhost>();
             ghost.potion = potion;

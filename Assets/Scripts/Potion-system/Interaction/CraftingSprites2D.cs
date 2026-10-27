@@ -10,6 +10,50 @@ namespace PotionSystem
     {
         private static Sprite square;
 
+        /// <summary>ความสูงของตัวขวดที่มองเห็นเทียบกับกรอบ (ขวดทุกแบบสูงเท่ากัน ยิ่งน้อยยิ่งเล็ก)</summary>
+        private const float HeightFactor = 0.55f;
+        /// <summary>ความกว้างของตัวขวดที่มองเห็นสูงสุดเทียบกับกรอบ (กันขวดแบนกว้างเกิน)</summary>
+        private const float WidthFactor = 0.95f;
+
+        private static readonly System.Collections.Generic.Dictionary<Sprite, Vector2> visibleSizes =
+            new System.Collections.Generic.Dictionary<Sprite, Vector2>();
+
+        /// <summary>
+        /// ขนาด (หน่วยโลก ที่สเกล 1) ของส่วนที่มองเห็นจริงของสไปรต์ ไม่รวมขอบโปร่งใส
+        /// ต้องเปิด Read/Write ที่ Texture ของสไปรต์ ถ้าไม่เปิดจะใช้ขนาดทั้งภาพแทน
+        /// </summary>
+        private static Vector2 VisibleSize(Sprite sprite)
+        {
+            if (visibleSizes.TryGetValue(sprite, out var cached)) return cached;
+
+            Vector2 result = sprite.bounds.size;
+            var tex = sprite.texture;
+            if (tex != null && tex.isReadable)
+            {
+                Rect r = sprite.rect;
+                int w = (int)r.width, h = (int)r.height;
+                var px = tex.GetPixels32(0);
+                int minX = w, maxX = -1, minY = h, maxY = -1;
+                for (int y = 0; y < h; y++)
+                {
+                    int row = ((int)r.y + y) * tex.width + (int)r.x;
+                    for (int x = 0; x < w; x++)
+                    {
+                        if (px[row + x].a <= 25) continue;
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+                if (maxX >= minX && maxY >= minY)
+                    result = new Vector2((maxX - minX + 1) / sprite.pixelsPerUnit, (maxY - minY + 1) / sprite.pixelsPerUnit);
+            }
+
+            visibleSizes[sprite] = result;
+            return result;
+        }
+
         public static Vector3 MouseWorldPosition()
         {
             Vector3 screen;
@@ -59,6 +103,30 @@ namespace PotionSystem
                 sr.sprite = Square;
                 sr.color = fallbackColor;
                 sr.transform.localScale = Vector3.one * fallbackSize;
+            }
+        }
+
+        /// <summary>
+        /// ใส่รูปยาให้พอดีกับกรอบสี่เหลี่ยมจัตุรัสด้าน box (หน่วยโลก) คงสัดส่วนภาพ ทุกขวดจึงกินพื้นที่ใกล้เคียงกัน
+        /// ใช้กับชั้นวาง ช่องเตรียมยิง และขวดที่ลาก เพื่อให้ขนาดยาเป็นมาตรฐานเดียวกัน
+        /// </summary>
+        public static void FitPotion(SpriteRenderer sr, ItemData item, Color fallbackColor, float box)
+        {
+            if (item != null && item.Icon != null)
+            {
+                sr.sprite = item.Icon;
+                sr.color = Color.white;
+                // วัดจากส่วนที่มองเห็นจริง (ไม่รวมขอบโปร่งใส) ขวดทุกแบบจึงสูงเท่ากัน แต่ไม่ให้กว้างเกินสำหรับขวดแบน
+                Vector2 size = VisibleSize(item.Icon);
+                float scale = size.y > 0.0001f ? HeightFactor * box / size.y : 1f;
+                if (size.x > 0.0001f) scale = Mathf.Min(scale, WidthFactor * box / size.x);
+                sr.transform.localScale = Vector3.one * scale;
+            }
+            else
+            {
+                sr.sprite = Square;
+                sr.color = fallbackColor;
+                sr.transform.localScale = Vector3.one * box * 0.6f;
             }
         }
 
