@@ -7,7 +7,7 @@ using UnityEngine;
 /// ปุ่มรีเซ็ตพัซเซิล (ผูก ResetPuzzle() กับปุ่ม RESTRT): เริ่มพัซเซิลใหม่โดยไม่โหลดซีนซ้ำ
 /// - ตอนเริ่มเกม เก็บสำเนาต้นฉบับของวัตถุพัซเซิล (สัตว์ กล่อง ประตู สวิตช์ ฯลฯ) ไว้
 /// - ตอนรีเซ็ต ทิ้งของที่เล่นไปแล้วทั้งหมด (รวมของที่พัง/ถูกทำลาย) แล้วสร้างจากสำเนาต้นฉบับใหม่
-/// - ถาดวัตถุดิบ หม้อ และยาที่ยังอยู่ในช่องพักไม่ถูกแตะ ส่วนยาที่ส่งไปแล้วไม่คืน
+/// - ชั้นขวดยาสุ่มยาเริ่มต้นใหม่และคืนจำนวนครั้งที่น้องปรุงได้ ยาในช่องเตรียมยิงถูกล้าง
 /// </summary>
 [DefaultExecutionOrder(-10000)]
 public class PuzzleResetManager : MonoBehaviour
@@ -19,6 +19,8 @@ public class PuzzleResetManager : MonoBehaviour
     [Header("Systems To Reset")]
     [SerializeField] private PotionStagingManager stagingManager;
     [SerializeField] private PotionSequenceDropper[] droppers;
+    [Tooltip("ชั้นขวดยา: รีเซ็ตแล้วสุ่มยาเริ่มต้นใหม่ และคืนจำนวนครั้งที่ปรุงได้ (ว่างไว้ = หาในซีน)")]
+    [SerializeField] private PotionShelf shelf;
 
     private GameObject template;
     private readonly List<Transform> liveRoots = new List<Transform>();
@@ -77,6 +79,12 @@ public class PuzzleResetManager : MonoBehaviour
 
         // 1) หยุดระบบส่งยา/ปืน แล้วเคลียร์เข็มและของที่พัซเซิลสร้างขึ้นมา
         if (stagingManager != null) stagingManager.ResetState();
+
+        // ชั้นขวดยาเริ่มใหม่ และล้างยาในช่องเตรียมยิง
+        if (shelf == null) shelf = FindAnyObjectByType<PotionShelf>();
+        if (shelf != null) shelf.ResetShelf();
+        foreach (var slot in FindObjectsByType<PotionStagingSlot2D>())
+            slot.Clear();
         foreach (var d in droppers)
             if (d != null) d.ResetState();
 

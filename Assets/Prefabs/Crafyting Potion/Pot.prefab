@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 3062306992259000902}
   - component: {fileID: 6281468241901902693}
   - component: {fileID: 4843275805599033389}
-  - component: {fileID: 67756774650471909}
   m_Layer: 0
   m_Name: Pot
   m_TagString: Untagged
@@ -140,26 +139,3 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 4.240155, y: 3.0362816}
   m_EdgeRadius: 0
---- !u!114 &67756774650471909
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6450319286416547861}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bb6586232c6d41742ab0fcd3b37a5039, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotStation2D
-  potManager: {fileID: 0}
-  brewSeconds: 3
-  ringSizeMultiplier: 0.6
-  ringOffset: {x: 0, y: 0}
-  ringSortingOrder: 20
-  ringTrackColor: {r: 0.25, g: 0.25, b: 0.25, a: 0.85}
-  ringFillColor: {r: 0.85, g: 0.85, b: 0.85, a: 1}
-  contentDisplays:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}

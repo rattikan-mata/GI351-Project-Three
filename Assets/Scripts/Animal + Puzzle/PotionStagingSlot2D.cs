@@ -1,15 +1,14 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace PotionSystem
 {
     /// <summary>
-    /// ช่องพักยา 1 ใน 3 ช่อง (แถวบน) ก่อนส่งไปยัง Potion Sequence Dropper
-    /// - วางยาจากช่องล่าง (ResultSlot) ลงมาได้
-    /// - คลิกค้างที่ช่องนี้เพื่อหยิบยาขึ้นมาลาก แล้วปล่อยที่:
-    ///     ช่องล่าง (ResultSlot)  -> ยาย้ายกลับไปช่องล่าง
-    ///     ช่องพักอีกช่อง         -> สลับ/ย้ายไปช่องนั้น
-    ///     ที่อื่น                -> เด้งกลับช่องเดิม (ยาไม่หาย)
+    /// ช่องเตรียมยิง (ช่องพักยา) ก่อนส่งไปยัง Potion Sequence Dropper
+    /// - ลากขวดจากชั้นวาง (PotionShelf) มาวางได้
+    /// - คลิกค้างที่ช่องนี้เพื่อหยิบยาขึ้นมาลาก แล้วปล่อยที่ (ดู PotionDragGhost):
+    ///     ชั้นวาง        -> คืนเข้าชั้น
+    ///     ช่องพักอีกช่อง -> สลับ/ย้ายไปช่องนั้น
+    ///     ที่อื่น        -> เด้งกลับช่องเดิม (ยาไม่หาย)
     /// </summary>
     [RequireComponent(typeof(SpriteRenderer), typeof(BoxCollider2D))]
     public class PotionStagingSlot2D : MonoBehaviour
@@ -96,40 +95,12 @@ namespace PotionSystem
             if (!IsOccupied) return;
             if (!TryTake(out PotionInstance taken)) return;
             CraftingSfx.Play(CraftingSfx.PotionPick);
-
-            var go = new GameObject("DraggedPotion_FromStaging");
-            go.transform.position = CraftingSprites2D.MouseWorldPosition();
-
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sortingOrder = dragSortingOrder;
-            CraftingSprites2D.Apply(sr, taken.Data, CraftingSprites2D.ColorFor(taken.Data), dragScale);
-
-            go.AddComponent<StagingDragGhost>().Init(this, taken);
+            PotionDragGhost.Spawn(taken, this, null, dragScale, dragSortingOrder);
         }
         #endregion
 
         #region Public API
-        /// <summary>วางยาลงช่องนี้ (มาจาก ResultSlot ช่องล่าง) ถ้าช่องนี้มียาอยู่แล้วจะส่งกลับไปช่องล่าง</summary>
-        public bool TryAssignPotion(ResultSlot resultSlot, int resultIndex, PotionInstance potion)
-        {
-            if (potion == null) return false;
-
-            if (resultSlot != null && !resultSlot.TryTake(resultIndex, out _))
-                return false;
-
-            // ช่องนี้มียาอยู่แล้ว -> ส่งยาเก่ากลับไปช่องล่างที่เพิ่งว่าง (สลับที่กัน)
-            if (StoredInstance != null && resultSlot != null)
-            {
-                if (!resultSlot.TryAddAt(resultIndex, StoredInstance))
-                    resultSlot.TryAdd(StoredInstance);
-            }
-
-            StoredInstance = potion;
-            UpdateVisual();
-            return true;
-        }
-
-        /// <summary>ใส่ยาตรงๆ (ใช้ตอนเด้งกลับ / สลับช่อง)</summary>
+        /// <summary>ใส่ยาลงช่องนี้ (มาจากชั้นวาง / เด้งกลับ / สลับช่อง)</summary>
         public void Place(PotionInstance potion)
         {
             StoredInstance = potion;
@@ -196,93 +167,6 @@ namespace PotionSystem
                 CraftingSprites2D.Apply(iconRenderer, StoredPotion, CraftingSprites2D.ColorFor(StoredPotion), dragScale);
                 iconRenderer.transform.localScale *= storedPotionScale; // ปรับขนาดยาตอนอยู่ในช่อง (ตั้งใน Inspector)
             }
-        }
-        #endregion
-
-        #region Drag Ghost
-        /// <summary>ตัวขวดยาชั่วคราวที่ลอยตามเมาส์ตอนลากออกจากช่องพัก</summary>
-        private class StagingDragGhost : MonoBehaviour
-        {
-            private PotionStagingSlot2D origin;
-            private PotionInstance potion;
-
-            public void Init(PotionStagingSlot2D from, PotionInstance p)
-            {
-                origin = from;
-                potion = p;
-            }
-
-            private bool dropped;
-
-            private void Update()
-            {
-                if (dropped) return;
-
-                // ไม่ได้กดเมาส์ค้างอยู่แล้ว = ปล่อยแล้ว (กันพลาดเฟรมที่ปล่อยเมาส์ ทำให้ยาติดเมาส์)
-                // โปรเจกต์นี้ใช้ Input System ใหม่ ห้ามใช้ Input.GetMouseButton (จะ error)
-                bool held = Mouse.current != null && Mouse.current.leftButton.isPressed;
-                if (!held)
-                {
-                    dropped = true;
-                    try { Drop(); }
-                    catch (System.Exception e)
-                    {
-                        // เกิด error ระหว่างวาง -> คืนยากลับช่องเดิมเสมอ ไม่ให้ยาหายหรือค้างเมาส์
-                        Debug.LogException(e);
-                        if (origin != null && !origin.IsOccupied) origin.Place(potion);
-                    }
-                    finally
-                    {
-                        Destroy(gameObject);
-                    }
-                    return;
-                }
-
-                transform.position = CraftingSprites2D.MouseWorldPosition();
-            }
-
-            private void Drop()
-            {
-                transform.position = CraftingSprites2D.MouseWorldPosition();
-                Vector2 point = transform.position;
-                Collider2D[] hits = Physics2D.OverlapPointAll(point);
-
-                // 1) ปล่อยบนช่องล่าง (ResultSlotDisplay2D) -> ย้ายกลับไปช่องล่าง (ถ้าเต็มจะเด้งกลับช่องเดิม)
-                foreach (var display in FindObjectsByType<ResultSlotDisplay2D>(FindObjectsSortMode.None))
-                {
-                    if (!display.ContainsPoint(point, out int slotIndex)) continue;
-
-                    // วางลงช่องที่ปล่อยเมาส์ ถ้าช่องนั้นมียาอยู่แล้วหรือปล่อยไม่ตรงช่อง -> ลงช่องว่างช่องแรก
-                    if (display.Slot.TryAddAt(slotIndex, potion) || display.Slot.TryAdd(potion))
-                    {
-                        CraftingSfx.Play(CraftingSfx.PotionPlace);
-                        Finish();
-                        return;
-                    }
-                    break; // เต็ม -> ไปเด้งกลับช่องเดิมด้านล่าง
-                }
-
-                // 2) ปล่อยบนช่องพักอื่น -> ย้าย/สลับ
-                foreach (var h in hits)
-                {
-                    var other = h.GetComponent<PotionStagingSlot2D>();
-                    if (other != null && other != origin)
-                    {
-                        PotionInstance displaced = other.StoredInstance;
-                        other.Place(potion);
-                        if (displaced != null) origin.Place(displaced);
-                        CraftingSfx.Play(CraftingSfx.PotionPlace);
-                        Finish();
-                        return;
-                    }
-                }
-
-                // 3) ที่อื่น -> เด้งกลับช่องเดิม
-                origin.Place(potion);
-                Finish();
-            }
-
-            private void Finish() => Destroy(gameObject);
         }
         #endregion
     }
