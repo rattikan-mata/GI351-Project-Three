@@ -61,8 +61,8 @@ public class FloorSwitch : MonoBehaviour
     [Tooltip("เวลาในการยุบลงและเด้งกลับ (วินาที)")]
     [SerializeField] private float animationDuration = 0.14f;
 
-    [Tooltip("รูปแบบการเคลื่อนไหว:\n- HoldWhilePressed: ยุบค้างตอนมีของเหยียบทับ พอเดินออกจะเด้งกลับ (แนะนำ)\n- Bounce: ยุบลงแล้วเด้งกลับทันที (ถ้าไม่มีของค้าง)\n- StayWhileActive: ยุบค้างไว้ตอนเปิดสวิตช์")]
-    [SerializeField] private ButtonAnimMode animMode = ButtonAnimMode.HoldWhilePressed;
+    [Tooltip("รูปแบบการเคลื่อนไหว:\n- StayWhileActive: กดแล้วยุบค้าง รอถูกกดอีกครั้งถึงเด้งกลับ (ค่าเริ่มต้น เข้ากับสวิตช์แบบสลับเปิด/ปิด)\n- HoldWhilePressed: ยุบค้างตอนมีของเหยียบทับ พอเดินออกจะเด้งกลับ\n- Bounce: ยุบลงแล้วเด้งกลับทันที (ถ้าไม่มีของค้าง)")]
+    [SerializeField] private ButtonAnimMode animMode = ButtonAnimMode.StayWhileActive;
     #endregion
 
     #region Audio
