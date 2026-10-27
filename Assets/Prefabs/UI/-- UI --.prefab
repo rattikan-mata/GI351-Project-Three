@@ -810,7 +810,7 @@ RectTransform:
   - {fileID: 5766095681988237863}
   - {fileID: 6068062911733033732}
   - {fileID: 6034369212676100965}
-  - {fileID: 3289759066607996694}
+  - {fileID: 6210601014041751601}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1538,6 +1538,57 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!1 &3900002225216456782
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6210601014041751601}
+  - component: {fileID: 6434641587837441009}
+  m_Layer: 0
+  m_Name: PuzzleCurtainArea
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &6210601014041751601
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3900002225216456782}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3289759066607996694}
+  m_Father: {fileID: 3207078514409824699}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 386.5, y: 210}
+  m_SizeDelta: {x: 1110, y: 540}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &6434641587837441009
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3900002225216456782}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RectMask2D
+  m_Padding: {x: 0, y: 0, z: 0, w: 0}
+  m_Softness: {x: 0, y: 0}
 --- !u!1 &4059926256224684182
 GameObject:
   m_ObjectHideFlags: 0
@@ -2145,6 +2196,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResetStageController
   curtain: {fileID: 5411650704817851104}
   starSystem: {fileID: 4520569078240968690}
+  puzzleReset: {fileID: 0}
 --- !u!114 &3289704331940266535
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3766,12 +3818,12 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 3207078514409824699}
+  m_Father: {fileID: 6210601014041751601}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 2000, y: 1200}
+  m_SizeDelta: {x: 1110, y: 540}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7408637473837141053
 CanvasRenderer:

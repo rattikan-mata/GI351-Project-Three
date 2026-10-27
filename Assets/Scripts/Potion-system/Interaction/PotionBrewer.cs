@@ -6,7 +6,7 @@ namespace PotionSystem
 {
     /// <summary>
     /// น้องนักปรุงยา: คลิกที่ตัวน้อง -> น้องคนหม้อ (Brew Seconds) -> ได้ยาสุ่ม 1 ขวดเข้าชั้นวาง
-    /// ปรุงได้ตามจำนวนครั้งที่ชั้นวางกำหนด (Brews Per Reset) ระหว่างคนอยู่คลิกซ้ำไม่ได้
+    /// ปรุงได้ตามจำนวนครั้งที่ชั้นวางกำหนด (Brews Per Stage) ระหว่างคนอยู่คลิกซ้ำไม่ได้
     /// ภาพ: ถ้ามี Animator จะยิง Trigger ชื่อ Stir Trigger ให้เล่นท่าคนยา ถ้าไม่มี จะโยกตัวไปมาแทน (ใช้ระหว่างยังไม่มีแอนิเมชันจริง)
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
@@ -115,7 +115,7 @@ namespace PotionSystem
 
         private void RefreshLabel()
         {
-            if (brewsLabel != null && shelf != null) brewsLabel.text = shelf.BrewsLeft + "/" + shelf.BrewsPerReset;
+            if (brewsLabel != null && shelf != null) brewsLabel.text = shelf.BrewsLeft + "/" + shelf.BrewsPerStage;
         }
     }
 }

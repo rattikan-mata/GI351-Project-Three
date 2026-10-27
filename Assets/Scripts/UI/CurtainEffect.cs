@@ -31,9 +31,49 @@ public class CurtainEffect : MonoBehaviour
         if (canvasGroup != null) canvasGroup.blocksRaycasts = false;
     }
 
+    public bool IsPlaying { get; private set; }
+
     public void PlayCurtainTransition(Action onTransitionComplete)
     {
         StartCoroutine(CurtainSequenceRoutine(onTransitionComplete));
+    }
+
+    /// <summary>
+    /// ปิดบานพับ -> เรียก onClosed (เช่น รีเซ็ตพัซเซิล) ตอนปิดสนิท -> รอจน isReady เป็นจริง (ไม่เกิน maxWait) และพักตาม Pause Duration
+    /// -> เปิดบานพับ ผู้เล่นจึงไม่เห็นตอนของถูกสร้างใหม่
+    /// </summary>
+    public void PlayCloseThenOpen(Action onClosed, Func<bool> isReady = null, float maxWait = 3f)
+    {
+        if (IsPlaying) return;
+        StartCoroutine(CloseThenOpenRoutine(onClosed, isReady, maxWait));
+    }
+
+    private IEnumerator CloseThenOpenRoutine(Action onClosed, Func<bool> isReady, float maxWait)
+    {
+        IsPlaying = true;
+        if (canvasGroup != null) canvasGroup.blocksRaycasts = true;
+
+        if (AudioUI.Instance != null)
+        {
+            AudioUI.Instance.PlaySFX(AudioUI.Instance.sfxCurtain);
+        }
+
+        yield return StartCoroutine(MoveCurtainY(hiddenPosY, closedPosY, slideDownDuration));
+
+        onClosed?.Invoke();
+
+        float waited = 0f;
+        while (isReady != null && !isReady() && waited < maxWait)
+        {
+            waited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        yield return new WaitForSecondsRealtime(pauseDuration);
+
+        yield return StartCoroutine(MoveCurtainY(closedPosY, hiddenPosY, slideUpDuration));
+
+        if (canvasGroup != null) canvasGroup.blocksRaycasts = false;
+        IsPlaying = false;
     }
 
     private IEnumerator CurtainSequenceRoutine(Action onTransitionComplete)

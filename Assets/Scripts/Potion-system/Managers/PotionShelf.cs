@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace PotionSystem
 {
@@ -8,17 +9,19 @@ namespace PotionSystem
     /// ชั้นวางขวดยา 6 ช่อง (แทนระบบปรุงยาแบบถาดเดิม)
     /// - เริ่มด่าน: สุ่มยาจาก Level Potions มาให้ Starting Potions ขวด
     /// - ยาชนิดเดียวกันซ้อนเป็นตัวเลข (x2, x3) ชนิดใหม่ลงช่องว่างช่องแรก
-    /// - น้องนักปรุงยา (PotionBrewer) ปรุงเพิ่มได้ Brews Per Reset ครั้ง ต่อ 1 รอบ (รีเซ็ตแล้วได้คืน)
+    /// - น้องนักปรุงยา (PotionBrewer) ปรุงเพิ่มได้ Brews Per Stage ครั้งต่อด่าน
+    ///   (ปุ่มรีเซ็ตพัซเซิลไม่แตะชั้นนี้ ได้คืนเมื่อโหลดด่านใหม่ เช่น Restart ในหน้าจบเกม)
     /// </summary>
     public class PotionShelf : MonoBehaviour
     {
         [Header("Level Config: ยาที่ด่านนี้สุ่มได้")]
         [Tooltip("รายการยาที่สุ่มได้ในด่านนี้ (ทั้งยาเริ่มต้นและยาที่น้องปรุง) ใส่ซ้ำได้ ยิ่งซ้ำยิ่งออกบ่อย")]
         [SerializeField] private List<PotionData> levelPotions = new List<PotionData>();
-        [Tooltip("จำนวนขวดที่สุ่มให้ตอนเริ่มด่าน / ตอนรีเซ็ต")]
+        [Tooltip("จำนวนขวดที่สุ่มให้ตอนเริ่มด่าน")]
         [SerializeField, Min(0)] private int startingPotions = 3;
-        [Tooltip("น้องปรุงยาได้กี่ครั้งต่อ 1 รอบ (รีเซ็ตแล้วได้คืนครบ)")]
-        [SerializeField, Min(0)] private int brewsPerReset = 10;
+        [Tooltip("น้องปรุงยาได้กี่ครั้งต่อด่าน (ปุ่มรีเซ็ตพัซเซิลไม่คืน ได้คืนเมื่อโหลดด่านใหม่)")]
+        [FormerlySerializedAs("brewsPerReset")]
+        [SerializeField, Min(0)] private int brewsPerStage = 10;
         [Tooltip("เปิด = ใช้ seed คงที่ (สุ่มได้ผลเดิมทุกครั้ง ไว้เทสต์)")]
         [SerializeField] private bool useSeed = false;
         [SerializeField] private int seed = 12345;
@@ -30,7 +33,7 @@ namespace PotionSystem
         public event Action OnChanged;
 
         public int BrewsLeft { get; private set; }
-        public int BrewsPerReset => brewsPerReset;
+        public int BrewsPerStage => brewsPerStage;
 
         /// <summary>เพิ่มขึ้นทุกครั้งที่รีเซ็ตชั้น (น้องใช้เช็คว่ายาที่กำลังปรุงอยู่ยังเป็นของรอบนี้ไหม)</summary>
         public int ResetVersion { get; private set; }
@@ -58,7 +61,7 @@ namespace PotionSystem
                 if (potion != null) Add(potion);
             }
 
-            BrewsLeft = brewsPerReset;
+            BrewsLeft = brewsPerStage;
             OnChanged?.Invoke();
         }
 
