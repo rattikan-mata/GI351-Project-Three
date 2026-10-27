@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// สัตว์ทดลองตัวที่ 3: ตัวผลัก/ดันกล่อง (ใช้ยาเพิ่มพละกำลัง)
@@ -29,6 +30,20 @@ public class PusherAnimal : TestAnimal
 
     [Tooltip("ทิศกล่องต้องตรงกับทิศที่เล็งแค่ไหนถึงจะดัน (1 = ตรงเป๊ะ, 0 = ขอแค่อยู่ครึ่งวงกลมข้างหน้า)")]
     [SerializeField, Range(0f, 1f)] private float aimAlignment = 0.5f;
+
+    [Tooltip("เสียงเอฟเฟกต์ตอนแพะออกแรงผลักกล่อง")]
+    [SerializeField] private AudioClip pushSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงตอนผลัก (0 - 1)")]
+    [SerializeField] private float pushVolume = 1f;
+
+    [Tooltip("เสียงเอฟเฟกต์ตอนแพะทุบ/ชนทำลายกล่อง")]
+    [SerializeField] private AudioClip smashSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงตอนทุบ (0 - 1)")]
+    [SerializeField] private float smashVolume = 1f;
     #endregion
 
     #region Combo Settings
@@ -50,6 +65,9 @@ public class PusherAnimal : TestAnimal
 
     [Tooltip("ระยะยิงเลเซอร์ออกข้างหน้า (ทำลายกล่องที่พังได้ ดันกล่องที่พังไม่ได้ กดปุ่ม/สวิตช์ 1 ครั้งต่อนัด)")]
     [SerializeField] private float laserRange = 30f;
+
+    [Tooltip("ให้เลเซอร์ยิงออกข้างหน้ากดปุ่ม/สวิตช์ (FloorSwitch) ได้หรือไม่ (ถ้าไม่ติ๊ก เลเซอร์จะไม่กดปุ่ม/สวิตช์)")]
+    [SerializeField] private bool laserCanToggleSwitches = true;
 
     [Tooltip("ให้เลเซอร์เปิด/ปิดประตูธรรมดาได้หรือไม่ (ปกติ false: ประตูธรรมดาต้องเปิดด้วยสวิตช์เท่านั้น ไม่เปิดด้วยเลเซอร์)")]
     [SerializeField] private bool laserCanToggleDoors = false;
@@ -94,8 +112,39 @@ public class PusherAnimal : TestAnimal
     [Tooltip("เลเซอร์จากฟ้าค้างให้เห็นกี่วินาที")]
     [SerializeField] private float skywardDisplaySeconds = 0.35f;
 
-    [Tooltip("รัศมีค้นหาเป้าหมายอัตโนมัติ (ปุ่ม/กล่อง/ประตู) เมื่อแพะได้ยา Skyward")]
-    [SerializeField] private float skywardAutoSearchRadius = 25f;
+    [Header("Skyward Search Range (ระยะค้นหาเป้าหมายเลเซอร์ฟ้า)")]
+    [FormerlySerializedAs("skywardAutoSearchRadius")]
+    [Tooltip("ระยะค้นหาแนวนอนไปข้างหน้า (แกน X ตามทิศที่แพะหัน)")]
+    [SerializeField] private float skywardHorizontalRange = 25f;
+
+    [Tooltip("ระยะค้นหาแนวตั้ง (แกน Y สูง-ต่ำ ± จากตัวแพะ เช่น 10 = ขึ้นได้ 10 ลงได้ 10 หน่วย)")]
+    [SerializeField] private float skywardVerticalRange = 10f;
+
+    [Tooltip("ความสูงจุดกึ่งกลางของกรอบค้นหาแนวตั้ง (Offset แกน Y จากตัวแพะ เช่น 0 = กึ่งกลางตัวแพะพอดี)")]
+    [SerializeField] private float skywardVerticalOffset = 0f;
+
+    [Tooltip("ให้เลเซอร์จากฟ้าค้นหาเป้าหมายเฉพาะด้านหน้าที่แพะหันไปเท่านั้น (ไม่เล็งย้อนกลับหลัง)")]
+    [SerializeField] private bool skywardAimFrontOnly = true;
+
+    [Tooltip("จำนวนเป้าหมายที่อยู่ใกล้ที่สุดที่จะผ่าเลเซอร์ลงมาใส่พร้อมกัน (1 = ตีตัวที่ใกล้สุด 1 ชิ้น, 2 = ตี 2 ชิ้นที่ใกล้สุด ...)")]
+    [Min(1)]
+    [SerializeField] private int skywardTargetCount = 1;
+
+    [Tooltip("ระยะห่างเวลาระหว่างเลเซอร์แต่ละเส้นเมื่อตีหลายเป้าหมาย (วินาที, 0 = ผ่าลงมาพร้อมกันทุกเส้น)")]
+    [SerializeField] private float skywardMultiStrikeInterval = 0.08f;
+
+    [Tooltip("ให้เลเซอร์จากฟ้ากดปุ่ม/สวิตช์ (FloorSwitch) ได้หรือไม่ (ถ้าไม่ติ๊ก เลเซอร์จะไม่กดสวิตช์และไม่ล็อคเป้าหมายที่สวิตช์)")]
+    [SerializeField] private bool skywardCanToggleSwitches = true;
+
+    [Header("Skyward Gizmos (การแสดงผลกรอบค้นหาใน Scene View)")]
+    [Tooltip("แสดงกรอบค้นหาของเลเซอร์ฟ้า (Skyward) ตอนคลิกเลือกแพะใน Scene View")]
+    [SerializeField] private bool showSkywardGizmo = true;
+
+    [Tooltip("แสดงกรอบค้นหาของเลเซอร์ฟ้าตลอดเวลา แม้ไม่ได้คลิกเลือกแพะ")]
+    [SerializeField] private bool showSkywardGizmoAlways = false;
+
+    [Tooltip("สีของกรอบ Gizmo เลเซอร์ฟ้า")]
+    [SerializeField] private Color skywardGizmoColor = new Color(0f, 0.8f, 1f, 0.4f);
 
     [Header("Skyward Piercing & Blocking (การทะลุ / สิ่งที่ขวางเลเซอร์ฟ้า - ปรับแยกอิสระ)")]
     [Tooltip("ทะลุกำแพง/เพดาน/สิ่งกีดขวาง (เลเซอร์ผ่าลงมาจากฟ้าทะลุหลังคาลงมาหาเป้าหมายได้ ไม่ติดกำแพงด้านบน)")]
@@ -125,7 +174,25 @@ public class PusherAnimal : TestAnimal
     [Tooltip("จำนวนวัตถุสูงสุดที่เลเซอร์จากฟ้าทะลุผ่านได้ (99 = ไม่จำกัด)")]
     [SerializeField] private int skywardMaxPierceCount = 99;
 
+    [Header("Havoc (ส้ม+เขียว): ถล่มทุกอย่างที่พังได้ทั้งฉาก")]
+    [Tooltip("เสียงเอฟเฟกต์ตอนแพะใช้พลัง Havoc ถล่มทุกอย่าง (ถ้าเว้นว่างจะค้นหาจาก AudioManager: 'GoatHavoc')")]
+    [SerializeField] private AudioClip havocSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียง Havoc (0 - 1)")]
+    [SerializeField] private float havocVolume = 1f;
+
+    [Tooltip("สไปรต์ร่างแพะตอนได้รับยา Havoc (เว้นว่าง = ใช้ Powered Up Sprite ปกติ)")]
+    [SerializeField] private Sprite havocFormSprite;
+
     [Header("Surge (ฟ้า+ส้ม): ยากราวิตี้ กระโดดแตะเพดานแล้วเดินบนเพดาน")]
+    [Tooltip("เสียงเอฟเฟกต์ตอนสลับกราวิตี้ / กระโดดแตะเพดาน / สลับทิศทางเดินบนเพดาน (ถ้าเว้นว่างจะค้นหาจาก AudioManager: 'GoatGravity')")]
+    [SerializeField] private AudioClip gravitySound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงสลับกราวิตี้ (0 - 1)")]
+    [SerializeField] private float gravityVolume = 1f;
+
     [Tooltip("Layer ของพื้น/เพดาน ใช้หาเพดานที่จะกระโดดไปแตะ และหาพื้นตอนกลับลง เว้นว่าง = ทุก Layer ที่ไม่ใช่ Trigger")]
     [SerializeField] private LayerMask ceilingLayers;
 
@@ -156,6 +223,7 @@ public class PusherAnimal : TestAnimal
     private Collider2D bodyCollider;
 
     public override bool IsAirborne => ceilingState != CeilingState.Floor;
+    public override bool CanBreakObstacles => CanSmash;
     protected override float SpeedMultiplier => ceilingState == CeilingState.OnCeiling ? ceilingWalkSpeedMultiplier : 1f;
     #endregion
 
@@ -178,9 +246,10 @@ public class PusherAnimal : TestAnimal
         Vector2 dir = ToVector(pushDirection);
         if (comboMode != GoatMode.Push)
         {
-            // ยาเขียว (ยิงเลเซอร์ออกข้างหน้า): ยิงไปตามแกน X ของแพะที่หมุนไว้
-            if (comboMode == GoatMode.ForwardLaser)
-                dir = ((Vector2)transform.right * Mathf.Sign(transform.lossyScale.x)).normalized;
+            // ยาเขียว (เลเซอร์หน้า) / ยา Skyward (เลเซอร์ฟ้า): เล็งไปด้านหน้าที่แพะหันหน้าอยู่จริง
+            if (comboMode == GoatMode.ForwardLaser || comboMode == GoatMode.SkywardLaser)
+                dir = GetFacingVector();
+
             yield return ComboAutoRoutine(dir);
             yield break;
         }
@@ -198,14 +267,30 @@ public class PusherAnimal : TestAnimal
             yield break;
         }
 
+        Vector2 toBox = (Vector2)box.transform.position - rb.position;
+        // ตรวจสอบว่ากล่องอยู่ทิศไหนเทียบกับตัวสัตว์:
+        // ถ้ากล่องอยู่ข้างหน้า และทิศ dir ที่ตั้งไว้จะทำให้สัตว์ต้องเดินทะลุกล่องไปยืนอีกฝั่ง (เช่น สัตว์อยู่ซ้าย กล่องอยู่กลาง แต่ dir = Left)
+        // สัตว์จะไม่สามารถเดินผ่านกล่องที่ตันได้ ให้กลับทิศ dir ผลักออกจากตัวสัตว์ไปข้างหน้าแทน
+        if (Mathf.Abs(dir.x) > 0.01f && Mathf.Abs(toBox.x) > 0.05f)
+        {
+            bool crossingBoxNeeded = Mathf.Sign(toBox.x) != Mathf.Sign(dir.x);
+            if (crossingBoxNeeded)
+            {
+                dir = new Vector2(Mathf.Sign(toBox.x), 0f);
+            }
+        }
+
         for (int i = 0; i < autoPushCount; i++)
         {
             if (i > 0) yield return new WaitForSeconds(abilityCooldown);
 
-            // เดินไปยืนด้านหลังกล่อง (ฝั่งตรงข้ามทิศที่จะผลัก)
-            Vector2 standPos = (Vector2)box.transform.position - dir * standOffset;
+            // เดินไปยืนด้านหลังกล่อง (ฝั่งตรงข้ามทิศที่จะผลัก) โดยคุมระดับ Y บนพื้นของสัตว์เอง
+            Vector2 standPos = new Vector2(box.transform.position.x - dir.x * standOffset, rb.position.y);
             MoveTo(standPos);
             while (IsMoving) yield return null;
+
+            // หันหน้าไปยังทิศที่จะผลัก
+            FaceDirection(dir);
 
             // ผลัก
             if (!ExecuteAbility(rb.position + dir)) yield break; // ผลักไม่ไปแล้ว (ติดกำแพง) เลิก
@@ -214,15 +299,23 @@ public class PusherAnimal : TestAnimal
         }
     }
 
+    private LayerMask GetEffectiveBoxLayer()
+    {
+        if (boxLayer.value != 0) return boxLayer;
+        int mask = LayerMask.GetMask("Box");
+        return mask != 0 ? (LayerMask)mask : (LayerMask)(~0);
+    }
+
     private PushableBox FindNearestBox()
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(rb.position, autoSearchRadius, boxLayer);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(rb.position, autoSearchRadius, GetEffectiveBoxLayer());
         PushableBox best = null;
         float bestDist = float.MaxValue;
 
         foreach (var hit in hits)
         {
-            if (!hit.TryGetComponent<PushableBox>(out var b)) continue;
+            PushableBox b = hit.GetComponentInParent<PushableBox>();
+            if (b == null) continue;
             float d = Vector2.Distance(rb.position, b.transform.position);
             if (d < bestDist) { bestDist = d; best = b; }
         }
@@ -250,6 +343,18 @@ public class PusherAnimal : TestAnimal
 
     /// <summary>ตอนนี้ชนแล้วทำลายกล่องได้ไหม (โหมด 2 ยา: ได้เฉพาะตอนกินยาทำลาย)</summary>
     public bool CanSmash => !IsDualMode || smashMode;
+
+    public bool LaserCanToggleSwitches
+    {
+        get => laserCanToggleSwitches;
+        set => laserCanToggleSwitches = value;
+    }
+
+    public bool SkywardCanToggleSwitches
+    {
+        get => skywardCanToggleSwitches;
+        set => skywardCanToggleSwitches = value;
+    }
 
     protected override PotionType RequiredPotion => pushPotion;
 
@@ -279,14 +384,17 @@ public class PusherAnimal : TestAnimal
 
         smashMode = IsDualMode && potion == smashPotion;
 
-        Sprite s = smashMode ? smashFormSprite : pushFormSprite;
+        Sprite s = (potion == PotionType.Havoc && havocFormSprite != null)
+            ? havocFormSprite
+            : (smashMode ? smashFormSprite : pushFormSprite);
         if (s != null && spriteRenderer != null) spriteRenderer.sprite = s;
 
-        Debug.Log($"[{animalName}] โหมด: {(smashMode ? "ทำลายกล่อง" : "ดันกล่อง")}");
+        Debug.Log($"[{animalName}] โหมด: {(smashMode ? "ทำลายกล่อง" : (potion == PotionType.Havoc ? "Havoc" : "ดันกล่อง"))}");
     }
 
     protected override Sprite GetCustomPoweredUpSprite(PotionType potion)
     {
+        if (potion == PotionType.Havoc && havocFormSprite != null) return havocFormSprite;
         return smashMode ? smashFormSprite : pushFormSprite;
     }
     #endregion
@@ -317,26 +425,81 @@ public class PusherAnimal : TestAnimal
         {
             if (!box.IsDestructible || !box.CanAnimalDestroyBox(this)) return false;
             StopMoving();
+            AudioClip smashClip = ResolveSmashSound();
+            float vol = (smashVolume > 0.001f) ? smashVolume : 1f;
+            PlayAnimalSound(smashClip, vol);
             box.TriggerDestructionSequence(this, dir);
             return true;
         }
 
         StopMoving();
+        AudioClip clip = ResolvePushSound();
+        float pVol = (pushVolume > 0.001f) ? pushVolume : 1f;
+        PlayAnimalSound(clip, pVol);
         return box.TryPush(dir, pushDistance, pushSpeed, this);
+    }
+
+    private AudioClip ResolvePushSound()
+    {
+        if (pushSound != null) return pushSound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatPush")
+                          ?? AudioManager.Instance.GetClip("Goat")
+                          ?? AudioManager.Instance.GetClip("PusherAnimalPush");
+            if (clip != null) { pushSound = clip; return pushSound; }
+        }
+#if UNITY_EDITOR
+        pushSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audioes/Animal/Goat/Goat orange V2.mp3");
+        if (pushSound != null) return pushSound;
+
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Goat orange V2 t:AudioClip");
+        if (guids == null || guids.Length == 0) guids = UnityEditor.AssetDatabase.FindAssets("Goat Orange t:AudioClip");
+        if (guids != null && guids.Length > 0)
+        {
+            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+            pushSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            return pushSound;
+        }
+#endif
+        return null;
+    }
+
+    private AudioClip ResolveSmashSound()
+    {
+        if (smashSound != null) return smashSound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatSmash")
+                          ?? AudioManager.Instance.GetClip("GoatPush")
+                          ?? AudioManager.Instance.GetClip("Goat");
+            if (clip != null) return clip;
+        }
+        return null;
     }
 
     private PushableBox FindBoxInFront(Vector2 dir)
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(rb.position, pushReach, boxLayer);
+        float reach = Mathf.Max(pushReach, standOffset + 0.6f);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(rb.position, reach, GetEffectiveBoxLayer());
         PushableBox best = null;
         float bestDist = float.MaxValue;
 
         foreach (var hit in hits)
         {
-            if (!hit.TryGetComponent<PushableBox>(out var box)) continue;
+            PushableBox box = hit.GetComponentInParent<PushableBox>();
+            if (box == null) continue;
 
             Vector2 toBox = (Vector2)box.transform.position - rb.position;
-            if (Vector2.Dot(toBox.normalized, dir) < aimAlignment) continue;
+            // ถ้าเป็นการผลักแนวนอน ให้เช็คความตรงของทิศแนวนอน เพื่อไม่ให้ความต่างของแกน Y เล็กน้อยทำให้องศาเพี้ยน
+            if (Mathf.Abs(dir.x) > 0.5f)
+            {
+                if (Mathf.Sign(toBox.x) != Mathf.Sign(dir.x)) continue;
+            }
+            else if (Vector2.Dot(toBox.normalized, dir) < aimAlignment)
+            {
+                continue;
+            }
 
             float dist = toBox.magnitude;
             if (dist < bestDist)
@@ -355,6 +518,67 @@ public class PusherAnimal : TestAnimal
         base.Awake();
         bodyCollider = GetComponent<Collider2D>();
         EnsureSkywardLaserPrefab();
+        ResolveHavocSound();
+        ResolvePushSound();
+        ResolveLaserSound();
+        ResolveSkywardSound();
+        ResolveGravitySound();
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (havocSound == null) ResolveHavocSound();
+        if (pushSound == null) ResolvePushSound();
+        if (laserSound == null) ResolveLaserSound();
+        if (skywardSound == null) ResolveSkywardSound();
+        if (gravitySound == null) ResolveGravitySound();
+    }
+#endif
+
+    protected override void Start()
+    {
+        base.Start();
+        FacingDirection = GetFacingVector();
+    }
+
+    /// <summary>
+    /// หาเวกเตอร์ทิศทางด้านหน้าที่แพะกำลังหันไปในโลก (ซ้าย หรือ ขวา)
+    /// </summary>
+    public Vector2 GetFacingVector()
+    {
+        // 1. ถ้ามี SpriteRenderer ให้ดูทิศที่สไปรต์กำลังหันจริงในโลก
+        if (spriteRenderer == null) spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        if (spriteRenderer != null)
+        {
+            float axisX = transform.right.x * Mathf.Sign(transform.lossyScale.x);
+            bool mirrored = axisX < -0.01f;
+            bool artFacesWorldRight = spriteFacesRight != mirrored;
+            bool isFacingLeft = artFacesWorldRight ? spriteRenderer.flipX : !spriteRenderer.flipX;
+            return isFacingLeft ? Vector2.left : Vector2.right;
+        }
+
+        // 2. ถ้ามี FacingDirection
+        if (Mathf.Abs(FacingDirection.x) > 0.01f)
+        {
+            return (FacingDirection.x < 0f) ? Vector2.left : Vector2.right;
+        }
+
+        // 3. ถ้ามีการหมุน/สเกล Transform
+        float rightX = transform.right.x * Mathf.Sign(transform.lossyScale.x);
+        if (Mathf.Abs(rightX) > 0.01f)
+        {
+            return (rightX < 0f) ? Vector2.left : Vector2.right;
+        }
+
+        // 4. ค่าทิศจาก pushDirection ที่ตั้งไว้
+        Vector2 pd = ToVector(pushDirection);
+        if (Mathf.Abs(pd.x) > 0.01f)
+        {
+            return (pd.x < 0f) ? Vector2.left : Vector2.right;
+        }
+
+        return Vector2.right;
     }
 
     protected override void Update()
@@ -477,9 +701,13 @@ public class PusherAnimal : TestAnimal
 
         if (comboMode == GoatMode.SkywardLaser)
         {
-            // เสกเลเซอร์ลงมาจากฟ้า: ค้นหาเป้าหมายอัตโนมัติ (กล่อง/ปุ่มสวิตช์/ประตูไม้)
-            Vector2 target = FindSkywardTarget(dir);
-            ExecuteAbility(target);
+            FaceDirection(dir);
+            // เสกเลเซอร์ลงมาจากฟ้า: ค้นหาเป้าหมายอัตโนมัติเฉพาะด้านหน้าที่แพะหันไป (ตามจำนวน skywardTargetCount)
+            ExecuteAbility(rb.position + dir);
+            if (skywardTargetCount > 1 && skywardMultiStrikeInterval > 0f)
+            {
+                yield return new WaitForSeconds(skywardTargetCount * skywardMultiStrikeInterval);
+            }
             yield break;
         }
 
@@ -488,13 +716,72 @@ public class PusherAnimal : TestAnimal
 
     private bool PerformComboAbility(Vector2 aimWorldPoint, Vector2 dir)
     {
-        FacingDirection = dir;
-        if (comboMode == GoatMode.ForwardLaser) FaceDirection(dir); // เลเซอร์ออกข้างหน้า หันไปตามทิศที่ยิง
+        if (comboMode == GoatMode.ForwardLaser)
+        {
+            FacingDirection = dir;
+            FaceDirection(dir); // เลเซอร์ออกข้างหน้า หันไปตามทิศที่ยิง
+            return FireForwardLaser(dir);
+        }
 
+        if (comboMode == GoatMode.SkywardLaser)
+        {
+            Vector2 fwd = GetFacingVector();
+            if (!skywardAimFrontOnly)
+            {
+                FacingDirection = dir;
+                FaceDirection(dir);
+                fwd = dir;
+            }
+
+            int targetCount = Mathf.Max(1, skywardTargetCount);
+            var targets = FindSkywardTargets(fwd, targetCount);
+
+            if (targets.Count > 0)
+            {
+                // ถ้าในโหมดเล่นเอง ผู้เล่นคลิกตรงเป้าหมายที่อยู่ในกรอบ ให้เป้าหมายที่คลิกอยู่คิวแรก
+                if (IsInsideSkywardSearchArea(aimWorldPoint, fwd, out _, out _, out _))
+                {
+                    int matchIdx = targets.FindIndex(p => Vector2.Distance(p, aimWorldPoint) < 0.75f);
+                    if (matchIdx > 0)
+                    {
+                        Vector2 clickedTarget = targets[matchIdx];
+                        targets.RemoveAt(matchIdx);
+                        targets.Insert(0, clickedTarget);
+                    }
+                    else if (matchIdx < 0)
+                    {
+                        targets.Insert(0, aimWorldPoint);
+                        if (targets.Count > targetCount) targets.RemoveAt(targets.Count - 1);
+                    }
+                }
+
+                if (skywardMultiStrikeInterval > 0.001f && targets.Count > 1)
+                {
+                    StartCoroutine(FireMultipleSkywardLasersRoutine(targets));
+                }
+                else
+                {
+                    foreach (var t in targets)
+                    {
+                        FireSkywardLaser(t);
+                    }
+                }
+                return true;
+            }
+            else
+            {
+                Vector2 targetPos = aimWorldPoint;
+                if (skywardAimFrontOnly && !IsInsideSkywardSearchArea(aimWorldPoint, fwd, out _, out _, out _))
+                {
+                    targetPos = rb.position + fwd * Mathf.Min(6f, skywardHorizontalRange);
+                }
+                return FireSkywardLaser(targetPos);
+            }
+        }
+
+        FacingDirection = dir;
         switch (comboMode)
         {
-            case GoatMode.ForwardLaser: return FireForwardLaser(dir);
-            case GoatMode.SkywardLaser: return FireSkywardLaser(aimWorldPoint);
             case GoatMode.Havoc: return SmashEverything();
             case GoatMode.Ceiling: return ToggleCeiling();
         }
@@ -523,11 +810,11 @@ public class PusherAnimal : TestAnimal
             if (hit.collider == null) continue;
             if (hit.collider.GetComponentInParent<TestAnimal>() == this) continue;
 
-            // FloorSwitch: เลเซอร์นับเป็นการกดปุ่ม 1 ครั้งต่อนัด (สลับสถานะ ปุ่มยุบแล้วเด้งกลับ) แล้วทะลุผ่านไปต่อ
+            // FloorSwitch: เลเซอร์นับเป็นการกดปุ่ม 1 ครั้งต่อนัด (สลับสถานะ ปุ่มยุบแล้วเด้งกลับ เฉพาะถ้าเปิด laserCanToggleSwitches) แล้วทะลุผ่านไปต่อ
             var sw = hit.collider.GetComponentInParent<FloorSwitch>();
             if (sw != null)
             {
-                if (!handledSwitches.Contains(sw))
+                if (laserCanToggleSwitches && !handledSwitches.Contains(sw))
                 {
                     handledSwitches.Add(sw);
                     sw.RemoteToggle();
@@ -568,10 +855,13 @@ public class PusherAnimal : TestAnimal
             if (box != null && !handledBoxes.Contains(box))
             {
                 handledBoxes.Add(box);
-                if (box.IsDestructible && !box.IsBroken)
-                    box.BreakBox();                                   // กล่องพังได้ -> ทำลาย
-                else
-                    box.TryPush(dir, pushDistance, pushSpeed, null);  // กล่องพังไม่ได้ -> ดัน
+                if (box.CanBeHitByForwardLaser)
+                {
+                    if (box.IsDestructible && !box.IsBroken)
+                        box.BreakBox();                                   // กล่องพังได้ -> ทำลาย
+                    else
+                        box.TryPush(dir, pushDistance, pushSpeed, null);  // กล่องพังไม่ได้ -> ดัน
+                }
             }
 
             // ชนกำแพง/พื้น/ประตู/กล่อง ใน Layer ที่ตั้งไว้ -> เลเซอร์หยุดตรงนี้
@@ -590,9 +880,10 @@ public class PusherAnimal : TestAnimal
 
     private void SpawnLaserVisual(Vector2 from, Vector2 to, Vector2 dir, bool hasHit, RaycastHit2D hitInfo)
     {
-        if (laserSound != null)
+        AudioClip soundToPlay = ResolveLaserSound();
+        if (soundToPlay != null)
         {
-            AudioSource.PlayClipAtPoint(laserSound, from);
+            PlayAnimalSound(soundToPlay);
         }
 
         // เอฟเฟกต์ตรงปากกระบอก/จุดยิง (Muzzle Flash)
@@ -714,11 +1005,11 @@ public class PusherAnimal : TestAnimal
             if (hit.collider == null) continue;
             if (hit.collider.GetComponentInParent<TestAnimal>() == this) continue;
 
-            // 1. ปุ่ม/สวิตช์ (FloorSwitch): โดนเลเซอร์จากฟ้ากดสลับสถานะ
+            // 1. ปุ่ม/สวิตช์ (FloorSwitch): โดนเลเซอร์จากฟ้ากดสลับสถานะ (ถ้าเปิด skywardCanToggleSwitches)
             var sw = hit.collider.GetComponentInParent<FloorSwitch>();
             if (sw != null)
             {
-                if (handledSwitches.Add(sw))
+                if (skywardCanToggleSwitches && handledSwitches.Add(sw))
                 {
                     sw.RemoteToggle();
                 }
@@ -796,6 +1087,19 @@ public class PusherAnimal : TestAnimal
             var box = hit.collider.GetComponentInParent<PushableBox>();
             if (box != null)
             {
+                // ถ้ากล่องนี้ตั้งไว้ว่าไม่ให้โดนเลเซอร์ฟ้าของแพะ (เช่น Chest จบเกม)
+                if (!box.CanBeHitBySkywardLaser)
+                {
+                    if (!skywardPierceSolidBoxes)
+                    {
+                        end = hit.point;
+                        targetHit = hit;
+                        hasHit = true;
+                        break;
+                    }
+                    continue;
+                }
+
                 if (handledBoxes.Add(box))
                 {
                     if (box.IsDestructible && !box.IsBroken)
@@ -891,11 +1195,73 @@ public class PusherAnimal : TestAnimal
         return true;
     }
 
+    private AudioClip ResolveLaserSound()
+    {
+        if (laserSound != null) return laserSound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatLaser");
+            if (clip != null) { laserSound = clip; return laserSound; }
+        }
+#if UNITY_EDITOR
+        laserSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audioes/Animal/Goat/Goat Green.mp3");
+        if (laserSound != null) return laserSound;
+
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Goat Green t:AudioClip");
+        if (guids != null && guids.Length > 0)
+        {
+            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+            laserSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            return laserSound;
+        }
+#endif
+        return null;
+    }
+
+    private AudioClip ResolveSkywardSound()
+    {
+        if (skywardSound != null) return skywardSound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatSkywardLaser")
+                          ?? AudioManager.Instance.GetClip("GoatLaser");
+            if (clip != null) { skywardSound = clip; return skywardSound; }
+        }
+#if UNITY_EDITOR
+        string[] candidates = new[]
+        {
+            "Assets/Audioes/Animal/Goat/Laser Skyward.mp3",
+            "Assets/Audioes/Animal/Goat/laser skyward.mp3"
+        };
+        foreach (var p in candidates)
+        {
+            skywardSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(p);
+            if (skywardSound != null) return skywardSound;
+        }
+
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Laser Skyward t:AudioClip", new[] { "Assets/Audioes/Animal/Goat" });
+        if (guids != null && guids.Length > 0)
+        {
+            foreach (var g in guids)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(g);
+                if (path.StartsWith("Assets/Audioes/Animal/Goat/", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    skywardSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                    if (skywardSound != null) return skywardSound;
+                }
+            }
+        }
+#endif
+        return null;
+    }
+
     private void SpawnSkywardVisual(Vector2 from, Vector2 to, GameObject prefab, GameObject hitPrefab, AudioClip sound, bool hasHit, RaycastHit2D hitInfo)
     {
-        if (sound != null)
+        AudioClip soundToPlay = (sound != null) ? sound : ResolveSkywardSound();
+        if (soundToPlay != null)
         {
-            AudioSource.PlayClipAtPoint(sound, to);
+            PlayAnimalSound(soundToPlay);
         }
 
         if (hasHit && hitPrefab != null)
@@ -974,55 +1340,123 @@ public class PusherAnimal : TestAnimal
         Destroy(go, skywardDisplaySeconds);
     }
 
-    private Vector2 FindSkywardTarget(Vector2 aimDir)
+    /// <summary>
+    /// ตรวจสอบว่าจุดเป้าหมาย targetPos อยู่ในกรอบค้นหาของเลเซอร์ฟ้า (Skyward) หรือไม่
+    /// </summary>
+    public bool IsInsideSkywardSearchArea(Vector2 targetPos, Vector2 fwd, out float forwardDist, out float vertDist, out float totalDist)
     {
+        Vector2 origin = (rb != null) ? rb.position : (Vector2)transform.position;
+        Vector2 toTarget = targetPos - origin;
+
+        forwardDist = Vector2.Dot(toTarget, fwd);
+        vertDist = Mathf.Abs(toTarget.y - skywardVerticalOffset);
+        totalDist = toTarget.magnitude;
+
+        // ตรวจสอบระยะแนวนอน
+        if (skywardAimFrontOnly)
+        {
+            if (forwardDist < 0.1f || forwardDist > skywardHorizontalRange) return false;
+        }
+        else
+        {
+            if (Mathf.Abs(toTarget.x) > skywardHorizontalRange) return false;
+        }
+
+        // ตรวจสอบระยะแนวตั้ง (สูง-ต่ำ ไม่เกิน skywardVerticalRange)
+        if (vertDist > skywardVerticalRange) return false;
+
+        return true;
+    }
+
+    private struct SkywardCandidate
+    {
+        public Vector2 position;
+        public float distance;
+
+        public SkywardCandidate(Vector2 pos, float dist)
+        {
+            position = pos;
+            distance = dist;
+        }
+    }
+
+    /// <summary>
+    /// ค้นหาเป้าหมายทั้งหมดในกรอบค้นหาเลเซอร์ฟ้า โดยเรียงจากใกล้ที่สุดไปไกลที่สุด และเลือกมาจำนวน maxCount ชิ้น
+    /// </summary>
+    public List<Vector2> FindSkywardTargets(Vector2 aimDir, int maxCount)
+    {
+        Vector2 fwd = (aimDir.sqrMagnitude > 0.001f) ? aimDir.normalized : GetFacingVector();
+        var candidates = new List<SkywardCandidate>();
+
         // 1. ค้นหากล่องในระยะ
-        PushableBox bestBox = null;
-        float bestBoxDist = float.MaxValue;
         foreach (var box in FindObjectsByType<PushableBox>())
         {
             if (box == null || box.IsBroken) continue;
-            float d = Vector2.Distance(rb.position, box.transform.position);
-            if (d <= skywardAutoSearchRadius && d < bestBoxDist)
-            {
-                bestBoxDist = d;
-                bestBox = box;
-            }
-        }
-        if (bestBox != null) return bestBox.transform.position;
+            if (!box.CanBeHitBySkywardLaser) continue; // ข้ามกล่องที่ปิดไม่ให้โดนเลเซอร์ฟ้า (เช่น หีบสมบัติ Chest)
 
-        // 2. ค้นหาสวิตช์ที่ยังไม่เปิด
-        FloorSwitch bestSwitch = null;
-        float bestSwitchDist = float.MaxValue;
-        foreach (var sw in FindObjectsByType<FloorSwitch>())
+            if (!IsInsideSkywardSearchArea((Vector2)box.transform.position, fwd, out _, out _, out float dist))
+                continue;
+
+            candidates.Add(new SkywardCandidate(box.transform.position, dist));
+        }
+
+        // 2. ค้นหาสวิตช์ (เฉพาะเมื่อเปิดให้เลเซอร์ฟ้ากดสวิตช์ได้)
+        if (skywardCanToggleSwitches)
         {
-            if (sw == null || sw.IsActive) continue;
-            float d = Vector2.Distance(rb.position, sw.transform.position);
-            if (d <= skywardAutoSearchRadius && d < bestSwitchDist)
+            foreach (var sw in FindObjectsByType<FloorSwitch>())
             {
-                bestSwitchDist = d;
-                bestSwitch = sw;
+                if (sw == null || sw.IsActive) continue;
+
+                if (!IsInsideSkywardSearchArea((Vector2)sw.transform.position, fwd, out _, out _, out float dist))
+                    continue;
+
+                candidates.Add(new SkywardCandidate(sw.transform.position, dist));
             }
         }
-        if (bestSwitch != null) return bestSwitch.transform.position;
 
         // 3. ค้นหาประตูไม้ที่ยังไม่พัง
-        Door bestDoor = null;
-        float bestDoorDist = float.MaxValue;
         foreach (var door in FindObjectsByType<Door>())
         {
             if (door == null || !door.IsBreakable || door.IsBroken) continue;
-            float d = Vector2.Distance(rb.position, door.transform.position);
-            if (d <= skywardAutoSearchRadius && d < bestDoorDist)
-            {
-                bestDoorDist = d;
-                bestDoor = door;
-            }
-        }
-        if (bestDoor != null) return bestDoor.transform.position;
 
-        // 4. ถ้าไม่พบเป้าหมาย ให้เสกลงมาข้างหน้า
-        return rb.position + aimDir * 6f;
+            if (!IsInsideSkywardSearchArea((Vector2)door.transform.position, fwd, out _, out _, out float dist))
+                continue;
+
+            candidates.Add(new SkywardCandidate(door.transform.position, dist));
+        }
+
+        // เรียงลำดับจากใกล้ที่สุดไปไกลที่สุด
+        candidates.Sort((a, b) => a.distance.CompareTo(b.distance));
+
+        int count = Mathf.Min(Mathf.Max(1, maxCount), candidates.Count);
+        var result = new List<Vector2>(count);
+        for (int i = 0; i < count; i++)
+        {
+            result.Add(candidates[i].position);
+        }
+        return result;
+    }
+
+    private Vector2 FindSkywardTarget(Vector2 aimDir)
+    {
+        Vector2 fwd = (aimDir.sqrMagnitude > 0.001f) ? aimDir.normalized : GetFacingVector();
+        var targets = FindSkywardTargets(fwd, 1);
+        if (targets.Count > 0) return targets[0];
+
+        // 4. ถ้าไม่พบเป้าหมาย ให้เสกลงมาข้างหน้าตามทิศที่หัน
+        return rb.position + fwd * Mathf.Min(6f, skywardHorizontalRange);
+    }
+
+    private IEnumerator FireMultipleSkywardLasersRoutine(List<Vector2> targets)
+    {
+        for (int i = 0; i < targets.Count; i++)
+        {
+            if (i > 0 && skywardMultiStrikeInterval > 0f)
+            {
+                yield return new WaitForSeconds(skywardMultiStrikeInterval);
+            }
+            FireSkywardLaser(targets[i]);
+        }
     }
 
     private void EnsureSkywardLaserPrefab()
@@ -1046,6 +1480,15 @@ public class PusherAnimal : TestAnimal
     {
         StopMoving();
 
+        AudioClip clip = ResolveHavocSound();
+        float vol = (havocVolume > 0.001f) ? havocVolume : 1f;
+        if (clip != null)
+        {
+            PlayAnimalSound(clip, vol);
+        }
+
+        Debug.Log($"[{animalName}] Havoc: SmashEverything! Sound: {(clip != null ? clip.name : "None")}");
+
         foreach (var box in FindObjectsByType<PushableBox>(FindObjectsSortMode.None))
         {
             if (box.IsDestructible && !box.IsBroken) box.BreakBox();
@@ -1055,6 +1498,93 @@ public class PusherAnimal : TestAnimal
             if (door.IsBreakable && !door.IsBroken) door.BreakDoor();
         }
         return true;
+    }
+
+    private AudioClip ResolveHavocSound()
+    {
+        if (havocSound != null) return havocSound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatHavoc")
+                          ?? AudioManager.Instance.GetClip("Havoc")
+                          ?? AudioManager.Instance.GetClip("Goat Havoc")
+                          ?? AudioManager.Instance.GetClip("GoatSmash");
+            if (clip != null) { havocSound = clip; return havocSound; }
+        }
+#if UNITY_EDITOR
+        havocSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audioes/Animal/Goat/Goat Havoc.mp3");
+        if (havocSound != null) return havocSound;
+
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Goat Havoc t:AudioClip", new[] { "Assets/Audioes/Animal/Goat" });
+        if (guids == null || guids.Length == 0) guids = UnityEditor.AssetDatabase.FindAssets("Havoc t:AudioClip", new[] { "Assets/Audioes/Animal/Goat" });
+        if (guids != null && guids.Length > 0)
+        {
+            foreach (var g in guids)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(g);
+                if (path.StartsWith("Assets/Audioes/Animal/Goat/", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    havocSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                    if (havocSound != null) return havocSound;
+                }
+            }
+        }
+#endif
+        return null;
+    }
+
+    private AudioClip ResolveGravitySound()
+    {
+        if (gravitySound != null) return gravitySound;
+        if (AudioManager.Instance != null)
+        {
+            AudioClip clip = AudioManager.Instance.GetClip("GoatGravity")
+                          ?? AudioManager.Instance.GetClip("GoatSurge")
+                          ?? AudioManager.Instance.GetClip("Gravity");
+            if (clip != null) { gravitySound = clip; return gravitySound; }
+        }
+#if UNITY_EDITOR
+        string[] candidatePaths = new[]
+        {
+            "Assets/Audioes/Animal/Goat/goat Surge.mp3",
+            "Assets/Audioes/Animal/Goat/Goat Surge.mp3",
+            "Assets/Audioes/Animal/Goat/Goat Gravity.mp3",
+            "Assets/Audioes/Animal/Goat/goat Gravity.mp3"
+        };
+        foreach (var path in candidatePaths)
+        {
+            var loaded = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            if (loaded != null) { gravitySound = loaded; return gravitySound; }
+        }
+
+        // ค้นหาเฉพาะในโฟลเดอร์ Goat เท่านั้น ป้องกันการหลุดไปจับไฟล์ของวัว (Cow Surge / Cow Blue)
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("Surge t:AudioClip", new[] { "Assets/Audioes/Animal/Goat" });
+        if (guids == null || guids.Length == 0)
+            guids = UnityEditor.AssetDatabase.FindAssets("Gravity t:AudioClip", new[] { "Assets/Audioes/Animal/Goat" });
+        if (guids != null && guids.Length > 0)
+        {
+            foreach (var g in guids)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(g);
+                if (path.StartsWith("Assets/Audioes/Animal/Goat/", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    gravitySound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                    if (gravitySound != null) return gravitySound;
+                }
+            }
+        }
+#endif
+        return null;
+    }
+
+    private void PlayGravitySound()
+    {
+        AudioClip clip = ResolveGravitySound();
+        if (clip != null)
+        {
+            float vol = (gravityVolume > 0.001f) ? gravityVolume : 1f;
+            PlayAnimalSound(clip, vol);
+        }
     }
 
     #region Ceiling Walk (Gravity Potion)
@@ -1070,6 +1600,7 @@ public class PusherAnimal : TestAnimal
                     return false;
                 }
                 ceilingWalkDir = (FacingDirection.x < 0f) ? -1f : 1f;
+                PlayGravitySound();
                 StartCoroutine(RiseToCeilingRoutine(y));
                 return true;
 
@@ -1077,6 +1608,7 @@ public class PusherAnimal : TestAnimal
                 // ติดอยู่บนเพดานตลอดไป: ถ้ากดใช้ความสามารถอีกครั้งจะสลับทิศทางเดิน
                 ceilingWalkDir = -ceilingWalkDir;
                 bounceCooldown = 0.2f;
+                PlayGravitySound();
                 return true;
         }
         return false; // กำลังขึ้นอยู่
@@ -1141,6 +1673,7 @@ public class PusherAnimal : TestAnimal
         if (!TryFindSurface(Vector2.down, out float floorY)) floorY = groundYBeforeRise;
 
         ceilingState = CeilingState.Falling;
+        PlayGravitySound();
         StopMoving();
         SetExternalMotion(true);
         bodyCollider.excludeLayers = ~0;
@@ -1162,10 +1695,83 @@ public class PusherAnimal : TestAnimal
     #endregion
 
     #region Debug Gizmos
+    private void OnDrawGizmos()
+    {
+        if (showSkywardGizmoAlways)
+        {
+            DrawSkywardGizmos();
+        }
+    }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, pushReach);
+
+        if (showSkywardGizmo && !showSkywardGizmoAlways)
+        {
+            DrawSkywardGizmos();
+        }
+    }
+
+    private void DrawSkywardGizmos()
+    {
+        Vector2 pos = (rb != null) ? rb.position : (Vector2)transform.position;
+        Vector2 fwd = GetFacingVector();
+
+        float centerX;
+        float sizeX;
+
+        if (skywardAimFrontOnly)
+        {
+            centerX = pos.x + fwd.x * (skywardHorizontalRange * 0.5f);
+            sizeX = skywardHorizontalRange;
+        }
+        else
+        {
+            centerX = pos.x;
+            sizeX = skywardHorizontalRange * 2f;
+        }
+
+        float centerY = pos.y + skywardVerticalOffset;
+        float sizeY = skywardVerticalRange * 2f;
+
+        Vector3 center = new Vector3(centerX, centerY, 0f);
+        Vector3 size = new Vector3(sizeX, sizeY, 0f);
+
+        // 1. วาดพื้นที่สี่เหลี่ยมโปร่งแสง
+        Color fillColor = skywardGizmoColor;
+        fillColor.a = Mathf.Clamp(skywardGizmoColor.a * 0.35f, 0.05f, 0.3f);
+        Gizmos.color = fillColor;
+        Gizmos.DrawCube(center, size);
+
+        // 2. วาดเส้นขอบสีเด่นชัด
+        Color outlineColor = skywardGizmoColor;
+        outlineColor.a = 1f;
+        Gizmos.color = outlineColor;
+        Gizmos.DrawWireCube(center, size);
+
+        // 3. วาดเส้นลูกศรชี้ทิศไปข้างหน้า
+        Gizmos.color = Color.cyan;
+        Vector3 arrowStart = new Vector3(pos.x, pos.y, 0f);
+        Vector3 arrowEnd = new Vector3(pos.x + fwd.x * skywardHorizontalRange, pos.y, 0f);
+        Gizmos.DrawLine(arrowStart, arrowEnd);
+
+        Vector3 arrowHead1 = arrowEnd - (Vector3)(fwd * 0.5f) + Vector3.up * 0.3f;
+        Vector3 arrowHead2 = arrowEnd - (Vector3)(fwd * 0.5f) + Vector3.down * 0.3f;
+        Gizmos.DrawLine(arrowEnd, arrowHead1);
+        Gizmos.DrawLine(arrowEnd, arrowHead2);
+
+        // 4. ไฮไลต์เป้าหมายที่จะถูกผ่าเลเซอร์ N ชิ้นที่อยู่ใกล้สุด
+        var targets = FindSkywardTargets(fwd, Mathf.Max(1, skywardTargetCount));
+        for (int i = 0; i < targets.Count; i++)
+        {
+            Vector3 tPos = targets[i];
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(tPos, 0.45f);
+            Gizmos.color = new Color(1f, 0.9f, 0.2f, 0.75f);
+            Gizmos.DrawLine(new Vector3(tPos.x, tPos.y + 3.5f, 0f), tPos);
+        }
     }
     #endregion
 }

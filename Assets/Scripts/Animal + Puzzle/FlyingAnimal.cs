@@ -14,7 +14,7 @@ using UnityEngine.Serialization;
 /// </summary>
 public class FlyingAnimal : TestAnimal
 {
-    private enum FlyMode { Normal, Zigzag, Dizzy, Ram }
+    private enum FlyMode { Normal, Zigzag, Dizzy, Ram, PatrolPush, Havoc }
 
     #region Flying Settings
     [Header("Flying (บิน)")]
@@ -26,19 +26,41 @@ public class FlyingAnimal : TestAnimal
 
     [Tooltip("Layer ที่ลอยข้ามได้ตอนบิน (เช่น หลุม น้ำ กำแพงเตี้ย) เลือกเฉพาะ Layer ที่อยากให้บินข้าม")]
     [SerializeField] private LayerMask flyOverLayers;
+
+    [Header("Audio (เสียงเฉพาะของวัวบิน)")]
+    [Tooltip("เสียงตอนบินขึ้น / ปีกกระพือ")]
+    [SerializeField] private AudioClip flySound;
+
+    [Tooltip("เสียงตอนบินเด้งชนกำแพง")]
+    [SerializeField] private AudioClip bounceSound;
+
+    [Tooltip("เสียงตอนพุ่งชนความเร็วสูง (Surge / Ramming)")]
+    [SerializeField] private AudioClip ramSound;
+
+    [Tooltip("เสียงตอนวาร์ป (Teleport / TP ในโหมด Havoc)")]
+    [SerializeField] private AudioClip teleportSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงวาร์ป (0 - 1)")]
+    [SerializeField] private float teleportVolume = 1f;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงบิน (เล่นวนลูปตลอดที่ยังบินอยู่)")]
+    [SerializeField] private float flyLoopVolume = 1f;
+    private AudioSource flyLoopSource;
     #endregion
 
     #region Combo Settings
-    [Header("Skyward & Havoc: จุดรีเซ็ท & จุดเป้าหมาย")]
+    [Header("Skyward (เขียว+ฟ้า): จุดรีเซ็ท & จุดเป้าหมาย")]
+    [Tooltip("จุดเป้าหมายเฉพาะสำหรับ Skyward (แยกอิสระจาก Havoc ไม่ใช้ร่วมกัน)")]
+    [SerializeField] private Transform skywardDestination;
+
     [Tooltip("จุดรีเซ็ทกลางทาง 1: เมื่อสุ่มเด้งเกิน (2-3 ครั้ง) แล้วยังไม่ถึงเป้าหมาย จะเด้งกลับมาเริ่มที่จุดนี้")]
     [SerializeField] private Transform midwayResetPoint;
 
     [FormerlySerializedAs("teleportTarget")]
-    [Tooltip("จุดเป้าหมาย 1: จุดที่ต้องการให้เด้งไปให้ถึง เมื่อถึงแล้วจะปล่อยให้เด้งอิสระ")]
+    [Tooltip("จุดเป้าหมายทั่วไป (สำหรับ Skyward)")]
     [SerializeField] private Transform targetDestination;
-
-    [Tooltip("(ไม่บังคับ) จุดเป้าหมายแยกเฉพาะสำหรับ Skyward ถ้าไม่ใส่จะใช้ targetDestination ร่วมกัน")]
-    [SerializeField] private Transform skywardDestination;
 
     [Tooltip("จำนวนครั้งเด้งขั้นต่ำก่อนรีเซ็ทกลับจุดกลางทาง")]
     [SerializeField] private int minBouncesBeforeReset = 2;
@@ -67,16 +89,186 @@ public class FlyingAnimal : TestAnimal
 
     [Tooltip("ขีดจำกัดความเร็วสูงสุดที่เด้งได้ (Max Speed Limit)")]
     [SerializeField] private float maxBounceSpeed = 12f;
+    #endregion
 
-    [Header("Surge (ฟ้า+ส้ม): บินพุ่งชน")]
-    [Tooltip("ตัวคูณความเร็วตอนพุ่งชน")]
-    [SerializeField] private float ramSpeedMultiplier = 2.5f;
+    #region Skyward Door Pierce
+    [Header("Skyward Door Pierce (การทะลุประตูหลังแตะสวิตช์)")]
+    [Tooltip("เมื่อตัววัวแตะปุ่ม/สวิตช์ในโหมด Skyward แล้ว จะได้รับความสามารถทะลุประตูได้")]
+    [SerializeField] private bool skywardPierceDoorsAfterSwitch = true;
 
-    [Tooltip("ระยะที่พุ่งไป")]
-    [SerializeField] private float ramDistance = 8f;
+    [Tooltip("เมื่อตัววัวบินไปชน/แตะ FloorSwitch ในโหมด Skyward ให้กดสวิตช์ทำงานทันที")]
+    [SerializeField] private bool skywardTriggerSwitchOnTouch = true;
 
-    [Tooltip("Layer ที่ตัวพุ่งชนได้/ชนแล้วหยุด (เช่น กล่อง ประตู กำแพง) Layer อื่นจะทะลุผ่านไปตอนพุ่ง\nเว้นว่าง (Nothing) = ชนทุก Layer ตามปกติ")]
-    [SerializeField] private LayerMask ramCollideLayers;
+    [Tooltip("หากประตูเป็นแบบพังได้ (Breakable) เมื่อทะลุผ่านจะทำให้ประตูพังด้วยหรือไม่")]
+    [SerializeField] private bool skywardBreakDoorsOnPierce = false;
+
+    public bool SkywardPierceDoorsAfterSwitch
+    {
+        get => skywardPierceDoorsAfterSwitch;
+        set => skywardPierceDoorsAfterSwitch = value;
+    }
+
+    public bool SkywardBreakDoorsOnPierce
+    {
+        get => skywardBreakDoorsOnPierce;
+        set => skywardBreakDoorsOnPierce = value;
+    }
+
+    public bool SkywardSwitchTouched
+    {
+        get => skywardSwitchTouched;
+        set
+        {
+            skywardSwitchTouched = value;
+            if (skywardSwitchTouched && skywardPierceDoorsAfterSwitch)
+            {
+                IgnoreAllDoors();
+            }
+        }
+    }
+    #endregion
+
+    #region Surge Settings
+    [Header("Surge (ฟ้า+ส้ม): บินลาดตระเวน พังกล่องพังประตู & บินกลับที่เดิม")]
+    [Tooltip("ความสูงที่ตัวลอยขึ้นขณะบิน Surge (หน่วย Unity ปรับได้อิสระ)")]
+    [SerializeField] private float surgeLiftHeight = 0.5f;
+
+    [Tooltip("ความเร็วในการบินพุ่งทำลายสิ่งกีดขวาง (Surge Speed)")]
+    [SerializeField] private float surgeSpeed = 4.5f;
+
+    [Tooltip("ความเร็วตอนบินกลับไปยังตำแหน่งต้นฉบับหลังพังสิ่งกีดขวางเสร็จ")]
+    [SerializeField] private float surgeReturnSpeed = 4f;
+
+    [Tooltip("ทิศทางเริ่มต้นที่เริ่มบิน (ซ้าย หรือ ขวา)")]
+    [SerializeField] private AutoDirection surgeStartDirection = AutoDirection.Right;
+
+    [Tooltip("ระยะเวลาสูงสุดที่บินลาดตระเวนในกรณีที่ไม่มีกล่อง/ประตู (วินาที, 0 = บินไปมาซ้าย-ขวาตลอดจนกว่าจะเจอกล่อง หรือผู้เล่นสั่งหยุด)")]
+    [SerializeField] private float surgeMaxPatrolDurationWithoutTarget = 0f;
+    [SerializeField, HideInInspector] private int surgeMaxWallReverses = 0;
+
+    [Tooltip("จำนวนครั้งที่ต้องพุ่งชนกล่องถึงจะแตก (ปรับได้ที่ตัวสัตว์ ค่าเริ่มต้น 3 ครั้ง)")]
+    [SerializeField, Min(1)] private int surgeHitsToBreakBox = 3;
+
+    [Tooltip("ระยะที่ตัวบินกระเด็นถอยหลังหลังชนกล่องแต่ละครั้ง (หน่วย Unity)")]
+    [SerializeField] private float surgeRecoilDistance = 1.3f;
+
+    [Tooltip("ความเร็วตอนกระเด็นถอยหลัง")]
+    [SerializeField] private float surgeRecoilSpeed = 6f;
+
+    [Tooltip("เวลาหยุดตั้งหลักกลางอากาศหลังกระเด็น ก่อนพุ่งกลับไปชนกล่องอีกรอบ (วินาที)")]
+    [SerializeField] private float surgePauseBeforeRecharge = 0.25f;
+
+    [Tooltip("ความเร็วตอนพุ่งกลับไปชนกล่องซ้ำ")]
+    [SerializeField] private float surgeChargeSpeed = 8f;
+
+    [Tooltip("พังกล่องทันทีเมื่อพุ่งชน (ถ้าเปิดไว้ จะพังกล่องทันทีใน 1 ฮิต ไม่กระเด็นถอย)")]
+    [SerializeField] private bool surgeInstantBreakBox = false;
+
+    [Tooltip("สามารถชนพังกล่องได้ (PushableBox)")]
+    [SerializeField] private bool surgeBreakBoxes = true;
+
+    [Tooltip("สามารถชนพังประตูได้ (Door)")]
+    [SerializeField] private bool surgeBreakDoors = true;
+
+    [Tooltip("Layer สิ่งกีดขวาง/กำแพงแข็ง ที่ชนแล้วสลับทิศหรือติด (ถ้าเว้นว่างจะตรวจจับทุกอย่างที่ไม่ใช่ flyOverLayers)")]
+    [SerializeField] private LayerMask surgeObstacleLayers;
+
+    [Tooltip("(ไม่บังคับ) สไปรต์เฉพาะเมื่อดื่มยา Surge ถ้าเว้นว่างจะใช้ poweredUpSprite ปกติ")]
+    [SerializeField] private Sprite surgeFormSprite;
+
+    [SerializeField, HideInInspector] private float ramSpeedMultiplier = 2.5f;
+    [SerializeField, HideInInspector] private float ramDistance = 8f;
+    [SerializeField, HideInInspector] private LayerMask ramCollideLayers;
+
+    public float SurgeLiftHeight
+    {
+        get => surgeLiftHeight;
+        set => surgeLiftHeight = value;
+    }
+    public float SurgeSpeed
+    {
+        get => surgeSpeed;
+        set => surgeSpeed = value;
+    }
+    public int SurgeHitsToBreakBox
+    {
+        get => surgeHitsToBreakBox;
+        set => surgeHitsToBreakBox = Mathf.Max(1, value);
+    }
+    #endregion
+
+    #region Havoc Settings
+    [Header("Havoc (เขียว+ส้ม): เด้งก่อนวาร์ป & เด้งต่อ")]
+    [Tooltip("จุดเป้าหมายเฉพาะสำหรับ Havoc (แยกอิสระ 100% ไม่ใช้ร่วมกับ Skyward)")]
+    [SerializeField] private Transform havocDestination;
+
+    [Tooltip("จำนวนครั้งที่เด้งสะท้อนกำแพงก่อนวาร์ป (ค่าเริ่มต้น 5 ครั้ง)")]
+    [SerializeField] private int havocBouncesBeforeTeleport = 5;
+
+    [Tooltip("ดีเลย์สั้นๆ หลังเด้งครบครั้งสุดท้ายก่อนวาร์ป (วินาที)")]
+    [SerializeField] private float delayBeforeTeleport = 0.15f;
+
+    [Tooltip("หลังวาร์ปถึงจุดเป้าหมายแล้ว ให้เด้งสะท้อนกำแพงต่อหรือไม่ (ติ๊กไว้ = เด้งต่อ)")]
+    [SerializeField] private bool bounceAfterTeleport = true;
+
+    [Tooltip("จำนวนครั้งที่เด้งต่อหลังวาร์ป (ค่าเริ่มต้น 10 ครั้ง, 0 = เด้งตามเวลา)")]
+    [SerializeField] private int havocPostTeleportBounces = 10;
+
+    [Tooltip("ระยะเวลาสูงสุดที่เด้งต่อหลังวาร์ป (วินาที, 0 = เด้งตามจำนวนครั้งเท่านั้น)")]
+    [SerializeField] private float havocPostTeleportBounceDuration = 8f;
+
+    [Tooltip("ให้กดสวิตช์ FloorSwitch ที่อยู่ ณ จุดเป้าหมายโดยอัตโนมัติเมื่อวาร์ปถึง")]
+    [SerializeField] private bool triggerSwitchOnTeleport = true;
+
+    [Tooltip("ให้ลงจอดสู่พื้นเมื่อสิ้นสุดการเด้งต่อหลังวาร์ป")]
+    [SerializeField] private bool landAfterPostTeleport = true;
+
+    public int HavocBouncesBeforeTeleport
+    {
+        get => havocBouncesBeforeTeleport;
+        set => havocBouncesBeforeTeleport = value;
+    }
+    public Transform HavocDestination
+    {
+        get => havocDestination;
+        set => havocDestination = value;
+    }
+    #endregion
+
+    #region Strength Potion Settings
+    [Header("Strength Potion: Patrol & Push Box (ยาส้ม: บินลาดตระเวน & ดันกล่อง)")]
+    [Tooltip("ความสูงที่ตัวลอยขึ้นขณะบินลาดตระเวน (หน่วย Unity ปรับได้อิสระ)")]
+    [SerializeField] private float patrolLiftHeight = 0.5f;
+
+    [Tooltip("ความเร็วในการบินลาดตระเวน ซ้าย-ขวา")]
+    [SerializeField] private float patrolSpeed = 3.5f;
+
+    [Tooltip("ความเร็วตอนดันกล่อง")]
+    [SerializeField] private float patrolPushSpeed = 3f;
+
+    [Tooltip("ระยะดันกล่องทีละครั้ง (0 = ดันรวดเดียวจนสุดทางชนกำแพง, >0 = ค่อยๆ ดันทีละระยะนี้)")]
+    [SerializeField] private float patrolPushStep = 1f;
+
+    [Tooltip("ความเร็วตอนบินกลับไปยังจุดเริ่มต้น หลังผลักกล่องเสร็จ")]
+    [SerializeField] private float returnSpeed = 4f;
+
+    [Tooltip("ทิศทางเริ่มต้นที่เริ่มบินลาดตระเวน (ซ้าย หรือ ขวา)")]
+    [SerializeField] private AutoDirection patrolStartDirection = AutoDirection.Right;
+
+    [Tooltip("Layer สิ่งกีดขวาง/กำแพง ที่ชนแล้วจะกลับทิศ (ถ้าเว้นว่างจะตรวจจับทุกอย่างที่ไม่ใช่ flyOverLayers)")]
+    [SerializeField] private LayerMask patrolObstacleLayers;
+
+    [Tooltip("Layer ของกล่องที่ดันได้ (ถ้าเว้นว่างจะตรวจหากล่องที่มี PushableBox อัตโนมัติ)")]
+    [SerializeField] private LayerMask boxLayer;
+
+    [Tooltip("(ไม่บังคับ) สไปรต์เฉพาะเมื่อดื่มยาส้ม (Patrol / Push) ถ้าเว้นว่างจะใช้ poweredUpSprite ปกติ")]
+    [SerializeField] private Sprite strengthFormSprite;
+
+    public float PatrolLiftHeight
+    {
+        get => patrolLiftHeight;
+        set => patrolLiftHeight = value;
+    }
     #endregion
 
     #region Auto
@@ -87,13 +279,38 @@ public class FlyingAnimal : TestAnimal
     [Tooltip("ระยะที่บินไป (หน่วย Unity) ถึงแล้วจะลงพื้นเอง")]
     [SerializeField] private float flyDistance = 5f;
 
+    [Header("Switch Landing Delay (การหน่วงเวลาหลังแตะสวิตช์)")]
+    [Tooltip("ติ๊กไว้ = เมื่อบินไปแตะ/ชนสวิตช์ (FloorSwitch) จะยังลอยค้างอยู่กลางอากาศตรงสวิตช์ก่อน แล้วค่อยร่วงลงสู่พื้น")]
+    [SerializeField] private bool hoverOnSwitchTouch = true;
+
+    [Tooltip("เวลาที่บินค้างอยู่กลางอากาศหลังแตะสวิตช์ ก่อนจะร่วงลงสู่พื้น (วินาที, 0 = ร่วงทันที)")]
+    [SerializeField] private float delayAfterSwitchBeforeLand = 2f;
+
+    [Tooltip("ติ๊กไว้ = สามารถกดสวิตช์ได้ทันทีที่บินไปแตะ แม้สวิตช์นั้นจะตั้ง ignoreAirborneAnimals ไว้ก็ตาม")]
+    [SerializeField] private bool triggerAnySwitchOnTouch = true;
+
+    [Header("Door Flight (การบินผ่านประตู - ยาฟ้า)")]
+    [Tooltip("ติ๊กไว้ = เมื่อบินไปชนประตูที่ปิดอยู่ จะลอยค้างรอที่หน้าประตู (ไม่หยุดบิน/ไม่ตกพื้น) จนกว่าประตูจะเปิด แล้วบินต่อ")]
+    [SerializeField] private bool hoverAtClosedDoor = true;
+
+    [Tooltip("เวลาสูงสุดที่จะลอยรอหน้าประตูที่ปิดอยู่ (วินาที, 0 = รอไปเรื่อยๆ จนกว่าประตูจะเปิด)")]
+    [SerializeField] private float maxDoorWaitDuration = 0f;
+
+    [Tooltip("ติ๊กไว้ = ไม่ชนประตูที่เปิดอยู่เลย (บินผ่านประตูที่เปิดอยู่ได้ทันทีอย่างราบรื่น ไม่ติดขอบประตู)")]
+    [SerializeField] private bool passOpenDoors = true;
+
+    [Tooltip("ติ๊กไว้ = ตัวบิน (ยาฟ้า) สามารถบินทะลุประตูได้ทุกบาน")]
+    [SerializeField] private bool flyThroughAnyDoor = false;
+
     protected override IEnumerator AutoRoutine()
     {
         switch (mode)
         {
             case FlyMode.Zigzag:
             case FlyMode.Dizzy: yield return BounceRoutine(dizzyBounces, true); break;
-            case FlyMode.Ram: yield return RamRoutine(ToVector(flyDirection)); break;
+            case FlyMode.Havoc: yield return HavocBounceRoutine(); break;
+            case FlyMode.Ram: yield return SurgePatrolSmashRoutine(); break;
+            case FlyMode.PatrolPush: yield return PatrolPushRoutine(); break;
             default: yield return NormalFlightRoutine(); break;
         }
     }
@@ -106,10 +323,40 @@ public class FlyingAnimal : TestAnimal
 
         // บินไปทิศที่ตั้งไว้
         Vector2 dir = ToVector(flyDirection);
-        MoveTo(rb.position + dir * flyDistance);
-        while (IsMoving) yield return null;
+        Vector2 target = rb.position + dir * flyDistance;
+        MoveTo(target);
 
-        // ถึงแล้ว (หรือชนสิ่งกีดขวาง) ลงพื้น
+        while (isFlying)
+        {
+            // ถ้าระหว่างทางมีการแตะสวิตช์และกำลังลอยค้างอยู่ ให้รอจนกว่าจะครบเวลาหน่วง
+            if (isSwitchHovering)
+            {
+                while (isSwitchHovering) yield return null;
+                break; // แตะสวิตช์และลอยค้างจนครบเวลาแล้ว ลงพื้น
+            }
+
+            // ถ้าระหว่างทางชนประตูที่ปิดอยู่และกำลังลอยรอประตูเปิด
+            if (isDoorHovering)
+            {
+                while (isDoorHovering) yield return null;
+
+                // ประตูเปิดแล้ว! ถ้ายังบินอยู่ ให้บินต่อไปยังเป้าหมายเดิม
+                if (isFlying && !isSwitchHovering)
+                {
+                    MoveTo(target);
+                }
+            }
+
+            // ถ้าถึงจุดหมายแล้ว หรือติดสิ่งกีดขวางอื่นๆ (ที่ไม่ใช่ประตู/สวิตช์)
+            if (!IsMoving && !isDoorHovering && !isSwitchHovering)
+            {
+                break;
+            }
+
+            yield return null;
+        }
+
+        // ถึงแล้ว (หรือชนสิ่งกีดขวาง หรือแตะสวิตช์ครบเวลาแล้ว) ลงพื้น
         if (isFlying) Land();
     }
 
@@ -126,13 +373,15 @@ public class FlyingAnimal : TestAnimal
         int side = 1;
         float traveled = 0f;
 
-        for (int leg = 0; leg < zigzagMaxLegs && traveled < flyDistance; leg++)
+        for (int leg = 0; leg < zigzagMaxLegs && traveled < flyDistance && !isSwitchHovering; leg++)
         {
             Vector2 start = rb.position;
             zigzagWallHit = false;
             MoveTo(start + dir * zigzagStep + perp * side * zigzagAmplitude);
 
-            while (IsMoving && !zigzagWallHit) yield return null;
+            while (IsMoving && !zigzagWallHit && !isSwitchHovering) yield return null;
+
+            if (isSwitchHovering) break;
 
             float moved = Vector2.Dot(rb.position - start, dir);
             if (zigzagWallHit || moved < 0.05f)
@@ -149,6 +398,8 @@ public class FlyingAnimal : TestAnimal
             side = -side;
         }
 
+        while (isSwitchHovering) yield return null;
+
         if (isFlying) Land();
     }
 
@@ -156,6 +407,7 @@ public class FlyingAnimal : TestAnimal
     private IEnumerator BounceRoutine(int bounceCount, bool allowTeleportAfter, Vector2? customDestination = null)
     {
         isBouncing = true;
+        skywardSwitchTouched = false;
         TakeOff();
         flyEndTime = float.MaxValue;
         StopMoving();
@@ -289,6 +541,8 @@ public class FlyingAnimal : TestAnimal
             currentBounceDir = Vector2.Reflect(currentBounceDir, normal).normalized;
             FacingDirection = currentBounceDir;
 
+            PlayAnimalSound(ResolveSfx(bounceSound, "Assets/Audioes/Animal/Cow/Cow skyward.mp3", "CowBounce", "CowSkyward"), 1f, 0.05f, true);
+
             // ดันตัวออกจากกำแพงเล็กน้อยเพื่อไม่ให้ Collider ฝังในกำแพง
             rb.position += normal * 0.05f;
 
@@ -326,8 +580,119 @@ public class FlyingAnimal : TestAnimal
         OnBounceHit(new Vector2(normalX, 0f));
     }
 
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        FloorSwitch sw = other.GetComponentInParent<FloorSwitch>();
+        if (sw == null) sw = other.GetComponentInChildren<FloorSwitch>();
+        if (sw != null)
+        {
+            // ถ้าอยู่ในโหมด Skyward ให้สั่งเปิดสวิตช์และปลดล็อกการทะลุประตู
+            if (isFlying && (isBouncing || lastDrunkPotion == PotionType.Skyward))
+            {
+                if (skywardTriggerSwitchOnTouch) sw.ForceToggle();
+                if (skywardPierceDoorsAfterSwitch) OnSkywardSwitchTriggered();
+            }
+
+            if (isFlying && hoverOnSwitchTouch && !isSwitchHovering)
+            {
+                TryHandleSwitchHover(sw);
+            }
+        }
+
+        if (isFlying)
+        {
+            Door door = other.GetComponentInParent<Door>();
+            if (door == null) door = other.GetComponentInChildren<Door>();
+            if (door != null)
+            {
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                    (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
+                {
+                    IgnoreDoorCollision(door, true);
+                    if (skywardBreakDoorsOnPierce && door.IsBreakable && !door.IsBroken)
+                    {
+                        door.BreakDoor();
+                    }
+                }
+            }
+        }
+    }
+
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (isFlying)
+        {
+            Door door = other.GetComponentInParent<Door>();
+            if (door == null) door = other.GetComponentInChildren<Door>();
+            if (door != null)
+            {
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                    (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
+                {
+                    IgnoreDoorCollision(door, true);
+                    if (skywardBreakDoorsOnPierce && door.IsBreakable && !door.IsBroken)
+                    {
+                        door.BreakDoor();
+                    }
+                }
+            }
+        }
+    }
+
     private void OnCollisionEnter2D(Collision2D collision)
     {
+        // ตรวจจับสวิตช์เมื่อบินชน
+        FloorSwitch sw = collision.gameObject.GetComponentInParent<FloorSwitch>();
+        if (sw == null) sw = collision.gameObject.GetComponentInChildren<FloorSwitch>();
+        if (sw != null)
+        {
+            // ถ้าอยู่ในโหมด Skyward ให้สั่งเปิดสวิตช์และปลดล็อกการทะลุประตู
+            if (isFlying && (isBouncing || lastDrunkPotion == PotionType.Skyward))
+            {
+                if (skywardTriggerSwitchOnTouch) sw.ForceToggle();
+                if (skywardPierceDoorsAfterSwitch) OnSkywardSwitchTriggered();
+            }
+
+            if (isFlying && hoverOnSwitchTouch && !isSwitchHovering)
+            {
+                TryHandleSwitchHover(sw);
+                return;
+            }
+        }
+
+        // ตรวจจับประตูเมื่อบินชน (ยาฟ้า: ไม่ตกพื้นทันทีเมื่อชนประตู / Skyward: ทะลุผ่านประตูหลังแตะสวิตช์)
+        if (isFlying)
+        {
+            Door door = collision.gameObject.GetComponentInParent<Door>();
+            if (door == null) door = collision.gameObject.GetComponentInChildren<Door>();
+            if (door != null)
+            {
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                    (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
+                {
+                    IgnoreDoorCollision(door, true);
+                    if (skywardBreakDoorsOnPierce && door.IsBreakable && !door.IsBroken)
+                    {
+                        door.BreakDoor();
+                    }
+                    return;
+                }
+
+                if (mode == FlyMode.Normal && hoverAtClosedDoor && !isDoorHovering)
+                {
+                    TryHandleDoorHover(door);
+                    return;
+                }
+            }
+        }
+
+        // โหมด Surge: บินลาดตระเวน พังกล่องพังประตู (ฟ้า+ส้ม)
+        if (isFlying && isSurgePatrolling)
+        {
+            HandleSurgeCollision(collision);
+            return;
+        }
+
         if (IsRamming)
         {
             PushableBox box = collision.gameObject.GetComponentInParent<PushableBox>();
@@ -351,6 +716,15 @@ public class FlyingAnimal : TestAnimal
         // โหมดเด้ง: ชนกำแพงแล้วสะท้อนทันทีแบบกระจก
         if (isFlying && isBouncing)
         {
+            Door door = collision.gameObject.GetComponentInParent<Door>();
+            if (door == null) door = collision.gameObject.GetComponentInChildren<Door>();
+            if (door != null && (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                                 (skywardSwitchTouched && skywardPierceDoorsAfterSwitch)))
+            {
+                IgnoreDoorCollision(door, true);
+                return;
+            }
+
             Vector2 normal = Vector2.zero;
             int count = collision.contactCount;
             if (count > 0)
@@ -372,12 +746,72 @@ public class FlyingAnimal : TestAnimal
             StopMoving();
             return;
         }
+
+        // โหมดบินลาดตระเวนผลักกล่อง (ยาส้ม)
+        if (isFlying && isPatrolPushing)
+        {
+            HandlePatrolCollision(collision);
+            return;
+        }
+
+        // โหมด Havoc เด้งก่อนวาร์ป หรือเด้งต่อหลังวาร์ป
+        if (isFlying && (isHavocBouncing || isHavocPostBouncing))
+        {
+            Vector2 normal = Vector2.zero;
+            int count = collision.contactCount;
+            if (count > 0)
+            {
+                for (int i = 0; i < count; i++) normal += collision.contacts[i].normal;
+                normal.Normalize();
+            }
+            if (normal.sqrMagnitude > 0.01f)
+            {
+                OnHavocBounceHit(normal);
+            }
+            return;
+        }
     }
 
     private void OnCollisionStay2D(Collision2D collision)
     {
+        if (isFlying)
+        {
+            Door door = collision.gameObject.GetComponentInParent<Door>();
+            if (door == null) door = collision.gameObject.GetComponentInChildren<Door>();
+            if (door != null)
+            {
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                    (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
+                {
+                    IgnoreDoorCollision(door, true);
+                    return;
+                }
+
+                if (mode == FlyMode.Normal && hoverAtClosedDoor && !isDoorHovering)
+                {
+                    TryHandleDoorHover(door);
+                    return;
+                }
+            }
+        }
+
+        if (isFlying && isSurgePatrolling)
+        {
+            HandleSurgeCollision(collision);
+            return;
+        }
+
         if (isFlying && isBouncing && !IsRamming)
         {
+            Door door = collision.gameObject.GetComponentInParent<Door>();
+            if (door == null) door = collision.gameObject.GetComponentInChildren<Door>();
+            if (door != null && (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                                 (skywardSwitchTouched && skywardPierceDoorsAfterSwitch)))
+            {
+                IgnoreDoorCollision(door, true);
+                return;
+            }
+
             Vector2 normal = Vector2.zero;
             int count = collision.contactCount;
             if (count > 0)
@@ -389,8 +823,253 @@ public class FlyingAnimal : TestAnimal
             {
                 OnBounceHit(normal);
             }
+            return;
+        }
+
+        if (isFlying && isPatrolPushing)
+        {
+            HandlePatrolCollision(collision);
+            return;
+        }
+
+        if (isFlying && (isHavocBouncing || isHavocPostBouncing))
+        {
+            Vector2 normal = Vector2.zero;
+            int count = collision.contactCount;
+            if (count > 0)
+            {
+                for (int i = 0; i < count; i++) normal += collision.contacts[i].normal;
+                normal.Normalize();
+            }
+            if (normal.sqrMagnitude > 0.01f)
+            {
+                OnHavocBounceHit(normal);
+            }
+            return;
         }
     }
+
+    #region Switch Hover Methods
+    private void TryHandleSwitchHover(FloorSwitch sw)
+    {
+        if (sw == null || isSwitchHovering || !isFlying) return;
+
+        // ไม่รบกวนโหมดพิเศษที่จัดการฟิสิกส์การเคลื่อนที่เฉพาะ เช่น Surge / Havoc / PatrolPush
+        if (isSurgePatrolling || isPatrolPushing || isBouncing || isHavocBouncing || isHavocPostBouncing) return;
+
+        // ถ้าสวิตช์เปิด ignoreAirborneAnimals ไว้และเปิด triggerAnySwitchOnTouch ให้สลับสวิตช์
+        if (triggerAnySwitchOnTouch && sw.IgnoreAirborneAnimals)
+        {
+            sw.ForceToggle();
+        }
+
+        if (switchHoverRoutine != null)
+        {
+            StopCoroutine(switchHoverRoutine);
+            switchHoverRoutine = null;
+        }
+
+        switchHoverRoutine = StartCoroutine(SwitchHoverRoutine(sw));
+    }
+
+    private IEnumerator SwitchHoverRoutine(FloorSwitch sw)
+    {
+        isSwitchHovering = true;
+        StopMoving();
+        rb.linearVelocity = Vector2.zero;
+        flyEndTime = float.MaxValue;
+
+        Vector2 hoverPos = rb.position;
+
+        if (delayAfterSwitchBeforeLand > 0f)
+        {
+            float timer = 0f;
+            while (timer < delayAfterSwitchBeforeLand && isFlying)
+            {
+                timer += Time.deltaTime;
+                rb.linearVelocity = Vector2.zero;
+                rb.position = hoverPos;
+                yield return null;
+            }
+        }
+
+        isSwitchHovering = false;
+        switchHoverRoutine = null;
+
+        if (isFlying)
+        {
+            Land();
+        }
+    }
+    #endregion
+
+    #region Door Flight Methods
+    private readonly System.Collections.Generic.HashSet<Collider2D> ignoredDoorColliders = new System.Collections.Generic.HashSet<Collider2D>();
+
+    /// <summary>ยกเลิกการชนกับประตู เพื่อให้ตัวบินบินผ่านได้อย่างอิสระ</summary>
+    private void IgnoreDoorCollision(Door door, bool ignore = true)
+    {
+        if (door == null) return;
+        var myColliders = GetComponentsInChildren<Collider2D>(true);
+        var doorColliders = door.GetComponentsInChildren<Collider2D>(true);
+        foreach (var dc in doorColliders)
+        {
+            if (dc == null) continue;
+            foreach (var mc in myColliders)
+            {
+                if (mc != null && mc != dc)
+                {
+                    Physics2D.IgnoreCollision(mc, dc, ignore);
+                }
+            }
+            if (ignore)
+            {
+                ignoredDoorColliders.Add(dc);
+            }
+            else
+            {
+                ignoredDoorColliders.Remove(dc);
+            }
+        }
+    }
+
+    /// <summary>คืนค่าการชนกับประตูทั้งหมดเมื่อลงจอด</summary>
+    private void RestoreDoorCollisions()
+    {
+        var myColliders = GetComponentsInChildren<Collider2D>(true);
+        foreach (var dc in ignoredDoorColliders)
+        {
+            if (dc != null)
+            {
+                foreach (var mc in myColliders)
+                {
+                    if (mc != null && mc != dc)
+                    {
+                        Physics2D.IgnoreCollision(mc, dc, false);
+                    }
+                }
+            }
+        }
+        ignoredDoorColliders.Clear();
+    }
+
+    /// <summary>ยกเลิกการชนกับประตูทั้งหมดในฉาก</summary>
+    private void IgnoreAllDoors()
+    {
+        Door[] allDoors = FindObjectsByType<Door>(FindObjectsSortMode.None);
+        foreach (var d in allDoors)
+        {
+            if (d != null)
+            {
+                IgnoreDoorCollision(d, true);
+                if (skywardBreakDoorsOnPierce && d.IsBreakable && !d.IsBroken)
+                {
+                    d.BreakDoor();
+                }
+            }
+        }
+    }
+
+    /// <summary>เรียกเมื่อตัววัวในโหมด Skyward แตะสวิตช์/ปุ่ม ทำให้ได้รับความสามารถทะลุประตูได้</summary>
+    private void OnSkywardSwitchTriggered()
+    {
+        if (skywardSwitchTouched) return;
+        skywardSwitchTouched = true;
+        Debug.Log($"[{animalName}] Skyward แตะสวิตช์แล้ว! ได้รับความสามารถทะลุประตู (Skyward Door Pierce Active)");
+        IgnoreAllDoors();
+
+        if (bounceStage == BounceStage.BouncingToTarget)
+        {
+            bounceStage = BounceStage.FreeBouncing;
+            freeBounceCount = 0;
+            freeBounceTimer = 0f;
+        }
+    }
+
+    /// <summary>ตรวจสอบประตูที่เปิดอยู่ข้างหน้าแบบเรียลไทม์เพื่อไม่ให้ชนติด</summary>
+    private void CheckAheadForOpenDoors()
+    {
+        if (bodyCollider == null) return;
+        Vector2 checkDir = FacingDirection;
+        if (checkDir.sqrMagnitude < 0.01f) checkDir = ToVector(flyDirection);
+        if (checkDir.sqrMagnitude < 0.01f) return;
+
+        float speed = moveSpeed * SpeedMultiplier;
+        float castDist = speed * Time.fixedDeltaTime + 0.4f;
+
+        RaycastHit2D[] hits = Physics2D.CircleCastAll(rb.position, 0.4f, checkDir, castDist);
+        foreach (var hit in hits)
+        {
+            if (hit.collider == null || hit.collider == bodyCollider) continue;
+            Door door = hit.collider.GetComponentInParent<Door>();
+            if (door != null)
+            {
+                if (flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                    (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
+                {
+                    IgnoreDoorCollision(door, true);
+                    if (skywardBreakDoorsOnPierce && door.IsBreakable && !door.IsBroken)
+                    {
+                        door.BreakDoor();
+                    }
+                }
+            }
+        }
+    }
+
+    private void TryHandleDoorHover(Door door)
+    {
+        if (door == null || isDoorHovering || !isFlying) return;
+        if (isSurgePatrolling || isPatrolPushing || isBouncing || isHavocBouncing || isHavocPostBouncing) return;
+
+        if (doorHoverRoutine != null)
+        {
+            StopCoroutine(doorHoverRoutine);
+            doorHoverRoutine = null;
+        }
+
+        doorHoverRoutine = StartCoroutine(DoorHoverRoutine(door));
+    }
+
+    private IEnumerator DoorHoverRoutine(Door door)
+    {
+        isDoorHovering = true;
+        StopMoving();
+        rb.linearVelocity = Vector2.zero;
+        flyEndTime = float.MaxValue;
+
+        Vector2 hoverPos = rb.position;
+        float waitTimer = 0f;
+
+        while (isFlying && door != null && !door.IsOpen && !door.IsBroken && !flyThroughAnyDoor)
+        {
+            if (maxDoorWaitDuration > 0f && waitTimer >= maxDoorWaitDuration)
+            {
+                break;
+            }
+
+            waitTimer += Time.deltaTime;
+            rb.linearVelocity = Vector2.zero;
+            rb.position = hoverPos;
+            yield return null;
+        }
+
+        // เมื่อประตูเปิดแล้ว หรือเปิดโหมดบินทะลุประตู ให้เพิกเฉยต่อการชนทันที
+        if (door != null && (door.IsOpen || door.IsBroken || flyThroughAnyDoor))
+        {
+            IgnoreDoorCollision(door, true);
+        }
+
+        isDoorHovering = false;
+        doorHoverRoutine = null;
+
+        // ถ้ายังบินอยู่ แต่ประตูปิดค้างจนเกินเวลาที่ตั้งไว้ -> ค่อยลงจอด
+        if (isFlying && door != null && !door.IsOpen && !door.IsBroken && !flyThroughAnyDoor)
+        {
+            Land();
+        }
+    }
+    #endregion
     #endregion
 
     #region Visual
@@ -414,16 +1093,55 @@ public class FlyingAnimal : TestAnimal
         FreeBouncing      // ทำเป้าหมายเสร็จแล้ว -> เด้งอิสระ
     }
 
+    private enum PatrolPushStage
+    {
+        None,
+        Ascending,
+        Patrolling,
+        PushingBox,
+        Returning,
+        Descending
+    }
+
     private FlyMode mode = FlyMode.Normal;
     private PotionType lastDrunkPotion = PotionType.None;
     private bool isFlying = false;
+    private bool isSwitchHovering = false;
+    private Coroutine switchHoverRoutine = null;
+    private bool isDoorHovering = false;
+    private Coroutine doorHoverRoutine = null;
     private bool isBouncing = false;
+    private bool isPatrolPushing = false;
+    private bool isHavocBouncing = false;
+    private bool isHavocPostBouncing = false;
+    private int havocBounceCount = 0;
+    private int havocPostBounceCount = 0;
+    private Coroutine activeHavocRoutine = null;
+    private enum SurgeStage { None, Ascending, Patrolling, SmashingBox, Returning, Descending }
+    private SurgeStage surgeStage = SurgeStage.None;
+    private bool isSurgePatrolling = false;
+    private Vector2 surgeOriginPos;
+    private Vector2 surgeDir = Vector2.right;
+    private int surgeWallReversesCount = 0;
+    private bool surgeHitWall = false;
+    private Vector2 surgeWallNormal = Vector2.zero;
+    private bool surgeTargetBroken = false;
+    private PushableBox surgePendingBoxTarget = null;
+    private Coroutine activeSurgeRoutine = null;
+    private PatrolPushStage patrolPushStage = PatrolPushStage.None;
+    private Vector2 patrolOriginPos;
+    private Vector2 patrolDir = Vector2.right;
+    private PushableBox patrolDetectedBox = null;
+    private bool patrolHitWall = false;
+    private Vector2 patrolWallNormal = Vector2.zero;
+    private Coroutine activePatrolRoutine = null;
     private BounceStage bounceStage = BounceStage.BouncingToTarget;
     private int attemptBounceCount = 0;
     private int allowedBouncesThisAttempt = 3;
     private int freeBounceCount = 0;
     private float freeBounceTimer = 0f;
     private Vector2 currentBounceDir;
+    private bool skywardSwitchTouched = false;
     private int wallBouncedCount = 0;
     private Coroutine activeBounceRoutine;
     private float flyEndTime;
@@ -440,6 +1158,27 @@ public class FlyingAnimal : TestAnimal
     public bool IsVanished { get; private set; }
 
     public override bool IsAirborne => isFlying;
+    public override bool CanBreakObstacles => IsRamming;
+
+    public bool HoverOnSwitchTouch
+    {
+        get => hoverOnSwitchTouch;
+        set => hoverOnSwitchTouch = value;
+    }
+
+    public float DelayAfterSwitchBeforeLand
+    {
+        get => delayAfterSwitchBeforeLand;
+        set => delayAfterSwitchBeforeLand = Mathf.Max(0f, value);
+    }
+
+    public bool TriggerAnySwitchOnTouch
+    {
+        get => triggerAnySwitchOnTouch;
+        set => triggerAnySwitchOnTouch = value;
+    }
+
+    public bool IsSwitchHovering => isSwitchHovering;
 
     protected override float SpeedMultiplier
     {
@@ -460,7 +1199,7 @@ public class FlyingAnimal : TestAnimal
 
     public override bool AcceptsPotion(PotionType potion)
     {
-        return potion == PotionType.Light || IsComboPotion(potion);
+        return potion == PotionType.Light || potion == PotionType.Strength || IsComboPotion(potion);
     }
 
     private void OnBounce()
@@ -476,17 +1215,33 @@ public class FlyingAnimal : TestAnimal
         switch (potion)
         {
             case PotionType.Skyward:
-            case PotionType.Havoc:
                 mode = FlyMode.Dizzy;
+                StopFlyLoop();
+                break;
+            case PotionType.Havoc:
+                mode = FlyMode.Havoc;
+                StopFlyLoop();
                 break;
             case PotionType.Surge:
                 mode = FlyMode.Ram;
+                break;
+            case PotionType.Strength:
+                mode = FlyMode.PatrolPush;
                 break;
             default:
                 mode = FlyMode.Normal;
                 break;
         }
         Debug.Log($"[{animalName}] โหมดบิน: {mode} (ยา: {potion})");
+    }
+
+    protected override Sprite GetCustomPoweredUpSprite(PotionType potion)
+    {
+        if (potion == PotionType.Strength && strengthFormSprite != null)
+            return strengthFormSprite;
+        if (potion == PotionType.Surge && surgeFormSprite != null)
+            return surgeFormSprite;
+        return base.GetCustomPoweredUpSprite(potion);
     }
     #endregion
 
@@ -513,20 +1268,90 @@ public class FlyingAnimal : TestAnimal
         if (shadow != null) shadow.SetActive(false);
     }
 
+    private bool ShouldPlayFlyLoop =>
+        isFlying &&
+        !IsVanished &&
+        lastDrunkPotion != PotionType.Skyward &&
+        mode != FlyMode.Dizzy &&
+        lastDrunkPotion != PotionType.Havoc &&
+        mode != FlyMode.Havoc;
+
+    private void StartFlyLoop()
+    {
+        if (!ShouldPlayFlyLoop)
+        {
+            StopFlyLoop();
+            return;
+        }
+        AudioClip clip = ResolveSfx(flySound, "Assets/Audioes/Animal/Cow/Cow Blue.mp3", "CowFly");
+        if (clip == null) return;
+        if (flyLoopSource == null)
+        {
+            flyLoopSource = gameObject.AddComponent<AudioSource>();
+            flyLoopSource.playOnAwake = false;
+            flyLoopSource.spatialBlend = 0f;
+        }
+        var am = AudioManager.Instance;
+        float vol = flyLoopVolume;
+        if (am != null) vol = am.IsMuted ? 0f : am.MasterVolume * am.SfxVolume * am.GetClipBaseVolume(clip) * flyLoopVolume;
+        flyLoopSource.clip = clip;
+        flyLoopSource.loop = true;
+        flyLoopSource.volume = vol;
+        if (!flyLoopSource.isPlaying) flyLoopSource.Play();
+    }
+
+    private void StopFlyLoop()
+    {
+        if (flyLoopSource != null && flyLoopSource.isPlaying) flyLoopSource.Stop();
+    }
+
     private void OnDisable()
     {
+        StopFlyLoop();
         if (activeBounceRoutine != null)
         {
             StopCoroutine(activeBounceRoutine);
             activeBounceRoutine = null;
         }
+        if (activePatrolRoutine != null)
+        {
+            StopCoroutine(activePatrolRoutine);
+            activePatrolRoutine = null;
+        }
+        if (activeHavocRoutine != null)
+        {
+            StopCoroutine(activeHavocRoutine);
+            activeHavocRoutine = null;
+        }
+        if (activeSurgeRoutine != null)
+        {
+            StopCoroutine(activeSurgeRoutine);
+            activeSurgeRoutine = null;
+        }
+        if (switchHoverRoutine != null)
+        {
+            StopCoroutine(switchHoverRoutine);
+            switchHoverRoutine = null;
+        }
+        isSwitchHovering = false;
+        if (doorHoverRoutine != null)
+        {
+            StopCoroutine(doorHoverRoutine);
+            doorHoverRoutine = null;
+        }
+        isDoorHovering = false;
+        skywardSwitchTouched = false;
     }
 
     protected override void Update()
     {
         base.Update();
 
-        if (isFlying && Time.time >= flyEndTime) Land();
+        if (isFlying && !isSwitchHovering && !isPatrolPushing && !isSurgePatrolling && !isHavocBouncing && !isHavocPostBouncing && Time.time >= flyEndTime) Land();
+
+        // ซิงค์เสียงบินวนลูปให้ตรงกับสถานะการบินทุกเฟรม (ปิดเสียงบินวนลูปในโหมด Skyward และ Havoc ตามที่ผู้เล่นกำหนด)
+        if (ShouldPlayFlyLoop && (flyLoopSource == null || !flyLoopSource.isPlaying)) StartFlyLoop();
+        else if (!ShouldPlayFlyLoop) StopFlyLoop();
 
         // ยกสไปรต์ขึ้น/ลงแบบนุ่มๆ
         if (spriteTransform != null)
@@ -536,7 +1361,7 @@ public class FlyingAnimal : TestAnimal
         }
 
         // หันหน้าซ้าย-ขวาตามทิศทางการเด้ง
-        if (isBouncing && spriteRenderer != null && Mathf.Abs(FacingDirection.x) > 0.01f)
+        if ((isBouncing || isHavocBouncing || isHavocPostBouncing) && spriteRenderer != null && Mathf.Abs(FacingDirection.x) > 0.01f)
         {
             FaceHorizontal(FacingDirection.x < 0f);
         }
@@ -544,6 +1369,45 @@ public class FlyingAnimal : TestAnimal
 
     protected override void FixedUpdate()
     {
+        if (isFlying && (passOpenDoors || flyThroughAnyDoor || (isBouncing && skywardSwitchTouched && skywardPierceDoorsAfterSwitch)))
+        {
+            CheckAheadForOpenDoors();
+        }
+
+        if (isPatrolPushing)
+        {
+            // โหมดลาดตระเวนผลักกล่องจัดการการเคลื่อนที่และฟิสิกส์เองใน PatrolPushRoutine
+            UpdateGravityState();
+            return;
+        }
+
+        if (isSurgePatrolling)
+        {
+            // โหมด Surge ลาดตระเวนพังกล่อง/ประตูก็จัดการฟิสิกส์และการเคลื่อนที่เองใน SurgePatrolSmashRoutine
+            UpdateGravityState();
+            return;
+        }
+
+        if (isHavocBouncing || isHavocPostBouncing)
+        {
+            float speed = moveSpeed * SpeedMultiplier;
+            CircleCollider2D circle = bodyCollider as CircleCollider2D;
+            float radius = (circle != null) ? circle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y) * 0.95f : 0.45f;
+            float step = speed * Time.fixedDeltaTime;
+            float castDist = step + 0.06f;
+
+            RaycastHit2D hit = Physics2D.CircleCast(rb.position, radius, currentBounceDir, castDist, ~flyOverLayers);
+            if (hit.collider != null && !hit.collider.isTrigger && hit.collider.gameObject != gameObject)
+            {
+                OnHavocBounceHit(hit.normal);
+            }
+            else
+            {
+                rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+            }
+            return;
+        }
+
         if (isBouncing)
         {
             float speed = moveSpeed * SpeedMultiplier;
@@ -614,7 +1478,22 @@ public class FlyingAnimal : TestAnimal
 
                         // ถ้าเป้าหมายมี FloorSwitch ให้กดสวิตช์ด้วย
                         FloorSwitch sw = destTransform.GetComponentInParent<FloorSwitch>();
+                        if (sw == null) sw = destTransform.GetComponentInChildren<FloorSwitch>();
+                        if (sw == null)
+                        {
+                            Collider2D nearbyCol = Physics2D.OverlapCircle(destTransform.position, 1.2f);
+                            if (nearbyCol != null)
+                            {
+                                sw = nearbyCol.GetComponentInParent<FloorSwitch>();
+                                if (sw == null) sw = nearbyCol.GetComponentInChildren<FloorSwitch>();
+                            }
+                        }
                         if (sw != null) sw.RemoteToggle();
+
+                        if (skywardPierceDoorsAfterSwitch)
+                        {
+                            OnSkywardSwitchTriggered();
+                        }
 
                         // เปลี่ยนสเตจเป็นเด้งอิสระ (FreeBouncing)
                         bounceStage = BounceStage.FreeBouncing;
@@ -652,15 +1531,38 @@ public class FlyingAnimal : TestAnimal
                 rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
             }
 
-            // ตรวจจับกำแพงล่วงหน้าแบบเรียลไทม์ด้วย CircleCast เพื่อสะท้อนออกทันทีแบบกระจก
+            // ตรวจจับกำแพงล่วงหน้าแบบเรียลไทม์ด้วย CircleCast เพื่อสะท้อนออกทันทีแบบกระจก (ข้ามประตูเมื่ออยู่ในโหมดทะลุประตู)
             CircleCollider2D circle = bodyCollider as CircleCollider2D;
             float radius = circle != null ? circle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y) * 0.95f : 0.45f;
             float castDist = step + 0.05f;
 
-            RaycastHit2D hit = Physics2D.CircleCast(rb.position, radius, currentBounceDir, castDist, ~flyOverLayers);
-            if (hit.collider != null && !hit.collider.isTrigger && hit.collider.gameObject != gameObject)
+            RaycastHit2D[] hits = Physics2D.CircleCastAll(rb.position, radius, currentBounceDir, castDist, ~flyOverLayers);
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+            foreach (var h in hits)
             {
-                OnBounceHit(hit.normal);
+                if (h.collider == null || h.collider.isTrigger || h.collider.gameObject == gameObject)
+                    continue;
+
+                Door door = h.collider.GetComponentInParent<Door>();
+                if (door == null) door = h.collider.GetComponentInChildren<Door>();
+
+                if (door != null)
+                {
+                    bool canPassDoor = flyThroughAnyDoor || door.IsOpen || door.IsBroken ||
+                                       (skywardSwitchTouched && skywardPierceDoorsAfterSwitch);
+                    if (canPassDoor)
+                    {
+                        IgnoreDoorCollision(door, true);
+                        if (skywardBreakDoorsOnPierce && door.IsBreakable && !door.IsBroken)
+                        {
+                            door.BreakDoor();
+                        }
+                        continue;
+                    }
+                }
+
+                OnBounceHit(h.normal);
                 return;
             }
 
@@ -676,9 +1578,13 @@ public class FlyingAnimal : TestAnimal
     {
         if (mode == FlyMode.Ram)
         {
-            Vector2 d = aimWorldPoint - rb.position;
-            if (d.sqrMagnitude < 0.0001f) d = FacingDirection;
-            StartCoroutine(RamRoutine(d.normalized));
+            if (activeSurgeRoutine != null)
+            {
+                StopCoroutine(activeSurgeRoutine);
+                activeSurgeRoutine = null;
+            }
+
+            activeSurgeRoutine = StartCoroutine(SurgePatrolSmashRoutine(aimWorldPoint));
             return true;
         }
         if (mode == FlyMode.Dizzy || mode == FlyMode.Zigzag)
@@ -692,6 +1598,28 @@ public class FlyingAnimal : TestAnimal
             activeBounceRoutine = StartCoroutine(BounceRoutine(dizzyBounces, true, aimWorldPoint));
             return true;
         }
+        if (mode == FlyMode.PatrolPush)
+        {
+            if (activePatrolRoutine != null)
+            {
+                StopCoroutine(activePatrolRoutine);
+                activePatrolRoutine = null;
+            }
+
+            activePatrolRoutine = StartCoroutine(PatrolPushRoutine());
+            return true;
+        }
+        if (mode == FlyMode.Havoc)
+        {
+            if (activeHavocRoutine != null)
+            {
+                StopCoroutine(activeHavocRoutine);
+                activeHavocRoutine = null;
+            }
+
+            activeHavocRoutine = StartCoroutine(HavocBounceRoutine());
+            return true;
+        }
         if (isFlying) Land();
         else TakeOff();
         return true;
@@ -701,26 +1629,86 @@ public class FlyingAnimal : TestAnimal
     {
         isFlying = true;
         flyEndTime = Time.time + flyDuration;
+        UpdateGravityState();
         bodyCollider.excludeLayers = flyOverLayers; // ไม่ชน Layer เหล่านี้ตอนลอย
         if (shadow != null) shadow.SetActive(true);
+        if (ShouldPlayFlyLoop)
+        {
+            StartFlyLoop();
+        }
+        else
+        {
+            StopFlyLoop();
+        }
+
+        if (passOpenDoors || flyThroughAnyDoor || (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
+        {
+            foreach (var door in FindObjectsByType<Door>(FindObjectsSortMode.None))
+            {
+                if (door != null && (flyThroughAnyDoor || door.IsOpen || door.IsBroken || (skywardSwitchTouched && skywardPierceDoorsAfterSwitch)))
+                {
+                    IgnoreDoorCollision(door, true);
+                }
+            }
+        }
     }
 
     private void Land()
     {
         isFlying = false;
+        StopFlyLoop();
+        isSwitchHovering = false;
+        isDoorHovering = false;
+        skywardSwitchTouched = false;
+        if (switchHoverRoutine != null)
+        {
+            StopCoroutine(switchHoverRoutine);
+            switchHoverRoutine = null;
+        }
+        if (doorHoverRoutine != null)
+        {
+            StopCoroutine(doorHoverRoutine);
+            doorHoverRoutine = null;
+        }
         isBouncing = false;
+        isPatrolPushing = false;
+        isSurgePatrolling = false;
+        IsRamming = false;
+        isHavocBouncing = false;
+        isHavocPostBouncing = false;
+        patrolPushStage = PatrolPushStage.None;
+        surgeStage = SurgeStage.None;
         currentBounceSpeedBonus = 0f;
+        if (activeSurgeRoutine != null)
+        {
+            StopCoroutine(activeSurgeRoutine);
+            activeSurgeRoutine = null;
+        }
         if (activeBounceRoutine != null)
         {
             StopCoroutine(activeBounceRoutine);
             activeBounceRoutine = null;
         }
+        if (activePatrolRoutine != null)
+        {
+            StopCoroutine(activePatrolRoutine);
+            activePatrolRoutine = null;
+        }
+        if (activeHavocRoutine != null)
+        {
+            StopCoroutine(activeHavocRoutine);
+            activeHavocRoutine = null;
+        }
+        UpdateGravityState();
         bodyCollider.excludeLayers = (LayerMask)0;
         if (shadow != null) shadow.SetActive(false);
+        RestoreDoorCollisions();
     }
 
     private void TeleportTo(Vector3 destination)
     {
+        PlayTeleportSound();
+
         // เอฟเฟกต์ควันตอนเริ่มวาร์ปจากจุดเดิม
         if (smokeEffectPrefab != null) Instantiate(smokeEffectPrefab, transform.position, Quaternion.identity);
 
@@ -734,6 +1722,15 @@ public class FlyingAnimal : TestAnimal
         Debug.Log($"[{animalName}] ควอนตั้มวาร์ป (TP) ไปยังจุด {destination} สำเร็จ!");
     }
 
+    private void PlayTeleportSound()
+    {
+        AudioClip clip = ResolveSfx(teleportSound, "Assets/Audioes/Animal/Cow/Cow skyward.mp3", "CowTeleport", "CowSkyward");
+        if (clip != null)
+        {
+            PlayAnimalSound(clip, teleportVolume);
+        }
+    }
+
     private void Vanish()
     {
         if (smokeEffectPrefab != null) Instantiate(smokeEffectPrefab, transform.position, Quaternion.identity);
@@ -745,6 +1742,880 @@ public class FlyingAnimal : TestAnimal
         if (shadow != null) shadow.SetActive(false);
         bodyCollider.enabled = false;
         Debug.Log($"[{animalName}] เวียนหัวจนหายตัวไป!");
+    }
+    #endregion
+
+    #region Strength Potion (Patrol & Push Box)
+    /// <summary>
+    /// ทำงานเมื่อได้ยาส้ม (Strength Potion):
+    /// 1. ลอยตัวขึ้นตามระดับ patrolLiftHeight
+    /// 2. บินลาดตระเวน ซ้าย-ขวา ไปเรื่อยๆ เมื่อชนกำแพงจะสลับทิศทาง
+    /// 3. เมื่อเจอกล่อง (PushableBox) จะดันกล่องไปข้างหน้าจนกระทั่งกล่องติดกำแพง/ดันต่อไม่ได้
+    /// 4. เมื่อกล่องติดแล้ว บินกลับไปยังตำแหน่งตั้งต้นเดิม (originPos) แล้วลงจอด
+    /// </summary>
+    private IEnumerator PatrolPushRoutine()
+    {
+        isPatrolPushing = true;
+        patrolPushStage = PatrolPushStage.Ascending;
+        TakeOff();
+        UpdateGravityState();
+        flyEndTime = float.MaxValue;
+        StopMoving();
+
+        patrolOriginPos = rb.position;
+        float targetFlightY = patrolOriginPos.y + Mathf.Max(0.2f, patrolLiftHeight);
+
+        // ตรวจสอบเพดานด้านบนก่อนลอยตัว กันชนทะลุเพดาน
+        LayerMask wallMask = patrolObstacleLayers.value != 0 ? patrolObstacleLayers : (LayerMask)(~flyOverLayers);
+        RaycastHit2D ceilCheck = Physics2D.Raycast(patrolOriginPos, Vector2.up, patrolLiftHeight + 0.2f, wallMask);
+        if (ceilCheck.collider != null && !ceilCheck.collider.isTrigger && !ceilCheck.collider.transform.IsChildOf(transform))
+        {
+            float maxAllowedY = ceilCheck.point.y - 0.35f;
+            if (maxAllowedY > patrolOriginPos.y + 0.05f)
+            {
+                targetFlightY = Mathf.Min(targetFlightY, maxAllowedY);
+            }
+        }
+
+        // --- 1. ลอยตัวขึ้นสู่ระดับความสูงบิน (Ascend) พร้อม Safety Timeout ---
+        float ascendSpeed = Mathf.Max(2f, patrolSpeed);
+        float ascendTimer = 0f;
+        while (Mathf.Abs(rb.position.y - targetFlightY) > 0.03f && ascendTimer < 1.0f)
+        {
+            ascendTimer += Time.fixedDeltaTime;
+            float newY = Mathf.MoveTowards(rb.position.y, targetFlightY, ascendSpeed * Time.fixedDeltaTime);
+            rb.position = new Vector2(patrolOriginPos.x, newY);
+            rb.linearVelocity = Vector2.zero;
+            yield return new WaitForFixedUpdate();
+        }
+        rb.position = new Vector2(patrolOriginPos.x, targetFlightY);
+        rb.linearVelocity = Vector2.zero;
+
+        // กำหนดทิศทางเริ่มต้น
+        patrolDir = (patrolStartDirection == AutoDirection.Left) ? Vector2.left : Vector2.right;
+        FacingDirection = patrolDir;
+        FaceHorizontal(patrolDir.x < 0f);
+
+        patrolDetectedBox = null;
+        patrolHitWall = false;
+        patrolWallNormal = Vector2.zero;
+        float wallCooldown = 0f;
+        float stuckTimer = 0f;
+        Vector2 lastRecordedPos = rb.position;
+        patrolPushStage = PatrolPushStage.Patrolling;
+
+        Debug.Log($"[{animalName}] เริ่มบินลาดตระเวน ทิศทาง {patrolDir} ความสูงลอยตัว {targetFlightY}");
+
+        // --- 2. บินลาดตระเวน ซ้าย-ขวา ไปเรื่อยๆ จนเจอกล่องหรือชนกำแพงสลับทิศ ---
+        while (patrolDetectedBox == null)
+        {
+            wallCooldown -= Time.fixedDeltaTime;
+
+            float speed = patrolSpeed * SpeedMultiplier;
+            // คุมระดับความสูงบินผ่านความเร็วแกน Y อย่างนุ่มนวล ไม่แย่งตำแหน่งกับแกน X
+            float targetVy = Mathf.Clamp((targetFlightY - rb.position.y) * 5f, -2.5f, 2.5f);
+            rb.linearVelocity = new Vector2(patrolDir.x * speed, targetVy) + ConveyorVelocity;
+
+            // CircleCast ตรวจจับสิ่งกีดขวาง/กล่องล่วงหน้า
+            CircleCollider2D circle = bodyCollider as CircleCollider2D;
+            float radius = (circle != null) ? circle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y) * 0.9f : 0.45f;
+            float checkDist = Mathf.Max(0.12f, speed * Time.fixedDeltaTime + 0.06f);
+            LayerMask effectiveBoxMask = boxLayer.value != 0 ? boxLayer : (LayerMask)(1 << 6);
+            LayerMask checkMask = patrolObstacleLayers.value != 0 ? (patrolObstacleLayers | effectiveBoxMask) : (LayerMask)(~flyOverLayers | effectiveBoxMask);
+
+            RaycastHit2D hit = Physics2D.CircleCast(rb.position, radius, patrolDir, checkDist, checkMask);
+            if (hit.collider != null && !hit.collider.isTrigger && !hit.collider.transform.IsChildOf(transform))
+            {
+                PushableBox box = hit.collider.GetComponentInParent<PushableBox>();
+                if (box != null && !box.IsBroken)
+                {
+                    patrolDetectedBox = box;
+                    break;
+                }
+                else if (wallCooldown <= 0f)
+                {
+                    // ต้องเป็นกำแพงแนวตั้งที่ขวางหน้าทิศทางบินเท่านั้น (ไม่นับพื้นด้านล่าง)
+                    if (Mathf.Abs(hit.normal.x) > 0.35f && Vector2.Dot(patrolDir, hit.normal) < -0.3f)
+                    {
+                        patrolHitWall = true;
+                        patrolWallNormal = hit.normal;
+                    }
+                }
+            }
+
+            // ตรวจจับอาการติดนิ่งอยู่กับที่ (stuck detection)
+            if (Vector2.Distance(rb.position, lastRecordedPos) < 0.03f)
+            {
+                stuckTimer += Time.fixedDeltaTime;
+            }
+            else
+            {
+                stuckTimer = 0f;
+                lastRecordedPos = rb.position;
+            }
+
+            // ถ้าชนกำแพง หรือติดนิ่งเกิน 0.8 วิ -> สลับทิศทางซ้าย-ขวา
+            if ((patrolHitWall && wallCooldown <= 0f) || stuckTimer >= 0.8f)
+            {
+                patrolDir = -patrolDir;
+                FacingDirection = patrolDir;
+                FaceHorizontal(patrolDir.x < 0f);
+
+                Vector2 nudge = (patrolWallNormal.sqrMagnitude > 0.01f) ? patrolWallNormal.normalized : -patrolDir;
+                rb.position += nudge * 0.08f;
+
+                wallCooldown = 0.35f;
+                stuckTimer = 0f;
+                lastRecordedPos = rb.position;
+                patrolHitWall = false;
+                patrolWallNormal = Vector2.zero;
+                Debug.Log($"[{animalName}] บินชนกำแพง -> สลับทิศทางเป็น {patrolDir}");
+            }
+
+            yield return new WaitForFixedUpdate();
+        }
+
+        // --- 3. ดันกล่องไปข้างหน้าจนกระทั่งกล่องติด (Push Box Until Stuck) ---
+        patrolPushStage = PatrolPushStage.PushingBox;
+        PushableBox targetBox = patrolDetectedBox;
+        StopMoving();
+        rb.linearVelocity = Vector2.zero;
+        Debug.Log($"[{animalName}] เจอกล่อง {targetBox.name} เริ่มดันกล่องไปทาง {patrolDir}!");
+
+        Collider2D targetBoxCol = targetBox.GetComponent<Collider2D>();
+        float boxExtentX = (targetBoxCol != null) ? targetBoxCol.bounds.extents.x : 0.5f;
+        CircleCollider2D catCircle = bodyCollider as CircleCollider2D;
+        float catExtentX = (catCircle != null) ? catCircle.radius * transform.lossyScale.x : 0.45f;
+        float followOffset = boxExtentX + catExtentX + 0.05f;
+
+        bool boxStuck = false;
+        while (!boxStuck && targetBox != null && !targetBox.IsBroken)
+        {
+            float pushDist = patrolPushStep > 0f ? patrolPushStep : 50f;
+            bool pushed = targetBox.TryPush(patrolDir, pushDist, patrolPushSpeed, this);
+
+            if (!pushed)
+            {
+                // ดันต่อไม่ได้แล้ว = กล่องติดกำแพง/สิ่งกีดขวางแล้ว
+                Debug.Log($"[{animalName}] ดันกล่อง {targetBox.name} จนติดกำแพงแล้ว!");
+                boxStuck = true;
+                break;
+            }
+
+            // บินตามหลังกล่องไปเรื่อยๆ จนกว่ากล่องจะหยุดเลื่อนในจังหวะนั้น
+            while (targetBox != null && targetBox.IsMoving)
+            {
+                Vector2 targetCatPos = new Vector2(targetBox.transform.position.x - patrolDir.x * followOffset, targetFlightY);
+                float step = patrolPushSpeed * Time.fixedDeltaTime;
+                Vector2 nextCatPos = Vector2.MoveTowards(rb.position, targetCatPos, step * 1.35f);
+                rb.MovePosition(nextCatPos);
+                yield return new WaitForFixedUpdate();
+            }
+
+            if (patrolPushStep > 0f && !boxStuck)
+            {
+                yield return new WaitForSeconds(0.08f);
+            }
+        }
+
+        // --- 4. บินกลับไปยังตำแหน่งตั้งต้นเดิม (Return To Origin) ---
+        patrolPushStage = PatrolPushStage.Returning;
+        Debug.Log($"[{animalName}] ดันเสร็จแล้ว กำลังบินกลับไปยังตำแหน่งตั้งต้น {patrolOriginPos}");
+        StopMoving();
+        rb.linearVelocity = Vector2.zero;
+
+        yield return new WaitForSeconds(0.2f);
+
+        Vector2 returnHorizontalDir = (patrolOriginPos.x < rb.position.x) ? Vector2.left : Vector2.right;
+        FacingDirection = returnHorizontalDir;
+        FaceHorizontal(returnHorizontalDir.x < 0f);
+
+        float returnSafetyTimer = 0f;
+        while (Mathf.Abs(rb.position.x - patrolOriginPos.x) > 0.05f && returnSafetyTimer < 10f)
+        {
+            returnSafetyTimer += Time.fixedDeltaTime;
+            float step = returnSpeed * Time.fixedDeltaTime;
+            Vector2 nextH = Vector2.MoveTowards(rb.position, new Vector2(patrolOriginPos.x, targetFlightY), step);
+            rb.MovePosition(nextH);
+            yield return new WaitForFixedUpdate();
+        }
+        rb.MovePosition(new Vector2(patrolOriginPos.x, targetFlightY));
+
+        // --- 5. ลดระดับลงสู่ตำแหน่งตั้งต้นและลงจอด (Descend & Land) ---
+        patrolPushStage = PatrolPushStage.Descending;
+        returnSafetyTimer = 0f;
+        while (Mathf.Abs(rb.position.y - patrolOriginPos.y) > 0.03f && returnSafetyTimer < 5f)
+        {
+            returnSafetyTimer += Time.fixedDeltaTime;
+            float step = returnSpeed * Time.fixedDeltaTime;
+            Vector2 nextPos = Vector2.MoveTowards(rb.position, patrolOriginPos, step);
+            rb.MovePosition(nextPos);
+            yield return new WaitForFixedUpdate();
+        }
+        rb.MovePosition(patrolOriginPos);
+        rb.linearVelocity = Vector2.zero;
+
+        patrolPushStage = PatrolPushStage.None;
+        isPatrolPushing = false;
+        activePatrolRoutine = null;
+        Land();
+        Debug.Log($"[{animalName}] บินกลับถึงตำแหน่งตั้งต้นและลงจอดเรียบร้อยแล้ว");
+    }
+
+    /// <summary>
+    /// จัดการการชนของโหมดบินลาดตระเวน (ตรวจหากล่องเพื่อผลัก หรือตรวจหากำแพงเพื่อสลับทิศทาง)
+    /// </summary>
+    private void HandlePatrolCollision(Collision2D collision)
+    {
+        if (patrolPushStage != PatrolPushStage.Patrolling) return;
+
+        PushableBox box = collision.gameObject.GetComponentInParent<PushableBox>();
+        if (box != null && !box.IsBroken)
+        {
+            patrolDetectedBox = box;
+            return;
+        }
+
+        Vector2 normal = Vector2.zero;
+        int count = collision.contactCount;
+        for (int i = 0; i < count; i++)
+        {
+            normal += collision.contacts[i].normal;
+        }
+
+        if (normal.sqrMagnitude > 0.01f)
+        {
+            normal.Normalize();
+            // ต้องเป็นกำแพงแนวตั้งที่ขวางทิศทางเดินเท่านั้น ไม่ใช่พื้น
+            if (Mathf.Abs(normal.x) > 0.35f && Vector2.Dot(patrolDir, normal) < -0.3f)
+            {
+                patrolHitWall = true;
+                patrolWallNormal = normal;
+            }
+        }
+    }
+
+    #region Surge Potion (Patrol & Smash)
+    /// <summary>
+    /// ทำงานเมื่อได้ยา Surge (ฟ้า+ส้ม):
+    /// 1. ลอยตัวขึ้นตามระดับ surgeLiftHeight
+    /// 2. บินลาดตระเวน ซ้าย-ขวา พังกล่องและพังประตูทุกอย่างที่ขวางทาง
+    /// 3. เมื่อชนกำแพงแข็งหรือสิ่งกีดขวางที่พังไม่ได้ จะสลับทิศทางซ้าย-ขวา (ตาม surgeMaxWallReverses)
+    /// 4. เมื่อติด/ชนกำแพงจนครบกำหนดแล้ว ("จนติด") จะบินกลับไปยังตำแหน่งต้นฉบับเดิม (originPos) แล้วลงจอด
+    /// </summary>
+    private IEnumerator SurgePatrolSmashRoutine(Vector2? initialAim = null)
+    {
+        isSurgePatrolling = true;
+        IsRamming = true;
+        surgeStage = SurgeStage.Ascending;
+        TakeOff();
+        flyEndTime = float.MaxValue;
+        StopMoving();
+
+        surgeOriginPos = rb.position;
+        float targetFlightY = surgeOriginPos.y + surgeLiftHeight;
+
+        // ตรวจสอบเพดานด้านบนก่อนลอยตัว กันชนทะลุเพดาน
+        LayerMask wallMask = surgeObstacleLayers.value != 0 ? surgeObstacleLayers : (LayerMask)(~flyOverLayers);
+        RaycastHit2D ceilCheck = Physics2D.Raycast(surgeOriginPos, Vector2.up, surgeLiftHeight + 0.2f, wallMask);
+        if (ceilCheck.collider != null && !ceilCheck.collider.isTrigger && ceilCheck.collider.gameObject != gameObject)
+        {
+            targetFlightY = Mathf.Min(targetFlightY, ceilCheck.point.y - 0.35f);
+        }
+
+        // --- 1. ลอยตัวขึ้นสู่ระดับความสูงบิน (Ascend) ---
+        float ascendSpeed = Mathf.Max(2f, surgeSpeed);
+        float ascendTimer = 0f;
+        while (Mathf.Abs(rb.position.y - targetFlightY) > 0.02f && ascendTimer < 1.0f)
+        {
+            ascendTimer += Time.fixedDeltaTime;
+            float newY = Mathf.MoveTowards(rb.position.y, targetFlightY, ascendSpeed * Time.fixedDeltaTime);
+            rb.position = new Vector2(surgeOriginPos.x, newY);
+            yield return new WaitForFixedUpdate();
+        }
+        rb.position = new Vector2(surgeOriginPos.x, targetFlightY);
+
+        // กำหนดทิศทางเริ่มต้น
+        if (initialAim.HasValue && Mathf.Abs(initialAim.Value.x - rb.position.x) > 0.1f)
+        {
+            surgeDir = (initialAim.Value.x < rb.position.x) ? Vector2.left : Vector2.right;
+        }
+        else
+        {
+            surgeDir = (surgeStartDirection == AutoDirection.Left) ? Vector2.left : Vector2.right;
+        }
+
+        FacingDirection = surgeDir;
+        FaceHorizontal(surgeDir.x < 0f);
+
+        surgeWallReversesCount = 0;
+        surgeHitWall = false;
+        surgeWallNormal = Vector2.zero;
+        surgeTargetBroken = false;
+        float wallCooldown = 0f;
+        float stuckTimer = 0f;
+        Vector2 lastRecordedPos = rb.position;
+        float totalFlightTime = 0f;
+
+        surgeStage = SurgeStage.Patrolling;
+        Debug.Log($"[{animalName}] เริ่ม Surge บินลาดตระเวนซ้าย-ขวา หาเป้าหมายกล่อง/ประตู (ทิศทาง {surgeDir}, ความเร็ว {surgeSpeed})");
+
+        // --- 2. บินลาดตระเวน ซ้าย-ขวา พังกล่อง พังประตู (ถ้าไม่มีกล่องจะบินไปมาซ้าย-ขวาต่อเนื่อง) ---
+        while (!surgeTargetBroken)
+        {
+            totalFlightTime += Time.fixedDeltaTime;
+            wallCooldown -= Time.fixedDeltaTime;
+
+            // ตรวจสอบระยะเวลาสูงสุดในกรณีที่ไม่มีกล่อง/ประตู (ถ้าตั้งไว้ > 0)
+            if (surgeMaxPatrolDurationWithoutTarget > 0f && totalFlightTime >= surgeMaxPatrolDurationWithoutTarget)
+            {
+                Debug.Log($"[{animalName}] Surge บินลาดตระเวนจนครบเวลา {surgeMaxPatrolDurationWithoutTarget} วิ (ไม่พบกล่อง/ประตู)");
+                break;
+            }
+
+            float speed = surgeSpeed;
+            // คุมระดับความสูงบินผ่านความเร็วแกน Y อย่างนุ่มนวล ไม่แย่งตำแหน่งกับแกน X
+            float targetVy = Mathf.Clamp((targetFlightY - rb.position.y) * 5f, -2.5f, 2.5f);
+            rb.linearVelocity = new Vector2(surgeDir.x * speed, targetVy) + ConveyorVelocity;
+
+            // ตรวจจับกล่องที่ชนเข้ามาจาก OnCollisionEnter/Stay
+            if (surgePendingBoxTarget != null && !surgePendingBoxTarget.IsBroken)
+            {
+                PushableBox targetBox = surgePendingBoxTarget;
+                surgePendingBoxTarget = null;
+                yield return StartCoroutine(SurgeSmashBoxSequence(targetBox));
+                if (surgeTargetBroken) break;
+            }
+
+            // CircleCast ตรวจจับกล่องหรือประตูด้านหน้าล่วงหน้า
+            CircleCollider2D circle = bodyCollider as CircleCollider2D;
+            float radius = (circle != null) ? circle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y) * 0.9f : 0.45f;
+            float checkDist = Mathf.Max(0.15f, speed * Time.fixedDeltaTime + 0.08f);
+
+            RaycastHit2D hit = Physics2D.CircleCast(rb.position, radius, surgeDir, checkDist, ~flyOverLayers);
+            if (hit.collider != null && !hit.collider.isTrigger && hit.collider.gameObject != gameObject)
+            {
+                PushableBox box = hit.collider.GetComponentInParent<PushableBox>();
+                if (box != null && !box.IsBroken)
+                {
+                    if (surgeBreakBoxes)
+                    {
+                        yield return StartCoroutine(SurgeSmashBoxSequence(box));
+                        if (surgeTargetBroken) break;
+                    }
+                }
+
+                Door door = hit.collider.GetComponentInParent<Door>();
+                if (door != null && !door.IsBroken)
+                {
+                    if (surgeBreakDoors && door.IsBreakable)
+                    {
+                        Debug.Log($"[{animalName}] Surge พุ่งชนประตู {door.name} จนแตก!");
+                        door.BreakDoor();
+                        surgeTargetBroken = true;
+                        break;
+                    }
+                }
+
+                // ถ้าไม่ใช่กล่องและไม่ใช่ประตู และเป็นกำแพงแนวตั้งที่ขวางอยู่ข้างหน้า -> ชนกำแพงสลับทิศทาง
+                if (box == null && door == null && wallCooldown <= 0f)
+                {
+                    if (Mathf.Abs(hit.normal.x) > 0.35f && Vector2.Dot(surgeDir, hit.normal) < -0.3f)
+                    {
+                        surgeHitWall = true;
+                        surgeWallNormal = hit.normal;
+                    }
+                }
+            }
+
+            // ตรวจสอบอาการติดนิ่งอยู่กับที่ (เช่น ชนกำแพงที่เรย์แคสต์ไม่จับ)
+            if (Vector2.Distance(rb.position, lastRecordedPos) < 0.03f)
+            {
+                stuckTimer += Time.fixedDeltaTime;
+            }
+            else
+            {
+                stuckTimer = 0f;
+                lastRecordedPos = rb.position;
+            }
+
+            // ถ้าชนกำแพงแข็ง หรือติดนิ่งเกิน 0.8 วิ -> สลับทิศทางซ้าย-ขวา บินต่อไปเรื่อยๆ
+            if ((surgeHitWall && wallCooldown <= 0f) || stuckTimer >= 0.8f)
+            {
+                surgeWallReversesCount++;
+                surgeDir = -surgeDir;
+                FacingDirection = surgeDir;
+                FaceHorizontal(surgeDir.x < 0f);
+
+                // Nudge แนวนอนออกจากกำแพงเล็กน้อย
+                rb.position += new Vector2(surgeDir.x * 0.08f, 0f);
+
+                wallCooldown = 0.35f;
+                stuckTimer = 0f;
+                lastRecordedPos = rb.position;
+                surgeHitWall = false;
+                surgeWallNormal = Vector2.zero;
+
+                Debug.Log($"[{animalName}] Surge ชนกำแพง -> สลับทิศทางเป็น {surgeDir} (บินลาดตระเวนซ้าย-ขวาต่อ)");
+            }
+
+            yield return new WaitForFixedUpdate();
+        }
+
+        // --- 3. บินกลับไปยังตำแหน่งต้นฉบับเดิม (เฉพาะกรณีชนกล่องจนแตก หรือ ประตูจนแตก) ---
+        if (surgeTargetBroken)
+        {
+            // หยุดความเร็วชั่วขณะและหน่วงเวลาสั้นๆ ให้เห็นกล่อง/ประตูแตก
+            StopMoving();
+            rb.linearVelocity = Vector2.zero;
+            yield return new WaitForSeconds(0.2f);
+
+            surgeStage = SurgeStage.Returning;
+            Debug.Log($"[{animalName}] Surge ทำลายเป้าหมายจนแตกแล้ว -> กำลังบินกลับไปยังตำแหน่งต้นฉบับ {surgeOriginPos}");
+
+            Vector2 returnHorizontalDir = (surgeOriginPos.x < rb.position.x) ? Vector2.left : Vector2.right;
+            FacingDirection = returnHorizontalDir;
+            FaceHorizontal(returnHorizontalDir.x < 0f);
+
+            float returnSafetyTimer = 0f;
+            while (Mathf.Abs(rb.position.x - surgeOriginPos.x) > 0.05f && returnSafetyTimer < 10f)
+            {
+                returnSafetyTimer += Time.fixedDeltaTime;
+                float step = surgeReturnSpeed * Time.fixedDeltaTime;
+                Vector2 nextH = Vector2.MoveTowards(rb.position, new Vector2(surgeOriginPos.x, targetFlightY), step);
+                rb.MovePosition(nextH);
+                yield return new WaitForFixedUpdate();
+            }
+            rb.MovePosition(new Vector2(surgeOriginPos.x, targetFlightY));
+
+            // --- 4. ลดระดับลงสู่ตำแหน่งต้นฉบับและลงจอด (Descend & Land) ---
+            surgeStage = SurgeStage.Descending;
+            returnSafetyTimer = 0f;
+            while (Mathf.Abs(rb.position.y - surgeOriginPos.y) > 0.03f && returnSafetyTimer < 5f)
+            {
+                returnSafetyTimer += Time.fixedDeltaTime;
+                float step = surgeReturnSpeed * Time.fixedDeltaTime;
+                Vector2 nextPos = Vector2.MoveTowards(rb.position, surgeOriginPos, step);
+                rb.MovePosition(nextPos);
+                yield return new WaitForFixedUpdate();
+            }
+            rb.MovePosition(surgeOriginPos);
+            rb.linearVelocity = Vector2.zero;
+
+            Debug.Log($"[{animalName}] Surge บินกลับถึงตำแหน่งต้นฉบับและลงจอดเรียบร้อยแล้ว");
+        }
+
+        surgeStage = SurgeStage.None;
+        isSurgePatrolling = false;
+        IsRamming = false;
+        activeSurgeRoutine = null;
+        Land();
+    }
+
+    /// <summary>
+    /// กระบวนการชนทำลายกล่องของโหมด Surge:
+    /// พุ่งชน -> กระเด็นถอยหลังกลางอากาศ -> หยุดตั้งหลัก -> พุ่งกลับไปชนซ้ำ จนครบ surgeHitsToBreakBox ครั้ง -> กล่องแตก!
+    /// </summary>
+    private IEnumerator SurgeSmashBoxSequence(PushableBox box)
+    {
+        if (box == null || box.IsBroken) yield break;
+
+        surgeStage = SurgeStage.SmashingBox;
+        IsRamming = true;
+        StopMoving();
+        rb.linearVelocity = Vector2.zero;
+
+        // ทำให้แน่ใจว่ากล่องทำลายได้ และซิงค์จำนวนครั้งที่ต้องชนตามที่ตั้งไว้ในตัวสัตว์ (surgeHitsToBreakBox)
+        box.IsDestructible = true;
+        int targetHits = surgeInstantBreakBox ? 1 : Mathf.Max(1, surgeHitsToBreakBox);
+        box.HitsToBreak = targetHits;
+
+        LayerMask wallMask = surgeObstacleLayers.value != 0 ? surgeObstacleLayers : (LayerMask)(~flyOverLayers);
+        float flightY = rb.position.y;
+
+        for (int hit = 1; hit <= targetHits; hit++)
+        {
+            if (box == null || box.IsBroken) break;
+
+            // 1. กระแทกกล่อง (Impact Feedback & Shake)
+            Debug.Log($"[{animalName}] Surge พุ่งชนกล่อง {box.name} ครั้งที่ {hit}/{targetHits}!");
+            PlayAnimalSound(ResolveSfx(ramSound, "Assets/Audioes/Animal/Cow/Cow Surge.mp3", "CowRam", "CowSurge")); // เล่นเสียงทุกครั้งที่ชน
+            box.TriggerHitFeedback();
+
+            // ชนครบจำนวนแล้ว -> กล่องแตก!
+            if (hit >= targetHits)
+            {
+                Debug.Log($"[{animalName}] Surge พุ่งชนกล่อง {box.name} ครบ {targetHits} ครั้ง จนแตกสมบูรณ์!");
+                box.BreakBox();
+                surgeTargetBroken = true;
+                break;
+            }
+
+            // 2. กระเด็นถอยหลังกลางอากาศ (Recoil Backward)
+            Vector2 recoilDir = -surgeDir;
+            float desiredRecoil = surgeRecoilDistance;
+
+            // ตรวจสอบสิ่งกีดขวาง/กำแพงด้านหลัง กันกระเด็นทะลุกำแพง
+            RaycastHit2D wallBehind = Physics2D.Raycast(rb.position, recoilDir, desiredRecoil + 0.35f, wallMask);
+            if (wallBehind.collider != null && wallBehind.collider.gameObject != gameObject && wallBehind.collider.gameObject != box.gameObject)
+            {
+                desiredRecoil = Mathf.Max(0.2f, wallBehind.distance - 0.3f);
+            }
+
+            Vector2 recoilStart = rb.position;
+            Vector2 recoilTarget = new Vector2(recoilStart.x + recoilDir.x * desiredRecoil, flightY);
+            float recoilDuration = Mathf.Max(0.08f, desiredRecoil / Mathf.Max(surgeRecoilSpeed, 0.5f));
+            float recoilElapsed = 0f;
+
+            // หันหน้ามองกล่องอยู่ตลอดแม้ตอนกระเด็นถอยหลัง
+            FacingDirection = surgeDir;
+            FaceHorizontal(surgeDir.x < 0f);
+
+            while (recoilElapsed < recoilDuration)
+            {
+                recoilElapsed += Time.fixedDeltaTime;
+                float t = Mathf.Clamp01(recoilElapsed / recoilDuration);
+                // Ease-out ตอนกระเด็นถอยหลัง
+                float smoothT = Mathf.Sin(t * Mathf.PI * 0.5f);
+                rb.position = Vector2.Lerp(recoilStart, recoilTarget, smoothT);
+                yield return new WaitForFixedUpdate();
+            }
+            rb.position = recoilTarget;
+            rb.linearVelocity = Vector2.zero;
+
+            // 3. หยุดตั้งหลักกลางอากาศชั่วขณะ (Pause / Hover in mid-air)
+            if (surgePauseBeforeRecharge > 0f)
+            {
+                yield return new WaitForSeconds(surgePauseBeforeRecharge);
+            }
+
+            if (box == null || box.IsBroken) break;
+
+            // 4. พุ่งกลับไปชนกล่องอีกรอบ (Charge back forward)
+            FacingDirection = surgeDir;
+            FaceHorizontal(surgeDir.x < 0f);
+
+            Collider2D boxCol = box.GetComponent<Collider2D>();
+            CircleCollider2D catCircle = bodyCollider as CircleCollider2D;
+            float catRadius = (catCircle != null) ? catCircle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y) : 0.45f;
+            float boxHalfWidth = (boxCol != null) ? boxCol.bounds.extents.x : 0.5f;
+
+            float chargeSafetyTimer = 0f;
+            float chargeSpeed = Mathf.Max(surgeSpeed * 1.25f, surgeChargeSpeed);
+
+            while (chargeSafetyTimer < 2.0f && box != null && !box.IsBroken)
+            {
+                chargeSafetyTimer += Time.fixedDeltaTime;
+
+                // คำนวณระยะห่างระหว่างตัวสัตว์กับกล่องในแนวนอน
+                float currentDistX = (surgeDir.x > 0f)
+                    ? (box.transform.position.x - boxHalfWidth) - (rb.position.x + catRadius)
+                    : (rb.position.x - catRadius) - (box.transform.position.x + boxHalfWidth);
+
+                if (currentDistX <= 0.08f)
+                {
+                    // ชนถึงตัวกล่องแล้ว
+                    break;
+                }
+
+                float vy = Mathf.Clamp((flightY - rb.position.y) * 5f, -2.5f, 2.5f);
+                rb.linearVelocity = new Vector2(surgeDir.x * chargeSpeed, vy) + ConveyorVelocity;
+                yield return new WaitForFixedUpdate();
+            }
+
+            rb.linearVelocity = Vector2.zero;
+        }
+
+        if (!surgeTargetBroken)
+        {
+            surgeStage = SurgeStage.Patrolling;
+        }
+    }
+
+    /// <summary>
+    /// จัดการการชนของโหมด Surge (พังกล่อง พังประตู หรือตรวจจับกำแพงแข็งเพื่อสลับทิศหรือติด)
+    /// </summary>
+    private void HandleSurgeCollision(Collision2D collision)
+    {
+        if (surgeStage != SurgeStage.Patrolling) return;
+        if (collision.gameObject.GetComponentInParent<TestAnimal>() != null) return;
+
+        // 1. ตรวจสอบกล่อง
+        PushableBox box = collision.gameObject.GetComponentInParent<PushableBox>();
+        if (box != null && !box.IsBroken)
+        {
+            if (surgeBreakBoxes)
+            {
+                surgePendingBoxTarget = box;
+                return;
+            }
+        }
+
+        // 2. ตรวจสอบประตู
+        Door door = collision.gameObject.GetComponentInParent<Door>();
+        if (door != null && !door.IsBroken)
+        {
+            if (surgeBreakDoors && door.IsBreakable)
+            {
+                Debug.Log($"[{animalName}] Surge ชนประตู {door.name} จนแตก!");
+                door.BreakDoor();
+                surgeTargetBroken = true;
+                return;
+            }
+        }
+
+        // 3. กำแพงหรือสิ่งกีดขวางที่พังไม่ได้ (ชนแล้วจะสลับทิศทางเพื่อบินซ้าย-ขวาต่อ ไม่ใช่กลับที่เดิม)
+        Vector2 normal = Vector2.zero;
+        int count = collision.contactCount;
+        for (int i = 0; i < count; i++)
+        {
+            normal += collision.contacts[i].normal;
+        }
+
+        if (normal.sqrMagnitude > 0.01f)
+        {
+            normal.Normalize();
+            // ต้องเป็นกำแพงแนวตั้งที่ขวางหน้าทิศทางการบินเท่านั้น (ไม่นับพื้นหรือเพดาน)
+            if (Mathf.Abs(normal.x) > 0.35f && Vector2.Dot(surgeDir, normal) < -0.3f)
+            {
+                surgeHitWall = true;
+                surgeWallNormal = normal;
+            }
+        }
+    }
+    #endregion
+
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
+    {
+        // วาดระดับความสูงที่บินลอยขึ้นตอนกินยาส้ม (Patrol Lift Height)
+        Vector3 basePos = Application.isPlaying ? (Vector3)patrolOriginPos : transform.position;
+        Vector3 flightPos = basePos + Vector3.up * patrolLiftHeight;
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.85f); // สีส้ม
+        Gizmos.DrawLine(basePos, flightPos);
+        Gizmos.DrawWireSphere(flightPos, 0.2f);
+        Gizmos.DrawLine(flightPos + Vector3.left * 1.5f, flightPos + Vector3.right * 1.5f);
+
+        // วาดระดับความสูงและเส้นทางบินลาดตระเวนของ Surge (สีฟ้าอมส้ม)
+        Vector3 surgeBase = Application.isPlaying ? (Vector3)surgeOriginPos : transform.position;
+        Vector3 surgeFlightPos = surgeBase + Vector3.up * surgeLiftHeight;
+        Gizmos.color = new Color(0.1f, 0.85f, 1f, 0.9f);
+        Gizmos.DrawLine(surgeBase, surgeFlightPos);
+        Gizmos.DrawWireSphere(surgeFlightPos, 0.25f);
+        Gizmos.color = new Color(1f, 0.55f, 0.1f, 0.9f);
+        Gizmos.DrawLine(surgeFlightPos + Vector3.left * 2f, surgeFlightPos + Vector3.right * 2f);
+
+        // วาดจุดหมายเฉพาะของ Skyward (สีฟ้า)
+        Transform skyDest = (skywardDestination != null) ? skywardDestination : targetDestination;
+        if (skyDest != null)
+        {
+            Gizmos.color = new Color(0.2f, 0.7f, 1f, 0.8f); // สีฟ้า Skyward
+            Gizmos.DrawLine(transform.position, skyDest.position);
+            Gizmos.DrawWireSphere(skyDest.position, 0.3f);
+        }
+
+        // วาดจุดหมายเฉพาะของ Havoc (สีม่วง - แยกอิสระจาก Skyward)
+        Transform hDest = GetHavocDestination();
+        if (hDest != null && hDest != skyDest)
+        {
+            Gizmos.color = new Color(0.85f, 0.2f, 1f, 0.9f); // สีม่วง Havoc
+            Gizmos.DrawLine(transform.position, hDest.position);
+            Gizmos.DrawWireSphere(hDest.position, 0.35f);
+        }
+    }
+#endif
+    #endregion
+
+    #region Havoc API
+    /// <summary>
+    /// หาจุดหมายปลายทางเฉพาะของ Havoc (แยกอิสระจาก Skyward 100% ไม่ใช้จุดร่วมกันเด็ดขาด)
+    /// </summary>
+    private Transform GetHavocDestination()
+    {
+        // 1. จุดที่ลากใส่ใน Inspector ของ Havoc Destination
+        if (havocDestination != null) return havocDestination;
+
+        // 2. ค้นหาวัตถุลูกหรือในฉากที่มีชื่อว่า Havoc point / Havoc Point
+        Transform child = transform.Find("Havoc point");
+        if (child == null) child = transform.Find("Havoc Point");
+        if (child == null) child = transform.Find("HavocDestination");
+        if (child != null) return child;
+
+        GameObject sceneObj = GameObject.Find("Havoc point");
+        if (sceneObj == null) sceneObj = GameObject.Find("Havoc Point");
+        if (sceneObj != null) return sceneObj.transform;
+
+        // 3. ไม่ใช้ร่วมกับ skywardDestination เด็ดขาด
+        if (targetDestination != null && targetDestination != skywardDestination)
+        {
+            return targetDestination;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// ฟังก์ชันสะท้อนออกจากกำแพงของโหมด Havoc (รองรับทั้งช่วงก่อนวาร์ปและช่วงเด้งต่อหลังวาร์ป)
+    /// </summary>
+    private void OnHavocBounceHit(Vector2 normal)
+    {
+        if ((!isHavocBouncing && !isHavocPostBouncing) || normal.sqrMagnitude < 0.0001f) return;
+        normal.Normalize();
+
+        if (Vector2.Dot(currentBounceDir, normal) < -0.05f)
+        {
+            currentBounceDir = Vector2.Reflect(currentBounceDir, normal).normalized;
+            FacingDirection = currentBounceDir;
+            FaceHorizontal(currentBounceDir.x < 0f);
+
+            PlayAnimalSound(ResolveSfx(bounceSound, "Assets/Audioes/Animal/Cow/Cow skyward.mp3", "CowBounce", "CowSkyward"), 1f, 0.05f, true);
+
+            rb.position += normal * 0.06f;
+
+            OnBounce();
+
+            if (isHavocBouncing)
+            {
+                havocBounceCount++;
+                Debug.Log($"[{animalName}] Havoc เด้งก่อนวาร์ปครั้งที่ {havocBounceCount}/{havocBouncesBeforeTeleport}");
+            }
+            else if (isHavocPostBouncing)
+            {
+                havocPostBounceCount++;
+                Debug.Log($"[{animalName}] Havoc เด้งต่อหลังวาร์ปครั้งที่ {havocPostBounceCount}/{havocPostTeleportBounces}");
+            }
+
+            float speed = moveSpeed * SpeedMultiplier;
+            rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+        }
+    }
+
+    /// <summary>
+    /// โหมด Havoc: เด้งสะท้อนกำแพง 5 ครั้ง -> วาร์ปไปยัง Havoc Destination -> เด้งสะท้อนต่อในบริเวณใหม่ -> ลงจอด
+    /// </summary>
+    private IEnumerator HavocBounceRoutine()
+    {
+        isHavocBouncing = true;
+        isHavocPostBouncing = false;
+        isBouncing = true;
+        havocBounceCount = 0;
+        havocPostBounceCount = 0;
+        currentBounceSpeedBonus = 0f;
+        TakeOff();
+        StopFlyLoop();
+        flyEndTime = float.MaxValue;
+        StopMoving();
+
+        Transform dest = GetHavocDestination();
+        Vector2 toDest = (dest != null) ? ((Vector2)dest.position - rb.position).normalized : ToVector(flyDirection);
+        if (toDest.sqrMagnitude < 0.0001f) toDest = Vector2.right;
+
+        // สุ่มมุมกระจายตัวออกไปเล็กน้อยเพื่อให้เด้งชิ่งกำแพง
+        float baseAngle = Mathf.Atan2(toDest.y, toDest.x) * Mathf.Rad2Deg;
+        float randomOffset = Random.Range(-55f, 55f);
+        if (Mathf.Abs(randomOffset) < 15f) randomOffset = Mathf.Sign(randomOffset != 0 ? randomOffset : 1f) * 25f;
+
+        float launchAngle = (baseAngle + randomOffset) * Mathf.Deg2Rad;
+        currentBounceDir = new Vector2(Mathf.Cos(launchAngle), Mathf.Sin(launchAngle)).normalized;
+        FacingDirection = currentBounceDir;
+        FaceHorizontal(currentBounceDir.x < 0f);
+
+        float speed = moveSpeed * SpeedMultiplier;
+        rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+
+        Debug.Log($"[{animalName}] เริ่ม Havoc: ทิศทาง {currentBounceDir}, กำหนดเด้งก่อนวาร์ป {havocBouncesBeforeTeleport} ครั้ง");
+
+        // --- 1. เด้งสะท้อนกำแพงก่อนวาร์ป (ค่าเริ่มต้น 5 ครั้ง) ---
+        while (isHavocBouncing && havocBounceCount < havocBouncesBeforeTeleport)
+        {
+            yield return null;
+        }
+
+        // เด้งครบก่อนวาร์ปแล้ว หยุดการเคลื่อนที่ชั่วขณะ
+        isHavocBouncing = false;
+        rb.linearVelocity = Vector2.zero;
+
+        // --- 2. หน่วงเวลาสั้นๆ ให้เห็นการชนกำแพงครั้งสุดท้าย ---
+        if (delayBeforeTeleport > 0f)
+        {
+            yield return new WaitForSeconds(delayBeforeTeleport);
+        }
+
+        // --- 3. วาร์ป (Teleport) ไปยังจุดหมายเฉพาะของ Havoc ---
+        dest = GetHavocDestination();
+        if (dest != null)
+        {
+            Debug.Log($"[{animalName}] Havoc เด้งครบ {havocBouncesBeforeTeleport} ครั้งแล้ว! วาร์ปไปยังจุดหมาย Havoc: {dest.name} ({dest.position})");
+            TeleportTo(dest.position);
+
+            // --- 4. สับสวิตช์ FloorSwitch ที่อยู่ ณ จุดวาร์ป (ถ้ามี) ---
+            if (triggerSwitchOnTeleport)
+            {
+                FloorSwitch sw = dest.GetComponentInParent<FloorSwitch>();
+                if (sw == null) sw = dest.GetComponentInChildren<FloorSwitch>();
+                if (sw == null)
+                {
+                    Collider2D col = Physics2D.OverlapCircle(dest.position, 0.6f);
+                    if (col != null) sw = col.GetComponentInParent<FloorSwitch>();
+                }
+                if (sw != null)
+                {
+                    sw.RemoteToggle();
+                    Debug.Log($"[{animalName}] Havoc วาร์ปถึงสวิตช์ -> สับสวิตช์ {sw.name} สำเร็จ!");
+                }
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[{animalName}] Havoc เด้งครบ {havocBouncesBeforeTeleport} ครั้งแล้ว แต่ไม่พบจุดเป้าหมาย Havoc สำหรับวาร์ป (โปรดตั้งค่าในช่อง Havoc Destination ของ Inspector)!");
+        }
+
+        // --- 5. วาร์ปไปแล้วเด้งต่อนะ (Post-Teleport Bouncing) ---
+        if (bounceAfterTeleport)
+        {
+            isHavocPostBouncing = true;
+            havocPostBounceCount = 0;
+            float postTimer = 0f;
+
+            // สุ่มมุมพุ่งตัวเด้งต่อจากจุดที่วาร์ปมาถึง
+            float postAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+            currentBounceDir = new Vector2(Mathf.Cos(postAngle), Mathf.Sin(postAngle)).normalized;
+            FacingDirection = currentBounceDir;
+            FaceHorizontal(currentBounceDir.x < 0f);
+
+            speed = moveSpeed * SpeedMultiplier;
+            rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+
+            Debug.Log($"[{animalName}] Havoc วาร์ปเสร็จแล้ว -> พุ่งตัวเด้งต่อ! (กำหนดเด้ง {havocPostTeleportBounces} ครั้ง / สูงสุด {havocPostTeleportBounceDuration} วิ)");
+
+            while (isHavocPostBouncing)
+            {
+                postTimer += Time.deltaTime;
+
+                bool countDone = havocPostTeleportBounces > 0 && havocPostBounceCount >= havocPostTeleportBounces;
+                bool timeDone = havocPostTeleportBounceDuration > 0f && postTimer >= havocPostTeleportBounceDuration;
+
+                if (countDone || timeDone)
+                {
+                    Debug.Log($"[{animalName}] Havoc สิ้นสุดการเด้งต่อหลังวาร์ป (เด้งไป {havocPostBounceCount} ครั้ง, เวลา {postTimer:F1} วิ)");
+                    break;
+                }
+
+                yield return null;
+            }
+
+            isHavocPostBouncing = false;
+            rb.linearVelocity = Vector2.zero;
+        }
+
+        // --- 6. ลงจอดสู่พื้น ---
+        if (landAfterPostTeleport)
+        {
+            Land();
+        }
+
+        isBouncing = false;
+        activeHavocRoutine = null;
     }
     #endregion
 }

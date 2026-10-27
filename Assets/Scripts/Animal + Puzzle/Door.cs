@@ -65,6 +65,15 @@ public class Door : MonoBehaviour
     [Tooltip("ติ๊กไว้ = พังเฉพาะเมื่อสัตว์ที่มาชนได้รับยาเสริมพลังแล้ว")]
     [SerializeField] private bool requirePoweredAnimal = false;
 
+    [Tooltip("ติ๊กไว้ = สัตว์ที่มาชนต้องได้รับยาที่มีพลังทำลายสิ่งกีดขวางจริง (เช่น ตัวบินต้องพุ่งชน IsRamming จากยา Surge / แพะต้องเป็นโหมดทุบ) ชนธรรมดาจะไม่พัง")]
+    [SerializeField] private bool requireBreakAbility = true;
+
+    [Tooltip("ติ๊กไว้ = ตัวบิน (FlyingAnimal) สามารถพุ่งชนทำลายประตูนี้ได้ (เฉพาะตอนพุ่งชน)")]
+    [SerializeField] private bool canBeBrokenByFlyer = true;
+
+    [Tooltip("ติ๊กไว้ = แพะ (PusherAnimal) สามารถชนทำลายประตูนี้ได้ (เฉพาะตอนอยู่ในโหมดทุบ)")]
+    [SerializeField] private bool canBeBrokenByPusher = true;
+
     [Header("Break Visuals (ภาพและเอฟเฟกต์ตอนพัง)")]
     [Tooltip("(ไม่บังคับ) ภาพสไปรต์ซากประตูตอนพังแล้ว ถ้าไม่ใส่จะซ่อนหรือลบประตูทิ้ง")]
     [SerializeField] private Sprite brokenSprite;
@@ -90,6 +99,33 @@ public class Door : MonoBehaviour
     [SerializeField] private string openBoolParameter = "Open";
     #endregion
 
+    #region Audio
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงตอนประตูเปิด")]
+    [SerializeField] private AudioClip openSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังเสียงตอนประตูเปิด (0 - 1)")]
+    [SerializeField] private float openVolume = 1f;
+
+    [Tooltip("เสียงตอนประตูปิด")]
+    [SerializeField] private AudioClip closeSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังเสียงตอนประตูปิด (0 - 1)")]
+    [SerializeField] private float closeVolume = 1f;
+
+    [Tooltip("เสียงตอนประตูแตก (จะทำงานเฉพาะเมื่อประตูพัง/แตกจริงๆ เท่านั้น)")]
+    [SerializeField] private AudioClip breakSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังเสียงตอนประตูแตก (0 - 1)")]
+    [SerializeField] private float breakVolume = 1f;
+
+    [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวประตูให้อัตโนมัติ)")]
+    [SerializeField] private AudioSource audioSource;
+    #endregion
+
     #region State
     public bool IsOpen { get; private set; }
     public bool IsBroken { get; private set; }
@@ -99,7 +135,13 @@ public class Door : MonoBehaviour
     public void RemoteToggle()
     {
         if (IsBroken) return;
+        bool wasOpen = IsOpen;
         IsOpen = !IsOpen;
+        if (IsOpen != wasOpen)
+        {
+            if (IsOpen) PlayOpenSound();
+            else PlayCloseSound();
+        }
         ApplyState();
     }
 
@@ -113,6 +155,7 @@ public class Door : MonoBehaviour
     {
         if (blockingCollider == null) blockingCollider = GetComponent<Collider2D>();
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
         CachePositions();
         IsOpen = startsOpen;
@@ -152,7 +195,7 @@ public class Door : MonoBehaviour
         // ปิดการชนเมื่อเลื่อนถึงจุดเปิดแล้วเท่านั้น (ตอนกำลังเลื่อนยังขวางอยู่)
         if (blockingCollider != null)
         {
-            bool arrivedOpen = IsOpen && transform.position == openPos;
+            bool arrivedOpen = IsOpen && (slideSpeed <= 0f || Vector3.Distance(transform.position, openPos) <= 0.05f);
             blockingCollider.enabled = !(disableColliderWhenOpen && arrivedOpen);
         }
     }
@@ -231,7 +274,13 @@ public class Door : MonoBehaviour
                 return;
             }
 
+            bool wasOpen = IsOpen;
             IsOpen = !IsOpen;
+            if (IsOpen != wasOpen)
+            {
+                if (IsOpen) PlayOpenSound();
+                else PlayCloseSound();
+            }
             ApplyState();
         }
     }
@@ -243,7 +292,8 @@ public class Door : MonoBehaviour
         TestAnimal animal = hitObj.GetComponentInParent<TestAnimal>();
         if (animal != null)
         {
-            if (requirePoweredAnimal && !animal.CanUseAbility) return;
+            if (!CanAnimalBreakDoor(animal)) return;
+
             BreakDoor();
             return;
         }
@@ -257,6 +307,39 @@ public class Door : MonoBehaviour
     }
 
     /// <summary>
+    /// ตรวจสอบว่าสัตว์ตัวนี้มีสิทธิ์และได้รับยาที่มีความสามารถทำลายประตูนี้ด้วยการชนหรือไม่
+    /// </summary>
+    public bool CanAnimalBreakDoor(TestAnimal animal)
+    {
+        if (animal == null) return false;
+        if (requirePoweredAnimal && !animal.CanUseAbility) return false;
+
+        // 1. ถ้าเป็นตัวบิน (FlyingAnimal)
+        if (animal is FlyingAnimal flyer)
+        {
+            if (!canBeBrokenByFlyer) return false;
+            // ถ้าเปิด requireBreakAbility: ตัวบินต้องพุ่งชนด้วยความเร็วสูง (IsRamming จากยา Surge) เท่านั้น
+            return !requireBreakAbility || flyer.IsRamming;
+        }
+
+        // 2. ถ้าเป็นแพะ (PusherAnimal)
+        if (animal is PusherAnimal pusher)
+        {
+            if (!canBeBrokenByPusher) return false;
+            // ถ้าเปิด requireBreakAbility: แพะต้องอยู่ในโหมดทุบ (CanSmash) เท่านั้น
+            return !requireBreakAbility || pusher.CanSmash;
+        }
+
+        // 3. สัตว์ตัวอื่นๆ
+        if (requireBreakAbility)
+        {
+            return animal.CanBreakObstacles;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// สั่งให้ประตูพัง (ปลดบล็อกทางเดิน, ปิด Collider, เล่นเอฟเฟกต์)
     /// </summary>
     public void BreakDoor()
@@ -264,6 +347,8 @@ public class Door : MonoBehaviour
         if (IsBroken) return;
         IsBroken = true;
         IsOpen = true;
+
+        PlayBreakSound();
 
         Debug.Log($"[Door] ประตู {name} พังแล้ว!");
 
@@ -325,6 +410,36 @@ public class Door : MonoBehaviour
             animator.SetBool(openBoolParameter, IsOpen);
         }
         // สถานะการชนอัปเดตใน Update (ปิดการชนเมื่อประตูเลื่อนถึงจุดเปิดแล้ว / กลับมาขวางทันทีที่เริ่มปิด)
+    }
+
+    private void PlayOpenSound()
+    {
+        AudioClip clip = openSound != null ? openSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("DoorOpen") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFXAt(clip, transform.position, openVolume);
+        else if (audioSource != null) audioSource.PlayOneShot(clip, openVolume);
+        else AudioSource.PlayClipAtPoint(clip, transform.position, openVolume);
+    }
+
+    private void PlayCloseSound()
+    {
+        AudioClip clip = closeSound != null ? closeSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("DoorClose") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFXAt(clip, transform.position, closeVolume);
+        else if (audioSource != null) audioSource.PlayOneShot(clip, closeVolume);
+        else AudioSource.PlayClipAtPoint(clip, transform.position, closeVolume);
+    }
+
+    private void PlayBreakSound()
+    {
+        AudioClip clip = breakSound != null ? breakSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("DoorBreak") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFXAt(clip, transform.position, breakVolume);
+        else if (audioSource != null) audioSource.PlayOneShot(clip, breakVolume);
+        else AudioSource.PlayClipAtPoint(clip, transform.position, breakVolume);
     }
     #endregion
 

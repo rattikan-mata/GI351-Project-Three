@@ -62,17 +62,6 @@ namespace PotionSystem
             }
         }
 
-        public static Color ColorFor(RawMaterialData m)
-        {
-            if (m == null) return Color.white;
-            switch (m.MaterialType)
-            {
-                case MaterialType.MonsterParts: return new Color(0.8f, 0.4f, 0.4f);
-                case MaterialType.Ore: return new Color(0.4f, 0.7f, 0.9f);
-                default: return new Color(0.5f, 0.85f, 0.4f);
-            }
-        }
-
         public static Color ColorFor(PotionData p)
         {
             if (p == null) return Color.white;

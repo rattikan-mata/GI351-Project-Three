@@ -178,6 +178,9 @@ MonoBehaviour:
   stopDistance: 0.1
   stuckTimeout: 0.5
   stuckMinProgress: 0.1
+  useGravity: 1
+  gravityScale: 2.5
+  maxFallSpeed: 20
   defaultCatSprite: {fileID: 0}
   poweredUpSprite: {fileID: 0}
   selectionIndicator: {fileID: 0}
@@ -186,14 +189,57 @@ MonoBehaviour:
   abilityCooldown: 1
   requirePotion: 1
   potionEffectDuration: 0
+  initialMode: 0
   hairballPrefab: {fileID: 3648913693340859227, guid: 37364e93fb8f938448cc53381848608e, type: 3}
   mouthDistance: 0.6
   hairballSpeed: 8
   hairballRange: 5
   hairballLingerSeconds: 6
   stopMovingWhenVomiting: 1
-  skywardHairballPrefab: {fileID: 6585422362421399681, guid: fb9d392248aee524ba5ca57ba761680b, type: 3}
+  vomitSound: {fileID: 0}
+  bubbleSound: {fileID: 8300000, guid: 486b09c62f83cd044806461239d5c03e, type: 3}
+  bubblePopSound: {fileID: 0}
+  skywardSound: {fileID: 8300000, guid: d5b0f2a808fcfdd499b4db408ca028fc, type: 3}
+  skywardVolume: 1
+  skywardBounceSound: {fileID: 8300000, guid: c464a076a673b0e458dc3a37706022a8, type: 3}
+  skywardBounceVolume: 1
+  bubblePrefab: {fileID: 6585422362421399681, guid: fb9d392248aee524ba5ca57ba761680b, type: 3}
+  bubbleCatSprite: {fileID: 0}
+  bubbleSprite: {fileID: 0}
+  bubblePopEffectPrefab: {fileID: 0}
+  bubblePushDistance: 0.35
+  bubblePushSpeed: 3.5
+  bubbleGravityScale: 0.05
+  bubblePopOnPush: 1
+  bubblePopOnObstacle: 1
+  bubblesPerSet: 3
+  bubbleBurstCount: 2
+  delayBetweenBubbles: 0.15
+  delayBetweenBursts: 0.45
+  bubbleSpeed: 6
+  bubbleRange: 8
+  bubbleLingerSeconds: 3
+  bubbleSpreadAngle: 4
+  skywardBubblePrefab: {fileID: 250844955669100016, guid: 34e611f1b78cd0a4da61546334fe2096, type: 3}
+  skywardDestination: {fileID: 0}
+  skywardBubbleSpeed: 5.5
+  skywardBubbleDuration: 8
+  skywardMaxBounces: 10
+  skywardLaunchAngle: 45
+  skywardBubbleShieldScale: 1.6
+  skywardBubbleOffset: {x: 0, y: 0}
+  skywardBubbleAlpha: 0.85
+  skywardAnimateBubble: 1
+  skywardPushBoxesOnBounce: 1
+  skywardBoxPushDistance: 0.35
+  skywardFlyOverLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  skywardBounceLayers:
+    serializedVersion: 2
+    m_Bits: 0
   skywardCatSprite: {fileID: 0}
+  skywardHairballPrefab: {fileID: 6585422362421399681, guid: fb9d392248aee524ba5ca57ba761680b, type: 3}
   skywardHairballSprite: {fileID: 0}
   skywardRange: 4
   skywardSpeed: 4
@@ -202,6 +248,7 @@ MonoBehaviour:
   giantMass: 3
   barrageHairballPrefab: {fileID: 0}
   barrageCatSprite: {fileID: 0}
+  havocBreaksObstacles: 1
   barrageCount: 7
   barrageSpreadAngle: 39.5
   barrageRange: 100

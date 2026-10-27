@@ -46,7 +46,7 @@ public class HoverOutlineManager : MonoBehaviour
     #endregion
 
     #region Types
-    private enum DragKind { None, Material, Potion, Other }
+    private enum DragKind { None, Potion, Other }
 
     private struct Outlined
     {
@@ -237,22 +237,18 @@ public class HoverOutlineManager : MonoBehaviour
                 if (t.DisableOutline) return false;
                 if (t.IsDraggable) kind = DragKind.Other;
                 return t.OutlineOnHover;
-            case DraggableMaterial2D _:
-                kind = DragKind.Material;
-                return true;
-            case DraggablePotion2D _:
+            case PotionShelfSlot2D shelfSlot:
+                if (shelfSlot.IsEmpty) return false; // ช่องว่างคลิกแล้วไม่เกิดอะไร
                 kind = DragKind.Potion;
                 return true;
             case PotionStagingSlot2D slot:
                 if (!slot.IsOccupied) return false; // ช่องว่างคลิกแล้วไม่เกิดอะไร
                 kind = DragKind.Potion;
                 return true;
-            case PotStation2D _:
+            case PotionBrewer _:
                 return true;
             case TestAnimal _:
                 return true;
-            case TrashBin2D _:
-                return false; // ถังขยะมีขอบเฉพาะตอนลากยามาทับ
         }
         return HasMouseMessage(mb.GetType());
     }
@@ -263,9 +259,8 @@ public class HoverOutlineManager : MonoBehaviour
 
         switch (kind)
         {
-            case DragKind.Material: return mb is PotStation2D;
-            case DragKind.Potion: return mb is PotionStagingSlot2D || mb is TrashBin2D;
-            case DragKind.Other: return mb is PotStation2D || mb is PotionStagingSlot2D || mb is TrashBin2D;
+            case DragKind.Potion: return mb is PotionStagingSlot2D || mb is PotionShelfSlot2D;
+            case DragKind.Other: return mb is PotionStagingSlot2D || mb is PotionShelfSlot2D;
         }
         return false;
     }

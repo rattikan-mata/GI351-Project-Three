@@ -66,6 +66,17 @@ public class PushableBox : MonoBehaviour
     [Tooltip("ติ๊กไว้ = สัตว์ต้องได้รับยาก่อน (สถานะพละกำลัง/ได้รับยา) ถึงจะทำลายกล่องได้")]
     [SerializeField] private bool requirePoweredAnimal = false;
 
+    [Header("Goat Laser Interaction (การโดนเลเซอร์ของแพะ)")]
+    [Tooltip("ติ๊กไว้ = กล่องนี้โดนเลเซอร์จากฟ้า (ยา Skyward ของแพะ) ได้\n" +
+             "ไม่ติ๊ก = เลเซอร์จากฟ้าจะไม่เล็งเป้าและไม่ทำลาย/ไม่ดันกล่องนี้ (เช่น หีบสมบัติ/Chest จบเกม)")]
+    [SerializeField] private bool canBeHitBySkywardLaser = true;
+    public bool CanBeHitBySkywardLaser => canBeHitBySkywardLaser;
+
+    [Tooltip("ติ๊กไว้ = กล่องนี้โดนเลเซอร์ยิงออกข้างหน้า (ยาเขียวของแพะ) ได้\n" +
+             "ไม่ติ๊ก = เลเซอร์ข้างหน้าจะไม่ทำลาย/ไม่ดันกล่องนี้")]
+    [SerializeField] private bool canBeHitByForwardLaser = true;
+    public bool CanBeHitByForwardLaser => canBeHitByForwardLaser;
+
     [Header("Destructible Visuals")]
     [Tooltip("สไปรต์เมื่อกล่องแตก (ถ้าเว้นว่างไว้จะซ่อนหรือลบกล่องทิ้ง)")]
     [SerializeField] private Sprite brokenSprite;
@@ -81,6 +92,20 @@ public class PushableBox : MonoBehaviour
 
     [Tooltip("ลบ GameObject กล่องทิ้งทันทีเมื่อแตก")]
     [SerializeField] private bool destroyOnBreak = true;
+    #endregion
+
+    #region Audio
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงตอนกล่องแตก")]
+    [SerializeField] private AudioClip breakSound;
+    [Range(0f, 1f)] [SerializeField] private float breakVolume = 1f;
+
+    [Tooltip("เสียงตอนกล่องโดนผลัก/เลื่อน")]
+    [SerializeField] private AudioClip pushSound;
+    [Range(0f, 1f)] [SerializeField] private float pushVolume = 1f;
+
+    [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวกล่องให้อัตโนมัติ)")]
+    [SerializeField] private AudioSource audioSource;
     #endregion
 
     #region Gravity
@@ -110,12 +135,37 @@ public class PushableBox : MonoBehaviour
     [SerializeField] private float mass = 2f;
     public float Mass => mass;
     public bool IsGravityHeld => gravityHoldCount > 0;
-    public bool IsDestructible => isDestructible;
+    public bool IsDestructible
+    {
+        get => isDestructible;
+        set => isDestructible = value;
+    }
+    public int HitsToBreak
+    {
+        get => hitsToBreak;
+        set => hitsToBreak = Mathf.Max(1, value);
+    }
     public bool IsBroken { get; private set; } = false;
     public bool IsProcessingHit => isProcessingHit;
     public int CurrentHits { get; private set; } = 0;
 
     private bool isProcessingHit = false;
+
+    /// <summary>
+    /// สั่งให้กล่องสั่นและปล่อยเอฟเฟกต์โดนชน 1 ครั้ง
+    /// </summary>
+    public void TriggerHitFeedback()
+    {
+        if (IsBroken) return;
+        if (shakeOnHit)
+        {
+            StartCoroutine(ShakeRoutine(0.15f, 0.08f));
+        }
+        if (hitEffectPrefab != null)
+        {
+            Instantiate(hitEffectPrefab, transform.position, Quaternion.identity);
+        }
+    }
     #endregion
 
     #region Unity Lifecycle
@@ -125,6 +175,7 @@ public class PushableBox : MonoBehaviour
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.gravityScale = 0f; // จำลองเอง เพื่อไม่ให้แมวเดินชนแล้วกล่องเลื่อน
         col = GetComponent<Collider2D>();
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
     }
 
     private void FixedUpdate()
@@ -138,10 +189,17 @@ public class PushableBox : MonoBehaviour
         if (!isDestructible || IsBroken || isProcessingHit) return;
 
         TestAnimal animal = collision.gameObject.GetComponentInParent<TestAnimal>();
-        if (animal != null && CanAnimalDestroyBox(animal))
+        if (animal != null)
         {
-            Vector2 hitDir = ((Vector2)transform.position - (Vector2)animal.transform.position).normalized;
-            TriggerDestructionSequence(animal, hitDir);
+            // แพะ (PusherAnimal) และตัวบิน (FlyingAnimal ในโหมด Surge) จะไม่ทุบกล่องแตกเพียงเพราะเดินชน
+            if (animal is PusherAnimal) return;
+            if (animal is FlyingAnimal flyer && flyer.IsRamming) return;
+
+            if (animal.CanBreakObstacles && CanAnimalDestroyBox(animal))
+            {
+                Vector2 hitDir = ((Vector2)transform.position - (Vector2)animal.transform.position).normalized;
+                TriggerDestructionSequence(animal, hitDir);
+            }
         }
     }
     #endregion
@@ -293,6 +351,8 @@ public class PushableBox : MonoBehaviour
         if (IsBroken) return;
         IsBroken = true;
 
+        PlayBreakSound();
+
         Debug.Log($"[PushableBox] กล่อง {name} แตกแล้ว!");
 
         if (breakEffectPrefab != null)
@@ -334,6 +394,44 @@ public class PushableBox : MonoBehaviour
         }
         if (!IsBroken) transform.position = originalPos;
     }
+
+    private float lastPushSoundTime = -1f;
+
+    private void PlayPushSound()
+    {
+        AudioClip clip = pushSound != null ? pushSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("BoxPush") : null);
+        if (clip == null) return;
+        if (Time.time - lastPushSoundTime < 0.2f) return;
+        lastPushSoundTime = Time.time;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, pushVolume);
+        }
+        else if (audioSource != null)
+        {
+            audioSource.PlayOneShot(clip, pushVolume);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position, pushVolume);
+        }
+    }
+
+    private void PlayBreakSound()
+    {
+        AudioClip clip = breakSound != null ? breakSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("BoxBreak") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, breakVolume);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position, breakVolume);
+        }
+    }
     #endregion
 
     #region Gravity API
@@ -348,73 +446,188 @@ public class PushableBox : MonoBehaviour
     {
         gravityHoldCount = Mathf.Max(0, gravityHoldCount - 1);
     }
+
+    /// <summary>ดีดกล่องด้วยความเร็ว (เช่น เทรมโพลีน): แกน Y ใช้ระบบแรงโน้มถ่วงของกล่อง ส่วนแกน X จะเลื่อนผ่าน TryPush</summary>
+    public void Launch(Vector2 velocity)
+    {
+        if (IsBroken || isProcessingHit) return;
+        verticalSpeed = velocity.y;
+        if (Mathf.Abs(velocity.x) > 0.05f)
+        {
+            TryPush(new Vector2(Mathf.Sign(velocity.x), 0f), Mathf.Abs(velocity.x) * 0.5f, Mathf.Abs(velocity.x));
+        }
+    }
     #endregion
+
+    /// <summary>Layer ที่เป็นสิ่งกีดขวาง (รวม Wall และ Box อื่นด้วย)</summary>
+    public LayerMask GetEffectiveObstacleLayer()
+    {
+        LayerMask mask = obstacleLayer;
+        if (mask.value == 0)
+        {
+            mask = LayerMask.GetMask("Obstacle", "Wall", "Box");
+            if (mask.value == 0) mask = (LayerMask)128; // Layer 7
+        }
+        else
+        {
+            int wallMask = LayerMask.GetMask("Wall");
+            int boxMask = LayerMask.GetMask("Box");
+            mask |= wallMask | boxMask;
+        }
+        return mask;
+    }
+
+    private Coroutine currentSlideCoroutine;
+    private Vector2 currentSlideDirection;
+    private float remainingSlideDistance = 0f;
+    private float currentSlideSpeed = 0f;
 
     #region Push API
     /// <summary>ดันกล่องไปทิศ direction ไกลสุด distance คืนค่า true ถ้าดันไปได้จริง</summary>
     public bool TryPush(Vector2 direction, float distance, float speed, TestAnimal pusher = null)
     {
-        if (isMoving || isProcessingHit || IsBroken) return false;
-
-        // ถ้ากล่องนี้ตั้งให้พังได้ และสัตว์ตัวที่ผลักมีสิทธิ์ทำลายกล่องนี้
-        if (isDestructible && pusher != null && CanAnimalDestroyBox(pusher))
-        {
-            if (!breakOnlyWhenBlocked)
-            {
-                TriggerDestructionSequence(pusher, direction);
-                return true;
-            }
-            else
-            {
-                direction.Normalize();
-                float freeDistance = GetFreeDistance(direction, distance);
-                if (freeDistance < minPushDistance)
-                {
-                    // ชนติดกำแพง ดันต่อไม่ได้ -> เริ่มกระบวนการชนทำลาย
-                    TriggerDestructionSequence(pusher, direction);
-                    return true;
-                }
-            }
-        }
+        if (isProcessingHit || IsBroken) return false;
 
         direction.Normalize();
-        float freeDist = GetFreeDistance(direction, distance);
-        if (freeDist < minPushDistance) return false;
 
-        StartCoroutine(SlideRoutine(direction, freeDist, speed));
-        return true;
+        // 1. ถ้ากล่องกำลังเลื่อนอยู่แล้ว (เช่น โดนฟองสบู่ลูกแรกผลัก แล้วลูกถัดไปมาโดนซ้ำ)
+        if (isMoving)
+        {
+            // ถ้าผลักไปในทิศทางเดียวกัน ให้สะสมระยะทางเพิ่มอย่างต่อเนื่อง
+            if (currentSlideCoroutine != null && Vector2.Dot(currentSlideDirection, direction) > 0.8f)
+            {
+                float addDist = GetFreeDistance(direction, remainingSlideDistance + distance, pusher);
+                remainingSlideDistance = addDist;
+                currentSlideSpeed = Mathf.Max(currentSlideSpeed, speed);
+                PlayPushSound();
+                return true;
+            }
+            return false;
+        }
+
+        float freeDist = GetFreeDistance(direction, distance, pusher);
+
+        // 2. ถ้ามีระยะว่างให้เลื่อนกล่องไปข้างหน้าได้ -> เลื่อนกล่องตามปกติ
+        if (freeDist >= minPushDistance)
+        {
+            currentSlideDirection = direction;
+            remainingSlideDistance = freeDist;
+            currentSlideSpeed = speed;
+            PlayPushSound();
+            currentSlideCoroutine = StartCoroutine(SlideRoutine(pusher));
+            return true;
+        }
+
+        // 3. ถ้าติดกำแพง/สิ่งกีดขวางอยู่แล้ว และกล่องนี้ตั้งให้พังได้ และสัตว์ตัวที่ผลักมีสิทธิ์ทุบทำลาย
+        if (isDestructible && pusher != null && CanAnimalDestroyBox(pusher))
+        {
+            // ถ้าเป็นแพะในโหมดผลักปกติ (ไม่ใช่โหมดทุบ smashMode) จะไม่ทุบกล่องแตก เว้นแต่ตั้งใจให้พังเมื่อติด (breakOnlyWhenBlocked)
+            if (pusher is PusherAnimal pusherAnimal && !pusherAnimal.CanSmash && !breakOnlyWhenBlocked)
+            {
+                return false;
+            }
+
+            TriggerDestructionSequence(pusher, direction);
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>วัดว่าเลื่อนไปทางนั้นได้ไกลสุดเท่าไร ก่อนจะชนสิ่งกีดขวาง</summary>
-    private float GetFreeDistance(Vector2 direction, float maxDistance)
+    public float GetFreeDistance(Vector2 direction, float maxDistance, TestAnimal pusher = null)
     {
-        ContactFilter2D filter = new ContactFilter2D();
-        filter.SetLayerMask(obstacleLayer);
-        filter.useTriggers = false;
+        if (col == null) col = GetComponent<Collider2D>();
+        if (col == null) return maxDistance;
 
-        int count = col.Cast(direction, filter, castResults, maxDistance);
+        Bounds bounds = col.bounds;
+        Vector2 origin = bounds.center;
+        Vector2 size = bounds.size;
+
+        // ดัดแปลงขนาดและตำแหน่งของกรอบ BoxCast ให้หดเข้าเล็กน้อยในแนวตั้งฉากกับทิศทางที่เลื่อน
+        // เพื่อป้องกันไม่ให้ขอบล่างของกล่องไปขูด/สะดุดกับรอยต่อของพื้น หรือขูดกำแพงด้านข้างตอนตก
+        if (Mathf.Abs(direction.x) > 0.5f)
+        {
+            // เลื่อนแนวนอน: ยกขอบล่างให้ลอยพ้นพื้น และหดด้านบนเล็กน้อย
+            float insetY = Mathf.Min(0.12f, size.y * 0.25f);
+            size.y = Mathf.Max(0.05f, size.y - insetY);
+            size.x = Mathf.Max(0.05f, size.x - 0.02f);
+            origin.y += insetY * 0.5f;
+        }
+        else
+        {
+            // เลื่อนแนวตั้ง (แรงโน้มถ่วง): บีบด้านข้างซ้าย-ขวาเข้ามาเล็กน้อยเพื่อไม่ให้ขูดกำแพงข้างๆ
+            float insetX = Mathf.Min(0.12f, size.x * 0.25f);
+            size.x = Mathf.Max(0.05f, size.x - insetX);
+            size.y = Mathf.Max(0.05f, size.y - 0.02f);
+        }
+
+        LayerMask mask = GetEffectiveObstacleLayer();
+        int count = Physics2D.BoxCastNonAlloc(origin, size, 0f, direction, castResults, maxDistance, mask);
+
         float free = maxDistance;
         for (int i = 0; i < count; i++)
         {
-            free = Mathf.Min(free, castResults[i].distance - skinWidth);
+            RaycastHit2D hit = castResults[i];
+            if (hit.collider == null || hit.collider == col) continue;
+            if (hit.collider.transform.IsChildOf(transform)) continue;
+            if (hit.collider.isTrigger) continue;
+            if (pusher != null && (hit.collider.gameObject == pusher.gameObject || hit.collider.transform.IsChildOf(pusher.transform))) continue;
+
+            // ตรวจสอบ normal ของพื้นผิวสัมผัส: ต้องเป็นพื้นผิวที่ "ต้าน" ทิศทางการเคลื่อนที่เท่านั้น
+            // เช่น ถ้าเลื่อนไปทางขวา (1, 0) พื้นที่มี normal (0, 1) ชี้ขึ้น จะไม่ถือเป็นสิ่งกีดขวางขวางทางเลื่อน
+            if (hit.normal.sqrMagnitude > 0.001f && Vector2.Dot(direction, hit.normal) > -0.15f)
+            {
+                continue;
+            }
+
+            float d = Mathf.Max(0f, hit.distance - skinWidth);
+            free = Mathf.Min(free, d);
         }
         return Mathf.Max(free, 0f);
     }
 
-    private IEnumerator SlideRoutine(Vector2 direction, float distance, float speed)
+    private IEnumerator SlideRoutine(TestAnimal pusher = null)
     {
         isMoving = true;
-        float moved = 0f;
 
-        while (moved < distance)
+        while (remainingSlideDistance > 0.001f)
         {
-            float step = Mathf.Min(speed * Time.fixedDeltaTime, distance - moved);
-            ApplyMove(direction * step + GravityDelta());
-            moved += step;
+            float step = Mathf.Min(currentSlideSpeed * Time.fixedDeltaTime, remainingSlideDistance);
+            float allowedStep = GetFreeDistance(currentSlideDirection, step, pusher);
+
+            if (allowedStep < step * 0.4f)
+            {
+                remainingSlideDistance = 0f;
+                break;
+            }
+
+            Vector2 gravity = GravityDelta();
+
+            // เช็คว่าพ้นขอบพื้นตกลงไปในหลุมหรือไม่ (ไม่มีพื้นรองรับด้านล่างเกิน 0.35 หน่วย)
+            // ถ้าตกลงในหลุม ให้หยุดเลื่อนแนวนอนแล้วปล่อยให้ตกตามแรงโน้มถ่วง
+            float groundDist = GetFreeDistance(Vector2.down, 0.4f);
+            if (Mathf.Abs(currentSlideDirection.x) > 0.5f && groundDist >= 0.35f)
+            {
+                ApplyMove(gravity);
+                break;
+            }
+
+            ApplyMove(currentSlideDirection * allowedStep + gravity);
+            remainingSlideDistance -= allowedStep;
+
+            if (allowedStep < step)
+            {
+                remainingSlideDistance = 0f;
+                break;
+            }
+
             yield return new WaitForFixedUpdate();
         }
 
+        remainingSlideDistance = 0f;
         isMoving = false;
+        currentSlideCoroutine = null;
     }
 
     private Vector2 GravityDelta()

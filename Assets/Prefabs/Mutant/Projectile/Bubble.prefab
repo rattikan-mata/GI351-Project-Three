@@ -30,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -1.75197, y: 7.3, z: 0}
-  m_LocalScale: {x: 0.5227, y: 0.5227, z: 0.5227}
+  m_LocalScale: {x: 0.08379404, y: 0.08379404, z: 0.08379404}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -174,3 +174,21 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   wallBackOff: 0.15
+  canBreakObstacles: 0
+  landOnBreak: 0
+  forceBreakBoxes: 1
+  forceBreakDoors: 1
+  canPushBox: 0
+  pushBoxDistance: 0.35
+  pushBoxSpeed: 3.5
+  destroyOnPushBox: 1
+  popOnWall: 0
+  popEffectPrefab: {fileID: 0}
+  useGravity: 1
+  gravityScale: 1
+  maxFallSpeed: 15
+  groundFriction: 6
+  bounciness: 0.35
+  stopThreshold: 0.15
+  rotateWhenRolling: 1
+  mass: 1

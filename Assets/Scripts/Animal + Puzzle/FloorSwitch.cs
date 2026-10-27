@@ -18,8 +18,13 @@ public class FloorSwitch : MonoBehaviour
     [SerializeField] private bool triggeredByBoxes = true;
     [SerializeField] private bool triggeredByHairballs = true;
 
+    [Tooltip("ติ๊กไว้ = เลเซอร์ (เช่น เลเซอร์ของแพะ) สามารถกดสวิตช์นี้ได้")]
+    [SerializeField] private bool triggeredByLasers = true;
+    public bool TriggeredByLasers { get => triggeredByLasers; set => triggeredByLasers = value; }
+
     [Tooltip("ติ๊กไว้ = สัตว์ที่กำลังลอยอยู่ (ตัวอ้วนบินตอนบิน) จะไม่กดสวิตช์")]
     [SerializeField] private bool ignoreAirborneAnimals = true;
+    public bool IgnoreAirborneAnimals { get => ignoreAirborneAnimals; set => ignoreAirborneAnimals = value; }
     #endregion
 
     #region Weight
@@ -60,6 +65,19 @@ public class FloorSwitch : MonoBehaviour
     [SerializeField] private ButtonAnimMode animMode = ButtonAnimMode.HoldWhilePressed;
     #endregion
 
+    #region Audio
+    [Header("Audio (เสียง)")]
+    [Tooltip("เสียงตอนกดปุ่มสวิตช์")]
+    [SerializeField] private AudioClip pressSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงกดสวิตช์ (0 - 1)")]
+    [SerializeField] private float pressVolume = 1f;
+
+    [Tooltip("AudioSource สำหรับเล่นเสียง (ถ้าเว้นว่างจะค้นหาจากตัวสวิตช์ให้อัตโนมัติ)")]
+    [SerializeField] private AudioSource audioSource;
+    #endregion
+
     #region State
     public bool IsActive { get; private set; }
     public event Action<FloorSwitch> StateChanged;
@@ -81,6 +99,7 @@ public class FloorSwitch : MonoBehaviour
         Collider2D col = GetComponent<Collider2D>();
         if (col != null) col.isTrigger = true;
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
 
         EnsureButtonCap();
         ApplyVisual();
@@ -183,6 +202,20 @@ public class FloorSwitch : MonoBehaviour
     /// <summary>กดสวิตช์จากระยะไกล (เช่น เลเซอร์ของแพะ)</summary>
     public void RemoteToggle()
     {
+        if (!triggeredByLasers) return;
+        ToggleSwitch();
+        if (pressers.Count == 0 && animMode != ButtonAnimMode.StayWhileActive)
+        {
+            AnimateBounce();
+        }
+    }
+
+    /// <summary>ตรวจว่ามี Collider นี้เหยียบ/ทับสวิตช์อยู่หรือไม่</summary>
+    public bool ContainsPresser(Collider2D col) => col != null && pressers.Contains(col);
+
+    /// <summary>สั่งสลับสถานะสวิตช์โดยตรง (เช่น เมื่อสัตว์บินชนสวิตช์)</summary>
+    public void ForceToggle()
+    {
         ToggleSwitch();
         if (pressers.Count == 0 && animMode != ButtonAnimMode.StayWhileActive)
         {
@@ -197,7 +230,27 @@ public class FloorSwitch : MonoBehaviour
         ApplyVisual();
 
         UpdateCapPosition();
+        PlayPressSound();
         StateChanged?.Invoke(this);
+    }
+
+    private void PlayPressSound()
+    {
+        AudioClip clip = pressSound != null ? pressSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("SwitchPress") : null);
+        if (clip == null) return;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, pressVolume);
+        }
+        else if (audioSource != null)
+        {
+            audioSource.PlayOneShot(clip, pressVolume);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, transform.position, pressVolume);
+        }
     }
 
     private void UpdateCapPosition()
@@ -233,7 +286,7 @@ public class FloorSwitch : MonoBehaviour
 
     private void AnimateBounce()
     {
-        if (buttonCap == null) return;
+        if (buttonCap == null || !isActiveAndEnabled) return; // ปิดอยู่ (เช่นตอนหยุดเล่น) สตาร์ท Coroutine ไม่ได้
         EnsureButtonCap();
         if (animCoroutine != null) StopCoroutine(animCoroutine);
         animCoroutine = StartCoroutine(BounceRoutine());
@@ -278,7 +331,7 @@ public class FloorSwitch : MonoBehaviour
 
     private void AnimateTo(Vector3 targetPos)
     {
-        if (buttonCap == null) return;
+        if (buttonCap == null || !isActiveAndEnabled) return; // ปิดอยู่ (เช่นตอนหยุดเล่น) สตาร์ท Coroutine ไม่ได้
         EnsureButtonCap();
         if (animCoroutine != null) StopCoroutine(animCoroutine);
         animCoroutine = StartCoroutine(MoveToRoutine(targetPos));

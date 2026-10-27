@@ -1,0 +1,213 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &866906506320099223
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6164351066017261808}
+  - component: {fileID: 6521689523526645081}
+  m_Layer: 0
+  m_Name: Audio Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6164351066017261808
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866906506320099223}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.19621, y: 4.46786, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6521689523526645081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866906506320099223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eba6731938b90e645861d24c66ab0f10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AudioManager
+  defaultMasterVolume: 1
+  defaultBgmVolume: 0.75
+  defaultSfxVolume: 0.115
+  defaultSfxCooldown: 0.05
+  defaultBgmClip: {fileID: 0}
+  autoPlayBgmOnStart: 1
+  sfxLibrary:
+  - name: BoxBreak
+    clip: {fileID: 8300000, guid: 503f9855681b00a45b629e1dc1a41167, type: 3}
+    defaultVolume: 0.403
+    cooldown: 0.05
+  - name: BoxPush
+    clip: {fileID: 8300000, guid: 5b3df9463b498b54c848ff6eddc90a33, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: SwitchPress
+    clip: {fileID: 8300000, guid: 6cafe97fc0d61cf44b2e8517d183bf1f, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: DoorOpen
+    clip: {fileID: 8300000, guid: d2263280b0ba93845a2f3f4950cc9077, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: DoorClose
+    clip: {fileID: 8300000, guid: 8fcda0be9b0c8f04690122eb31f143c2, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: DoorBreak
+    clip: {fileID: 8300000, guid: 503f9855681b00a45b629e1dc1a41167, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: BeltRunning
+    clip: {fileID: 8300000, guid: e5da4756f4f637f4aa828f8c1de51753, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: DropperShoot
+    clip: {fileID: 8300000, guid: 51a2d8abc3a6eca42990390c2c185494, type: 3}
+    defaultVolume: 0.331
+    cooldown: 0.05
+  - name: TrampolineBounce
+    clip: {fileID: 8300000, guid: 8fc305b5456f4a34abb75a5c1c32fc61, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: FlameLoop
+    clip: {fileID: 8300000, guid: f0cd2beaa7cd3254e9555ae00266a5ae, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: AnimalDrinkPotion
+    clip: {fileID: 8300000, guid: 03f8f8bd36c48a84791bf2e829d640e9, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: AnimalDrink
+    clip: {fileID: 8300000, guid: 03f8f8bd36c48a84791bf2e829d640e9, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: AnimalCry
+    clip: {fileID: 0}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: GoatPush
+    clip: {fileID: 8300000, guid: 22fcad673effb60419651af57d414081, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: GoatSmash
+    clip: {fileID: 0}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: GoatLaser
+    clip: {fileID: 8300000, guid: 62cadb875d4056a42a6a2f3e935ce787, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: GoatSkywardLaser
+    clip: {fileID: 8300000, guid: 963247a4b05e5014887e6c0ac3541d3f, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: GoatHavoc
+    clip: {fileID: 8300000, guid: 432e60343d74b124892f029450c7cd74, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: GoatGravity
+    clip: {fileID: 8300000, guid: bdd6b193169ceb24b83bb95a8bbc4073, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: CowFly
+    clip: {fileID: 8300000, guid: 963ea39ff87ec4d498e4648912e2bb4b, type: 3}
+    defaultVolume: 1
+    cooldown: 0.3
+  - name: CowBounce
+    clip: {fileID: 8300000, guid: c464a076a673b0e458dc3a37706022a8, type: 3}
+    defaultVolume: 0.812
+    cooldown: 0.05
+  - name: CowRam
+    clip: {fileID: 8300000, guid: 1d35611369fafa34ba55a30da34d09ee, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: CowTeleport
+    clip: {fileID: 8300000, guid: 514ec4b789c46d2439763e23a543dd69, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: CatVomit
+    clip: {fileID: 8300000, guid: 2eebc6a752785df4d8e590de9901926c, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: CatBubble
+    clip: {fileID: 8300000, guid: 486b09c62f83cd044806461239d5c03e, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: CatBubblePop
+    clip: {fileID: 8300000, guid: 93858bf50043614479d2ef9f7573eac7, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: CatSkyward
+    clip: {fileID: 8300000, guid: d5b0f2a808fcfdd499b4db408ca028fc, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: TrayPick
+    clip: {fileID: 8300000, guid: 7d544aeff425fde4fa8af93c9b75c7fd, type: 3}
+    defaultVolume: 1
+    cooldown: 0.05
+  - name: TrayDrop
+    clip: {fileID: 8300000, guid: f07fbb12fe9cfab4db13e69661ee66f8, type: 3}
+    defaultVolume: 1
+    cooldown: 0.1
+  - name: TrayReject
+    clip: {fileID: 8300000, guid: 6aa0fa067532e09408dc68befd3ae696, type: 3}
+    defaultVolume: 1
+    cooldown: 0.15
+  - name: TrayReady
+    clip: {fileID: 8300000, guid: 64322590cf967444d9ccf129c1d5c409, type: 3}
+    defaultVolume: 1
+    cooldown: 0.3
+  - name: PotBrew
+    clip: {fileID: 8300000, guid: 76107d49c9b2e224d9d8aff73ff80bc5, type: 3}
+    defaultVolume: 1
+    cooldown: 1
+  - name: PotionCrafted
+    clip: {fileID: 8300000, guid: 251044372d7764140b4d26c7e4a18598, type: 3}
+    defaultVolume: 1
+    cooldown: 0.2
+  - name: PotionCraftedCombo
+    clip: {fileID: 8300000, guid: 284ce5ed5b67eaf40a64dd36c67b930d, type: 3}
+    defaultVolume: 1
+    cooldown: 0.2
+  - name: PotionPlace
+    clip: {fileID: 8300000, guid: 0a68b6a71174a0f49b65bafc8c968c36, type: 3}
+    defaultVolume: 1
+    cooldown: 0.08
+  - name: PotionPlaceFail
+    clip: {fileID: 8300000, guid: 46c5a1a491dc51b4ca3b4417d8477439, type: 3}
+    defaultVolume: 1
+    cooldown: 0.15
+  - name: PotionTrash
+    clip: {fileID: 8300000, guid: f8e53a45cfd42fd4dbdafcecf2ef8300, type: 3}
+    defaultVolume: 1
+    cooldown: 0.1
+  - name: SendPotion
+    clip: {fileID: 8300000, guid: 55a988f4dbb3f7947aa19e450556a9c7, type: 3}
+    defaultVolume: 1
+    cooldown: 0.3
+  - name: LeverReturn
+    clip: {fileID: 8300000, guid: 340e71cafd173ff40b5ee1cebb93f3ca, type: 3}
+    defaultVolume: 1
+    cooldown: 0.1
+  - name: NextShot
+    clip: {fileID: 8300000, guid: db187fc9c77249043821dda6042ceee4, type: 3}
+    defaultVolume: 1
+    cooldown: 0.1

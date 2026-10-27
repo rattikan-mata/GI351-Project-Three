@@ -78,6 +78,13 @@ public abstract class TestAnimal : MonoBehaviour
     private float stuckTimer = 0f;
     private Vector2 stuckCheckPos;
 
+    public Vector2 TargetWorldPosition => targetPosition;
+    public void ResetStuckTimer()
+    {
+        stuckTimer = 0f;
+        if (rb != null) stuckCheckPos = rb.position;
+    }
+
     /// <summary>ทิศที่กำลังเดินอยู่ตอนนี้ (ศูนย์ถ้าหยุดอยู่)</summary>
     public Vector2 MoveDirection { get; private set; } = Vector2.zero;
 
@@ -92,8 +99,41 @@ public abstract class TestAnimal : MonoBehaviour
     /// <summary>ลอยอยู่กลางอากาศไหม (สวิตช์ใช้เช็คว่าตัวเบาเกินกดไม่ติด)</summary>
     public virtual bool IsAirborne => false;
 
+    /// <summary>สัตว์ตัวนี้มีพลังพุ่งชน/ทำลายสิ่งกีดขวาง (เช่น ประตู/กล่อง) หรือไม่</summary>
+    public virtual bool CanBreakObstacles => false;
+
     /// <summary>ความเร็วจากสายพาน (ConveyorBelt ใส่ให้ แมวยังเดินเองได้พร้อมถูกพาไป)</summary>
     public Vector2 ConveyorVelocity { get; set; }
+
+    #region Gravity
+    [Header("Gravity (แรงโน้มถ่วง)")]
+    [Tooltip("เปิด/ปิดแรงโน้มถ่วงของสัตว์ (ค่าเริ่มต้น: เปิด)")]
+    [SerializeField] protected bool useGravity = true;
+    public bool UseGravity
+    {
+        get => useGravity;
+        set
+        {
+            useGravity = value;
+            UpdateGravityState();
+        }
+    }
+
+    [Tooltip("ตัวคูณแรงโน้มถ่วงเมื่ออยู่บนพื้น (ค่าปกติ 2.5)")]
+    [SerializeField] protected float gravityScale = 2.5f;
+    public float GravityScale
+    {
+        get => gravityScale;
+        set
+        {
+            gravityScale = value;
+            UpdateGravityState();
+        }
+    }
+
+    [Tooltip("ความเร็วตกสูงสุด กันสัตว์ทะลุพื้น")]
+    [SerializeField] protected float maxFallSpeed = 20f;
+    #endregion
     #endregion
 
     #region Selection Visual & Sprites
@@ -159,6 +199,10 @@ public abstract class TestAnimal : MonoBehaviour
         abilityUnlockedUntil = (potionEffectDuration > 0f) ? Time.time + potionEffectDuration : float.MaxValue;
         Debug.Log($"[{animalName}] ใช้ยา {potion} แล้ว");
 
+        AudioClip drinkClip = ResolveDrinkSound();
+        float volume = (drinkPotionVolume > 0.001f) ? drinkPotionVolume : 1f;
+        PlayAnimalSound(drinkClip, volume);
+
         // --- เปลี่ยนร่างเป็นสไปรต์ใหม่หลังได้รับยา ---
         Sprite customSprite = GetCustomPoweredUpSprite(potion);
         Sprite targetSprite = (customSprite != null) ? customSprite : poweredUpSprite;
@@ -171,21 +215,69 @@ public abstract class TestAnimal : MonoBehaviour
         return true;
     }
 
+    /// <summary>ดึงคลิปเสียงตอนได้รับยา (จาก Inspector หรือ AudioManager)</summary>
+    protected AudioClip ResolveDrinkSound()
+    {
+        if (drinkPotionSound != null) return drinkPotionSound;
+        if (AudioManager.Instance != null)
+        {
+            return AudioManager.Instance.GetClip("AnimalDrinkPotion")
+                ?? AudioManager.Instance.GetClip("AnimalDrink")
+                ?? AudioManager.Instance.GetClip("AnimalInject")
+                ?? AudioManager.Instance.GetClip("DrinkPotion");
+        }
+        return null;
+    }
+
     /// <summary>สไปรต์ร่างใหม่เฉพาะของแต่ละคลาสลูกเมื่อได้ยาแต่ละชนิด (เช่น แมวร่าง Skyward / แพะร่างทุบ) ถ้าคืนค่า null จะใช้ Powered Up Sprite ปกติ</summary>
     protected virtual Sprite GetCustomPoweredUpSprite(PotionType potion) => null;
+    #endregion
+
+    #region Audio
+    [Header("Audio (เสียงสัตว์)")]
+    [Tooltip("เสียงตอนสัตว์ได้รับยา / ดื่มยา")]
+    [SerializeField] protected AudioClip drinkPotionSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงตอนได้รับยา (0 - 1)")]
+    [SerializeField] protected float drinkPotionVolume = 1f;
+
+    [Tooltip("เสียงร้องของสัตว์")]
+    [SerializeField] protected AudioClip animalCrySound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงร้อง (0 - 1)")]
+    [SerializeField] protected float animalCryVolume = 1f;
+
+    [Tooltip("AudioSource ประจำตัวสัตว์ (ถ้าเว้นว่างจะค้นหาให้อัตโนมัติ)")]
+    [SerializeField] protected AudioSource animalAudioSource;
+
+    protected AudioSource EnsureAudioSource()
+    {
+        if (animalAudioSource == null) animalAudioSource = GetComponent<AudioSource>();
+        if (animalAudioSource == null)
+        {
+            animalAudioSource = gameObject.AddComponent<AudioSource>();
+            animalAudioSource.playOnAwake = false;
+            animalAudioSource.spatialBlend = 0f;
+        }
+        return animalAudioSource;
+    }
     #endregion
 
     #region Unity Lifecycle
     protected virtual void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        rb.gravityScale = 0f;
         rb.freezeRotation = true;
 
         // กัน Rigidbody หลับ (sleep) ตอนยืนนิ่ง ไม่งั้นสวิตช์จะไม่รู้ว่ายืนทับอยู่
         rb.sleepMode = RigidbodySleepMode2D.NeverSleep;
 
+        UpdateGravityState();
+
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        EnsureAudioSource();
 
         // --- ตั้งค่าสไปรต์เริ่มต้นเป็นแมวเปล่าตอนเริ่มเกม ---
         if (spriteRenderer != null && defaultCatSprite != null)
@@ -194,6 +286,20 @@ public abstract class TestAnimal : MonoBehaviour
         }
 
         if (selectionIndicator != null) selectionIndicator.SetActive(false);
+    }
+
+    /// <summary>อัปเดตสถานะแรงโน้มถ่วงของ Rigidbody2D ตามสถานะลอยตัว (IsAirborne) และการตั้งค่า</summary>
+    public virtual void UpdateGravityState()
+    {
+        if (rb == null) return;
+        if (IsAirborne || !useGravity)
+        {
+            rb.gravityScale = 0f;
+        }
+        else
+        {
+            rb.gravityScale = gravityScale;
+        }
     }
 
     protected virtual void Start()
@@ -240,36 +346,81 @@ public abstract class TestAnimal : MonoBehaviour
     {
         if (isExternalMotion) return;
 
+        UpdateGravityState();
+
         Vector2 walk = Vector2.zero;
 
         if (hasTarget)
         {
-            Vector2 toTarget = targetPosition - rb.position;
-            if (toTarget.magnitude <= stopDistance)
+            if (IsAirborne || !useGravity)
             {
-                StopMoving();
+                Vector2 toTarget = targetPosition - rb.position;
+                if (toTarget.magnitude <= stopDistance)
+                {
+                    StopMoving();
+                }
+                else
+                {
+                    MoveDirection = toTarget.normalized;
+                    FacingDirection = MoveDirection;
+                    walk = MoveDirection * moveSpeed * SpeedMultiplier;
+
+                    stuckTimer += Time.fixedDeltaTime;
+                    if (stuckTimer >= stuckTimeout)
+                    {
+                        if (Vector2.Distance(rb.position, stuckCheckPos) < stuckMinProgress)
+                            StopMoving();
+                        else
+                        {
+                            stuckTimer = 0f;
+                            stuckCheckPos = rb.position;
+                        }
+                    }
+                }
             }
             else
             {
-                MoveDirection = toTarget.normalized;
-                FacingDirection = MoveDirection;
-                walk = MoveDirection * moveSpeed * SpeedMultiplier;
-
-                stuckTimer += Time.fixedDeltaTime;
-                if (stuckTimer >= stuckTimeout)
+                // เมื่ออยู่บนพื้นและเปิด Gravity: เดินแนวนอน (แกน X) สู่เป้าหมาย ให้ฟิสิกส์ 2D/แรงโน้มถ่วงจัดการแกน Y ตามระดับพื้น
+                float dx = targetPosition.x - rb.position.x;
+                if (Mathf.Abs(dx) <= stopDistance)
                 {
-                    if (Vector2.Distance(rb.position, stuckCheckPos) < stuckMinProgress)
-                        StopMoving();
-                    else
+                    StopMoving();
+                }
+                else
+                {
+                    float dirX = Mathf.Sign(dx);
+                    MoveDirection = new Vector2(dirX, 0f);
+                    FacingDirection = MoveDirection;
+                    walk = new Vector2(dirX * moveSpeed * SpeedMultiplier, 0f);
+
+                    stuckTimer += Time.fixedDeltaTime;
+                    if (stuckTimer >= stuckTimeout)
                     {
-                        stuckTimer = 0f;
-                        stuckCheckPos = rb.position;
+                        if (Mathf.Abs(rb.position.x - stuckCheckPos.x) < stuckMinProgress)
+                            StopMoving();
+                        else
+                        {
+                            stuckTimer = 0f;
+                            stuckCheckPos = rb.position;
+                        }
                     }
                 }
             }
         }
 
-        rb.linearVelocity = walk + ConveyorVelocity;
+        if (IsAirborne || !useGravity)
+        {
+            rb.linearVelocity = walk + ConveyorVelocity;
+        }
+        else
+        {
+            float vy = rb.linearVelocity.y;
+            if (maxFallSpeed > 0f && vy < -maxFallSpeed)
+            {
+                vy = -maxFallSpeed;
+            }
+            rb.linearVelocity = new Vector2(walk.x + ConveyorVelocity.x, vy + ConveyorVelocity.y);
+        }
     }
     #endregion
 
@@ -381,6 +532,57 @@ public abstract class TestAnimal : MonoBehaviour
             case AutoDirection.UpLeft: return new Vector2(-1f, 1f).normalized;
             case AutoDirection.DownRight: return new Vector2(1f, -1f).normalized;
             default: return new Vector2(-1f, -1f).normalized;
+        }
+    }
+    #endregion
+
+    #region Audio API
+    /// <summary>หาคลิปเสียง: ใช้ที่ใส่ใน Inspector ก่อน ไม่มีก็ดึงจาก AudioManager ตามชื่อคีย์ และสุดท้าย (Editor) โหลดจาก path</summary>
+    protected AudioClip ResolveSfx(AudioClip assigned, string editorAssetPath, params string[] keys)
+    {
+        if (assigned != null) return assigned;
+        if (AudioManager.Instance != null && keys != null)
+        {
+            foreach (var k in keys)
+            {
+                AudioClip c = AudioManager.Instance.GetClip(k);
+                if (c != null) return c;
+            }
+        }
+#if UNITY_EDITOR
+        if (!string.IsNullOrEmpty(editorAssetPath))
+            return UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(editorAssetPath);
+#endif
+        return null;
+    }
+
+    /// <summary>เล่นเสียงร้องของสัตว์</summary>
+    public void PlayCrySound()
+    {
+        AudioClip clip = animalCrySound != null ? animalCrySound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip($"{animalName}Cry") : null);
+        PlayAnimalSound(clip, animalCryVolume);
+    }
+
+    /// <summary>เล่นเสียงของสัตว์ ผ่าน AudioManager (ถ้ามี) หรือ AudioSource ประจำตัว</summary>
+    public void PlayAnimalSound(AudioClip clip, float volume = 1f, float pitchVariance = 0.05f, bool respectCooldown = false)
+    {
+        if (clip == null) return;
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, volume, pitchVariance, ignoreCooldown: !respectCooldown);
+        }
+        else
+        {
+            AudioSource src = EnsureAudioSource();
+            if (src != null)
+            {
+                src.pitch = (pitchVariance > 0f) ? Random.Range(1f - pitchVariance, 1f + pitchVariance) : 1f;
+                src.PlayOneShot(clip, volume);
+            }
+            else
+            {
+                AudioSource.PlayClipAtPoint(clip, transform.position, volume);
+            }
         }
     }
     #endregion
