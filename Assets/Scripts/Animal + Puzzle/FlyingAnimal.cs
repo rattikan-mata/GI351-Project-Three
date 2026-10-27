@@ -62,6 +62,9 @@ public class FlyingAnimal : TestAnimal
     [Tooltip("จุดเป้าหมายทั่วไป (สำหรับ Skyward)")]
     [SerializeField] private Transform targetDestination;
 
+    [Tooltip("ติ๊กไว้ = เด้งครบรอบแรก (สุ่ม 2-3 ครั้ง) แล้ววาร์ปไปจุดเป้าหมายทันที 1 ครั้ง (เช่น เข้าห้องข้างบน) ไม่ต้องวนกลับจุดรีเซ็ท\nไม่ติ๊ก = วนกลับจุดรีเซ็ทแล้วสุ่มเด้งใหม่จนกว่าจะบินไปถึงเอง")]
+    [SerializeField] private bool warpToTargetAfterBounces = true;
+
     [Tooltip("จำนวนครั้งเด้งขั้นต่ำก่อนรีเซ็ทกลับจุดกลางทาง")]
     [SerializeField] private int minBouncesBeforeReset = 2;
 
@@ -74,6 +77,9 @@ public class FlyingAnimal : TestAnimal
 
     [Tooltip("จำนวนครั้งที่เด้งอิสระหลังทำเป้าหมายสำเร็จ (0 = เด้งตามเวลา freeBounceDuration)")]
     [SerializeField] private int freeBounces = 10;
+
+    [Tooltip("ติ๊กไว้ = ออกตัวจากจุดรีเซ็ทรอบใหม่เริ่มความเร็วปกติ และถึงเป้าหมาย/วาร์ปแล้วบินความเร็วปกติไม่เร่งอีก (ไม่กระแทกไปมาเร็วจัดในห้องแคบ)")]
+    [SerializeField] private bool calmAfterTarget = true;
 
     [SerializeField, HideInInspector] private int dizzyBounces = 6;
     [SerializeField, HideInInspector] private float zigzagStep = 1.5f;
@@ -467,6 +473,8 @@ public class FlyingAnimal : TestAnimal
 
         attemptBounceCount = 0;
         allowedBouncesThisAttempt = Random.Range(minBouncesBeforeReset, maxBouncesBeforeReset + 1);
+        // ออกตัวรอบใหม่เริ่มความเร็วปกติ (เร่งเฉพาะในรอบนั้น) ไม่ให้สะสมจนกระแทกไปมาเร็วจัดในห้องแคบ
+        if (calmAfterTarget) currentBounceSpeedBonus = 0f;
 
         Transform destTransform = (lastDrunkPotion == PotionType.Skyward && skywardDestination != null)
             ? skywardDestination
@@ -560,8 +568,18 @@ public class FlyingAnimal : TestAnimal
                 attemptBounceCount++;
                 Debug.Log($"[{animalName}] เด้งครั้งที่ {attemptBounceCount}/{allowedBouncesThisAttempt}");
 
+                Transform warpDest = (lastDrunkPotion == PotionType.Skyward && skywardDestination != null)
+                    ? skywardDestination
+                    : targetDestination;
+
+                // เด้งครบรอบแรกแล้ว -> วาร์ปเข้าเป้าหมาย 1 ครั้ง (หลังจากนี้เป็นเด้งอิสระ ไม่วาร์ปอีก)
+                if (attemptBounceCount >= allowedBouncesThisAttempt && warpToTargetAfterBounces && warpDest != null)
+                {
+                    TeleportTo(warpDest.position);
+                    ArriveAtTarget(warpDest);
+                }
                 // ถ้าเด้งเกิน (สุ่ม 2-3 ครั้ง) แล้วยังไม่ถึงเป้าหมาย -> เด้งกลับมาที่จุดรีเซ็ท
-                if (attemptBounceCount >= allowedBouncesThisAttempt && midwayResetPoint != null)
+                else if (attemptBounceCount >= allowedBouncesThisAttempt && midwayResetPoint != null)
                 {
                     Debug.Log($"[{animalName}] เด้งเกินกำหนด ({allowedBouncesThisAttempt} ครั้ง) แล้วยังไม่ถึงเป้าหมาย -> เด้งกลับจุดรีเซ็ท");
                     bounceStage = BounceStage.ReturningToReset;
@@ -1155,6 +1173,7 @@ public class FlyingAnimal : TestAnimal
     private Transform spriteTransform;
     private Vector3 spriteBaseLocalPos;
     private float currentBounceSpeedBonus = 0f;
+    private bool calmBouncing;
 
     /// <summary>กำลังพุ่งชน (กล่องใช้เช็คว่าชนแล้วพังไหม)</summary>
     public bool IsRamming { get; private set; }
@@ -1209,12 +1228,22 @@ public class FlyingAnimal : TestAnimal
 
     private void OnBounce()
     {
+        if (calmBouncing) return;
         currentBounceSpeedBonus += speedIncreasePerBounce;
+    }
+
+    /// <summary>เข้าช่วงเด้งหลังถึงเป้าหมาย: ลดกลับเป็นความเร็วบินปกติ และหยุดเร่ง</summary>
+    private void EnterCalmBouncing()
+    {
+        if (!calmAfterTarget) return;
+        calmBouncing = true;
+        currentBounceSpeedBonus = 0f;
     }
 
     protected override void OnPotionDrunk(PotionType potion)
     {
         currentBounceSpeedBonus = 0f;
+        calmBouncing = false;
         lastDrunkPotion = potion;
 
         switch (potion)
@@ -1271,6 +1300,27 @@ public class FlyingAnimal : TestAnimal
             }
         }
         if (shadow != null) shadow.SetActive(false);
+
+        // จุดเป้าหมาย/จุดรีเซ็ทที่วางไว้เป็นลูกของตัววัว จะเลื่อนตามตัวจนบินไปไม่ถึงสักที ย้ายออกมาให้อยู่กับที่
+        DetachWaypoint(skywardDestination);
+        DetachWaypoint(midwayResetPoint);
+        DetachWaypoint(targetDestination);
+        DetachWaypoint(havocDestination);
+    }
+
+    private void DetachWaypoint(Transform point)
+    {
+        if (point == null || !point.IsChildOf(transform)) return;
+        point.SetParent(transform.parent, true);
+        detachedWaypoints.Add(point);
+    }
+
+    private readonly System.Collections.Generic.List<Transform> detachedWaypoints = new System.Collections.Generic.List<Transform>();
+
+    private void OnDestroy()
+    {
+        foreach (var p in detachedWaypoints)
+            if (p != null) Destroy(p.gameObject);
     }
 
     private bool ShouldPlayFlyLoop =>
@@ -1478,34 +1528,7 @@ public class FlyingAnimal : TestAnimal
 
                     if (distToTarget <= arrivalThreshold)
                     {
-                        // ถึงเป้าหมายแล้ว! (พอทำเป้าหมายเสร็จ)
-                        Debug.Log($"[{animalName}] ถึงเป้าหมายสำเร็จแล้ว! ปล่อยให้เด้งอิสระ");
-
-                        // ถ้าเป้าหมายมี FloorSwitch ให้กดสวิตช์ด้วย
-                        FloorSwitch sw = destTransform.GetComponentInParent<FloorSwitch>();
-                        if (sw == null) sw = destTransform.GetComponentInChildren<FloorSwitch>();
-                        if (sw == null)
-                        {
-                            Collider2D nearbyCol = Physics2D.OverlapCircle(destTransform.position, 1.2f);
-                            if (nearbyCol != null)
-                            {
-                                sw = nearbyCol.GetComponentInParent<FloorSwitch>();
-                                if (sw == null) sw = nearbyCol.GetComponentInChildren<FloorSwitch>();
-                            }
-                        }
-                        if (sw != null) sw.RemoteToggle();
-
-                        if (skywardPierceDoorsAfterSwitch)
-                        {
-                            OnSkywardSwitchTriggered();
-                        }
-
-                        // เปลี่ยนสเตจเป็นเด้งอิสระ (FreeBouncing)
-                        bounceStage = BounceStage.FreeBouncing;
-                        freeBounceCount = 0;
-                        freeBounceTimer = 0f;
-                        if (currentBounceDir.sqrMagnitude < 0.01f) currentBounceDir = FacingDirection;
-                        rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+                        ArriveAtTarget(destTransform);
                         return;
                     }
                 }
@@ -1576,6 +1599,40 @@ public class FlyingAnimal : TestAnimal
         }
 
         base.FixedUpdate();
+    }
+
+    /// <summary>ถึงเป้าหมายแล้ว (บินถึงเองหรือวาร์ปมา): กดสวิตช์ที่เป้าหมาย แล้วปล่อยเด้งอิสระ</summary>
+    private void ArriveAtTarget(Transform destTransform)
+    {
+        Debug.Log($"[{animalName}] ถึงเป้าหมายสำเร็จแล้ว! ปล่อยให้เด้งอิสระ");
+
+        // ถ้าเป้าหมายมี FloorSwitch ให้กดสวิตช์ด้วย
+        FloorSwitch sw = destTransform.GetComponentInParent<FloorSwitch>();
+        if (sw == null) sw = destTransform.GetComponentInChildren<FloorSwitch>();
+        if (sw == null)
+        {
+            Collider2D nearbyCol = Physics2D.OverlapCircle(destTransform.position, 1.2f);
+            if (nearbyCol != null)
+            {
+                sw = nearbyCol.GetComponentInParent<FloorSwitch>();
+                if (sw == null) sw = nearbyCol.GetComponentInChildren<FloorSwitch>();
+            }
+        }
+        if (sw != null) sw.RemoteToggle();
+
+        if (skywardPierceDoorsAfterSwitch)
+        {
+            OnSkywardSwitchTriggered();
+        }
+
+        // เปลี่ยนสเตจเป็นเด้งอิสระ (FreeBouncing)
+        bounceStage = BounceStage.FreeBouncing;
+        freeBounceCount = 0;
+        freeBounceTimer = 0f;
+        EnterCalmBouncing();
+        float speed = moveSpeed * SpeedMultiplier;
+        if (currentBounceDir.sqrMagnitude < 0.01f) currentBounceDir = FacingDirection;
+        rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
     }
 
     /// <summary>Skyward: เด้งชนประตู/กล่องที่พังได้ -> พัง</summary>
@@ -1694,6 +1751,7 @@ public class FlyingAnimal : TestAnimal
         patrolPushStage = PatrolPushStage.None;
         surgeStage = SurgeStage.None;
         currentBounceSpeedBonus = 0f;
+        calmBouncing = false;
         if (activeSurgeRoutine != null)
         {
             StopCoroutine(activeSurgeRoutine);
@@ -2516,6 +2574,7 @@ public class FlyingAnimal : TestAnimal
         havocBounceCount = 0;
         havocPostBounceCount = 0;
         currentBounceSpeedBonus = 0f;
+        calmBouncing = false;
         TakeOff();
         StopFlyLoop();
         flyEndTime = float.MaxValue;
@@ -2591,6 +2650,7 @@ public class FlyingAnimal : TestAnimal
             isHavocPostBouncing = true;
             havocPostBounceCount = 0;
             float postTimer = 0f;
+            EnterCalmBouncing();
 
             // สุ่มมุมพุ่งตัวเด้งต่อจากจุดที่วาร์ปมาถึง
             float postAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;

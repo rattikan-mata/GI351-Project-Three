@@ -87,6 +87,7 @@ public class FloorSwitch : MonoBehaviour
 
     private readonly HashSet<Collider2D> pressers = new HashSet<Collider2D>();
     private bool weightSatisfied = false;
+    private float lastToggleTime = -1f;
 
     private Vector3 initialCapLocalPos;
     private bool initialPosSaved = false;
@@ -225,6 +226,10 @@ public class FloorSwitch : MonoBehaviour
 
     private void ToggleSwitch()
     {
+        // ชนครั้งเดียวแต่ถูกสั่งซ้ำในจังหวะฟิสิกส์เดียวกัน (เช่น วัวบินสั่ง ForceToggle + สวิตช์เจอ Trigger เอง) ให้นับครั้งเดียว
+        if (lastToggleTime == Time.fixedTime) return;
+        lastToggleTime = Time.fixedTime;
+
         // สลับสถานะเปิด/ปิด (On <-> Off) ทุกครั้งที่ถูกชน
         IsActive = !IsActive;
         ApplyVisual();
