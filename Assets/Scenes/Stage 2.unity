@@ -208,6 +208,10 @@ PrefabInstance:
       propertyPath: switches.Array.size
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6551297270854490628, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
+      propertyPath: m_SortingOrder
+      value: -1
+      objectReference: {fileID: 0}
     - target: {fileID: 7114030222196000817, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
       propertyPath: m_Name
       value: Wood Platform
@@ -1105,6 +1109,10 @@ PrefabInstance:
     - target: {fileID: 6228281681913452626, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
       propertyPath: m_LocalPosition.y
       value: 1.8181818
+      objectReference: {fileID: 0}
+    - target: {fileID: 6551297270854490628, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
+      propertyPath: m_SortingOrder
+      value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 7114030222196000817, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
       propertyPath: m_Name
@@ -3164,6 +3172,10 @@ PrefabInstance:
       propertyPath: m_LocalPosition.y
       value: 2.16
       objectReference: {fileID: 0}
+    - target: {fileID: 6551297270854490628, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: m_SortingOrder
+      value: -1
+      objectReference: {fileID: 0}
     - target: {fileID: 7114030222196000817, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
       propertyPath: m_Name
       value: Gate 2
@@ -3994,6 +4006,7 @@ MonoBehaviour:
   - {fileID: 1442204244}
   requireAllSlotsFilled: 1
   stepByStepSend: 1
+  autoAdvance: 1
   redMapping: 3
   blueMapping: 2
   greenMapping: 1

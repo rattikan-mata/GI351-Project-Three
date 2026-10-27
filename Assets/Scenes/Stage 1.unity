@@ -436,6 +436,10 @@ PrefabInstance:
       propertyPath: 'switches.Array.data[0]'
       value: 
       objectReference: {fileID: 1130578640}
+    - target: {fileID: 6551297270854490628, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
+      propertyPath: m_SortingOrder
+      value: -1
+      objectReference: {fileID: 0}
     - target: {fileID: 7114030222196000817, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
       propertyPath: m_Name
       value: Door_Wood
@@ -2531,6 +2535,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6551297270854490628, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: m_SortingOrder
+      value: -1
+      objectReference: {fileID: 0}
     - target: {fileID: 7114030222196000817, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
       propertyPath: m_Name
       value: Door_Steel 2
@@ -2652,6 +2660,10 @@ PrefabInstance:
       propertyPath: 'supportBoxes.Array.data[0]'
       value: 
       objectReference: {fileID: 2070437706}
+    - target: {fileID: 6551297270854490628, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
+      propertyPath: m_SortingOrder
+      value: -1
+      objectReference: {fileID: 0}
     - target: {fileID: 7114030222196000817, guid: f24d4a9d46b40c74b8ca8e29f9c1d57e, type: 3}
       propertyPath: m_Name
       value: Door_Steel 1
@@ -3494,6 +3506,7 @@ MonoBehaviour:
   - {fileID: 261405672}
   requireAllSlotsFilled: 1
   stepByStepSend: 1
+  autoAdvance: 1
   redMapping: 3
   blueMapping: 2
   greenMapping: 1
