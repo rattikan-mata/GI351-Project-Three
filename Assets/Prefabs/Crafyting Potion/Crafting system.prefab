@@ -137,6 +137,13 @@ MonoBehaviour:
   brewsLabel: {fileID: 0}
   autoLabelOffset: {x: 0, y: 1.15}
   autoLabelSortingOrder: 7
+  labelFont: {fileID: 11400000, guid: 55dfa1b15bfa58e4ab09a49daa0791b9, type: 2}
+  engravedLabel: 1
+  engravedFaceColor: {r: 0.6901961, g: 0.6117647, b: 0.80784315, a: 0.92156863}
+  engravedOutlineColor: {r: 0.08627451, g: 0.047058824, b: 0.11764706, a: 1}
+  engravedHighlightColor: {r: 1, g: 0.92156863, b: 1, a: 0.3529412}
+  engravedBend: 0.07
+  engravedCylinderRadius: 2.4
 --- !u!1 &4951205572529460011
 GameObject:
   m_ObjectHideFlags: 0

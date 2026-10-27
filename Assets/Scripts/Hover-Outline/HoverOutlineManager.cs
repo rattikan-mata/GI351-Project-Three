@@ -28,7 +28,7 @@ public class HoverOutlineManager : MonoBehaviour
     [SerializeField] private Color outlineColor = Color.white;
 
     [Tooltip("ความหนาขอบรวม (หน่วย Unity / world) ขอบคร่อมเส้นขอบรูป ครึ่งหนึ่งในรูป ครึ่งหนึ่งนอกรูป")]
-    [SerializeField, Min(0f)] private float outlineWidth = 0.06f;
+    [SerializeField, Min(0f)] private float outlineWidth = 0.035f;
 
     [Header("Detection")]
     [Tooltip("Layer ของ Collider ที่ตรวจเมาส์ (ค่าเริ่มต้น = ทุก Layer)")]
@@ -248,7 +248,7 @@ public class HoverOutlineManager : MonoBehaviour
             case PotionBrewer _:
                 return true;
             case TestAnimal _:
-                return true;
+                return false; // สัตว์ในปริศนาไม่ใช่ของที่ผู้เล่นกด (ใส่ HoverOutlineTarget ถ้าอยากให้มีขอบ)
         }
         return HasMouseMessage(mb.GetType());
     }

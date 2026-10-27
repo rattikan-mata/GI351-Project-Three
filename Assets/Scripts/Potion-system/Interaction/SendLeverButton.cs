@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace PotionSystem
@@ -10,7 +11,7 @@ namespace PotionSystem
     /// - ส่งไม่ได้ (ยาไม่ครบช่อง): คันโยกสั่นเบาๆ ไม่โยกลง (เสียงพลาดมาจาก PotionStagingManager)
     /// </summary>
     [RequireComponent(typeof(Image))]
-    public class SendLeverButton : MonoBehaviour
+    public class SendLeverButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         [SerializeField] private PotionStagingManager manager;
         [SerializeField] private Image image;
@@ -18,6 +19,9 @@ namespace PotionSystem
         [Header("Sprites")]
         [SerializeField] private Sprite upSprite;
         [SerializeField] private Sprite downSprite;
+        [Tooltip("(ไม่บังคับ) ภาพคันโยกตอนเมาส์ชี้ (มีขอบขาว) ว่างไว้ = ใช้ภาพปกติ")]
+        [SerializeField] private Sprite upSpriteHover;
+        [SerializeField] private Sprite downSpriteHover;
 
         [Header("Motion")]
         [Tooltip("ค้างตำแหน่งลงอย่างน้อยกี่วินาที")]
@@ -30,6 +34,8 @@ namespace PotionSystem
         private RectTransform rect;
         private Vector2 restPosition;
         private Coroutine motion;
+        private bool isDown;
+        private bool hovered;
 
         private void Awake()
         {
@@ -63,12 +69,38 @@ namespace PotionSystem
             }
             motion = null;
             rect.anchoredPosition = restPosition;
+            hovered = false;
             ShowUp();
         }
 
-        private void ShowUp()
+        private void ShowUp() => SetDown(false);
+
+        private void SetDown(bool down)
         {
-            if (image != null && upSprite != null) image.sprite = upSprite;
+            isDown = down;
+            ApplySprite();
+        }
+
+        /// <summary>เลือกภาพตามท่า (ขึ้น/ลง) และเมาส์ชี้อยู่ไหม</summary>
+        private void ApplySprite()
+        {
+            if (image == null) return;
+            Sprite normal = isDown ? downSprite : upSprite;
+            Sprite hover = isDown ? downSpriteHover : upSpriteHover;
+            Sprite s = hovered && hover != null ? hover : normal;
+            if (s != null) image.sprite = s;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            hovered = true;
+            ApplySprite();
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            hovered = false;
+            ApplySprite();
         }
 
         private void Play(IEnumerator routine)
@@ -86,7 +118,7 @@ namespace PotionSystem
                 if (motion != null) StopCoroutine(motion);
                 motion = null;
                 rect.anchoredPosition = restPosition;
-                if (downSprite != null) image.sprite = downSprite;
+                SetDown(true);
                 return;
             }
             Play(PullRoutine());
@@ -105,7 +137,7 @@ namespace PotionSystem
 
         private IEnumerator PullRoutine()
         {
-            if (downSprite != null) image.sprite = downSprite;
+            SetDown(true);
             yield return new WaitForSeconds(minDownSeconds);
             while (holdWhileBusy && manager != null && manager.IsBusy) yield return null;
 

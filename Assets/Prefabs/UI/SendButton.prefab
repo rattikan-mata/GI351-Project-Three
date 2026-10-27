@@ -137,6 +137,9 @@ MonoBehaviour:
   image: {fileID: 1744695310743316427}
   upSprite: {fileID: 21300000, guid: ed448950e4af0b84fb4dab89e73ef202, type: 3}
   downSprite: {fileID: 21300000, guid: 501de54bb16b9f04c8fe005a577edebc, type: 3}
+  upSpriteHover: {fileID: 21300000, guid: f3a46f72f695e0d4093e39bae54a9e94, type: 3}
+  downSpriteHover: {fileID: 21300000, guid: 58ecc6757da86f847b9adc06d92be303, type: 3}
   minDownSeconds: 0.45
+  holdWhileBusy: 1
   shakeDistance: 5
   shakeSeconds: 0.25
