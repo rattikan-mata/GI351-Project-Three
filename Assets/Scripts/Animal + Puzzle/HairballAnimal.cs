@@ -132,6 +132,9 @@ public class HairballAnimal : TestAnimal
     [Tooltip("ความเร็วในการลอยตัวในฟองสบู่ (ความเร็วคงที่ไม่เพิ่มขึ้นตามที่ผู้เล่นต้องการ)")]
     [SerializeField] private float skywardBubbleSpeed = 5.5f;
 
+    [Tooltip("ติ๊กไว้ = ลอยเด้งในฟองสบู่ไปจนจบด่าน ไม่แตกเอง (ไม่สนเวลา จำนวนครั้งเด้ง หรือจุดเป้าหมาย)")]
+    [SerializeField] private bool skywardFloatUntilStageEnds = true;
+
     [Tooltip("ระยะเวลาลอยตัวในฟองสบู่ (วินาที, 0 = ไม่จำกัดเวลาจนกว่าจะเด้งครบครั้ง)")]
     [SerializeField] private float skywardBubbleDuration = 8f;
 
@@ -824,6 +827,13 @@ public class HairballAnimal : TestAnimal
 
         while (isSkywardFloating)
         {
+            // ลอยเด้งในฟองไปจนจบด่าน (รีเซ็ตด่านจะสร้างแมวใหม่อยู่แล้ว)
+            if (skywardFloatUntilStageEnds)
+            {
+                yield return null;
+                continue;
+            }
+
             if (skywardMaxBounces > 0 && skywardBounceCount >= skywardMaxBounces)
             {
                 Debug.Log($"[{animalName}] Skyward ฟองสบู่เด้งครบ {skywardMaxBounces} ครั้งแล้ว -> แตกและลงสู่พื้น");

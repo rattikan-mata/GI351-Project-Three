@@ -191,11 +191,22 @@ MonoBehaviour:
   abilityCooldown: 0
   requirePotion: 1
   potionEffectDuration: 0
+  drinkPotionSound: {fileID: 0}
+  drinkPotionVolume: 1
+  animalCrySound: {fileID: 0}
+  animalCryVolume: 1
+  animalAudioSource: {fileID: 0}
   flyDuration: 10000
   flySpeedMultiplier: 1.3
   flyOverLayers:
     serializedVersion: 2
     m_Bits: 0
+  flySound: {fileID: 0}
+  bounceSound: {fileID: 0}
+  ramSound: {fileID: 0}
+  teleportSound: {fileID: 0}
+  teleportVolume: 1
+  flyLoopVolume: 1
   skywardDestination: {fileID: 0}
   midwayResetPoint: {fileID: 0}
   targetDestination: {fileID: 0}
@@ -209,10 +220,11 @@ MonoBehaviour:
   zigzagMaxLegs: 9999
   smokeEffectPrefab: {fileID: 0}
   speedIncreasePerBounce: 1
-  maxBounceSpeed: 20
+  maxBounceSpeed: 14
   skywardPierceDoorsAfterSwitch: 0
   skywardTriggerSwitchOnTouch: 1
   skywardBreakDoorsOnPierce: 0
+  skywardBreakOnBounce: 1
   surgeLiftHeight: 0.5
   surgeSpeed: 4.5
   surgeReturnSpeed: 4

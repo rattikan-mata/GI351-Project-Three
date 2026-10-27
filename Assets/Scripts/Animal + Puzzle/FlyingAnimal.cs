@@ -102,6 +102,9 @@ public class FlyingAnimal : TestAnimal
     [Tooltip("หากประตูเป็นแบบพังได้ (Breakable) เมื่อทะลุผ่านจะทำให้ประตูพังด้วยหรือไม่")]
     [SerializeField] private bool skywardBreakDoorsOnPierce = false;
 
+    [Tooltip("ติ๊กไว้ = ตอน Skyward เด้งชนประตูที่พังได้ หรือกล่องที่พังได้ จะทำให้พังทันที (แล้วเด้งต่อ)")]
+    [SerializeField] private bool skywardBreakOnBounce = true;
+
     public bool SkywardPierceDoorsAfterSwitch
     {
         get => skywardPierceDoorsAfterSwitch;
@@ -736,6 +739,8 @@ public class FlyingAnimal : TestAnimal
             {
                 OnBounceHit(normal);
             }
+
+            BreakOnSkywardBounce(collision.gameObject, door);
             return;
         }
 
@@ -1563,6 +1568,7 @@ public class FlyingAnimal : TestAnimal
                 }
 
                 OnBounceHit(h.normal);
+                BreakOnSkywardBounce(h.collider.gameObject, door);
                 return;
             }
 
@@ -1570,6 +1576,15 @@ public class FlyingAnimal : TestAnimal
         }
 
         base.FixedUpdate();
+    }
+
+    /// <summary>Skyward: เด้งชนประตู/กล่องที่พังได้ -> พัง</summary>
+    private void BreakOnSkywardBounce(GameObject hitObject, Door door)
+    {
+        if (!skywardBreakOnBounce || lastDrunkPotion != PotionType.Skyward) return;
+        if (door != null && door.IsBreakable && !door.IsBroken) door.BreakDoor();
+        PushableBox box = hitObject.GetComponentInParent<PushableBox>();
+        if (box != null && box.IsDestructible && !box.IsBroken) box.BreakBox();
     }
     #endregion
 
