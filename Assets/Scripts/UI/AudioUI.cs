@@ -9,6 +9,10 @@ public class AudioUI : MonoBehaviour
     [Header("Audio Source")]
     [SerializeField] private AudioSource uiSource;
 
+    [Header("Volume")]
+    [Tooltip("ความดังรวมของเสียง UI ทั้งหมด (คูณกับ Master x SFX ของ AudioManager และเงียบตาม Mute)")]
+    [Range(0f, 1f)] [SerializeField] private float uiVolume = 0.6f;
+
     [Header("--- Buttons SFX ---")]
     [Tooltip("เสียงกดปุ่ม Play")]
     public AudioClip sfxPlay;
@@ -81,9 +85,21 @@ public class AudioUI : MonoBehaviour
     {
         if (clip != null && uiSource != null)
         {
+            float volume = CurrentVolume();
+            if (volume <= 0f) return;
+
             uiSource.pitch = pitch;
-            uiSource.PlayOneShot(clip);
+            uiSource.PlayOneShot(clip, volume);
         }
+    }
+
+    // ความดังจริง = UI Volume x Master x SFX ของเกม (ปิดเสียงเกมแล้ว UI เงียบด้วย)
+    private float CurrentVolume()
+    {
+        var audio = AudioManager.Instance;
+        if (audio == null) return uiVolume;
+        if (audio.IsMuted) return 0f;
+        return uiVolume * audio.MasterVolume * audio.SfxVolume;
     }
 
     public void PlayBtnPlay() => PlaySFX(sfxPlay);

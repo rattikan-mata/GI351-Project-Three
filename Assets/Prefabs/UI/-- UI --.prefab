@@ -1153,18 +1153,6 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: AudioUI, Assembly-CSharp
-        m_MethodName: PlayBtnResume
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
 --- !u!114 &5245865422381832711
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1374,18 +1362,6 @@ MonoBehaviour:
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: Stage 2
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: AudioUI, Assembly-CSharp
-        m_MethodName: PlayBtnNext
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &2903786609816405097
@@ -1723,18 +1699,6 @@ MonoBehaviour:
           m_StringArgument: Main Menu
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: AudioUI, Assembly-CSharp
-        m_MethodName: PlayBtnMainMenu
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
 --- !u!114 &897363820790188236
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2048,7 +2012,6 @@ GameObject:
   - component: {fileID: 6286914872717470676}
   - component: {fileID: 5868202390600196483}
   - component: {fileID: 1880514281180600858}
-  - component: {fileID: 3289704331940266535}
   m_Layer: 5
   m_Name: Reset
   m_TagString: Untagged
@@ -2170,18 +2133,6 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: AudioUI, Assembly-CSharp
-        m_MethodName: PlayBtnReset
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
 --- !u!114 &1880514281180600858
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2197,19 +2148,6 @@ MonoBehaviour:
   curtain: {fileID: 5411650704817851104}
   starSystem: {fileID: 4520569078240968690}
   puzzleReset: {fileID: 0}
---- !u!114 &3289704331940266535
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5609626896081379244}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ee24532d455caf94e9eb581e5c61b139, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UIButtonSound
-  soundType: 5
 --- !u!1 &5735030799661551266
 GameObject:
   m_ObjectHideFlags: 0
@@ -2576,18 +2514,6 @@ MonoBehaviour:
       - m_Target: {fileID: 3987310821117268642}
         m_TargetAssemblyTypeName: InfoMenuController, Assembly-CSharp
         m_MethodName: QuitToMainMenu
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: AudioUI, Assembly-CSharp
-        m_MethodName: PlayBtnQuit
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3103,18 +3029,6 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: AudioUI, Assembly-CSharp
-        m_MethodName: PlayBtnRestart
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
 --- !u!114 &3126202245472178137
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3390,18 +3304,6 @@ MonoBehaviour:
       - m_Target: {fileID: 3987310821117268642}
         m_TargetAssemblyTypeName: InfoMenuController, Assembly-CSharp
         m_MethodName: OpenInfo
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: AudioUI, Assembly-CSharp
-        m_MethodName: PlayBtnTab
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
