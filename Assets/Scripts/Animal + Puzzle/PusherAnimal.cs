@@ -224,7 +224,61 @@ public class PusherAnimal : TestAnimal
 
     public override bool IsAirborne => ceilingState != CeilingState.Floor;
     public override bool CanBreakObstacles => CanSmash;
-    protected override float SpeedMultiplier => ceilingState == CeilingState.OnCeiling ? ceilingWalkSpeedMultiplier : 1f;
+    protected override float SpeedMultiplier =>
+        ceilingState == CeilingState.OnCeiling ? ceilingWalkSpeedMultiplier : (isCharging ? chargeSpeedMultiplier : 1f);
+    #endregion
+
+    #region Attack Animation (ท่าโจมตี)
+    [Header("Attack Animation (ท่าโจมตี: เลเซอร์ / โหม่ง / ทำลาย / ดันกล่อง)")]
+    [Tooltip("ภาพท่าโจมตี: เฟรมแรก = ตั้งท่าก้มหัว, เฟรมสุดท้าย = หัวงัดขึ้น (ผลโจมตีเกิดตอนนี้พอดี) ว่างไว้ = โจมตีทันทีแบบเดิม")]
+    [SerializeField] private Sprite[] attackFrames;
+
+    [Tooltip("เวลาตั้งท่าก้มหัวก่อนหัวงัดขึ้น (วินาที)")]
+    [SerializeField, Min(0f)] private float attackWindup = 0.25f;
+
+    [Tooltip("ค้างท่าหัวงัดขึ้นกี่วินาทีก่อนกลับท่ายืน")]
+    [SerializeField, Min(0f)] private float attackRecover = 0.3f;
+
+    [Tooltip("ตัวคูณความเร็วตอนก้มหัวพุ่งไปหากล่อง (ไม่ใช้ท่าเดิน)")]
+    [SerializeField, Min(0.1f)] private float chargeSpeedMultiplier = 1.8f;
+
+    private AnimalSpriteAnimator spriteAnimator;
+    private bool isCharging;
+    private bool attackPending;
+
+    private bool HasAttackAnimation => spriteAnimator != null && attackFrames != null && attackFrames.Length >= 2;
+
+    /// <summary>ตั้งท่าก้มหัวก่อน แล้วค่อยให้ผลโจมตีเกิดตอนหัวงัดขึ้น (ไม่มีภาพ = ทำทันที)</summary>
+    private bool StartAttack(System.Func<bool> effect)
+    {
+        if (attackPending) return false;
+        if (!HasAttackAnimation || attackWindup <= 0f) return effect();
+        StartCoroutine(AttackRoutine(effect));
+        return true;
+    }
+
+    private IEnumerator AttackRoutine(System.Func<bool> effect)
+    {
+        attackPending = true;
+        spriteAnimator.Hold(new[] { attackFrames[0] });
+        yield return new WaitForSeconds(attackWindup);
+
+        spriteAnimator.Hold(new[] { attackFrames[attackFrames.Length - 1] });
+        effect(); // หัวงัดขึ้นพอดี
+        yield return new WaitForSeconds(attackRecover);
+
+        spriteAnimator.Release();
+        attackPending = false;
+    }
+
+    /// <summary>ก้มหัวพุ่ง (ใช้ภาพตั้งท่าโจมตี) แทนท่าเดิน</summary>
+    private void SetCharging(bool charging)
+    {
+        isCharging = charging;
+        if (!HasAttackAnimation) return;
+        if (charging) spriteAnimator.Hold(new[] { attackFrames[0] });
+        else if (!attackPending) spriteAnimator.Release();
+    }
     #endregion
 
     #region Auto
@@ -284,16 +338,23 @@ public class PusherAnimal : TestAnimal
         {
             if (i > 0) yield return new WaitForSeconds(abilityCooldown);
 
-            // เดินไปยืนด้านหลังกล่อง (ฝั่งตรงข้ามทิศที่จะผลัก) โดยคุมระดับ Y บนพื้นของสัตว์เอง
+            // ก้มหัวพุ่งไปยืนด้านหลังกล่อง (ฝั่งตรงข้ามทิศที่จะผลัก) โดยคุมระดับ Y บนพื้นของสัตว์เอง
             Vector2 standPos = new Vector2(box.transform.position.x - dir.x * standOffset, rb.position.y);
+            SetCharging(true);
             MoveTo(standPos);
             while (IsMoving) yield return null;
+            isCharging = false;
 
             // หันหน้าไปยังทิศที่จะผลัก
             FaceDirection(dir);
 
-            // ผลัก
-            if (!ExecuteAbility(rb.position + dir)) yield break; // ผลักไม่ไปแล้ว (ติดกำแพง) เลิก
+            // งัดขวิด (ผลักตอนหัวงัดขึ้น)
+            if (!ExecuteAbility(rb.position + dir)) // ผลักไม่ไปแล้ว (ติดกำแพง) เลิก
+            {
+                SetCharging(false);
+                yield break;
+            }
+            while (attackPending) yield return null;
 
             while (box != null && (box.IsMoving || box.IsProcessingHit)) yield return null;
         }
@@ -425,18 +486,24 @@ public class PusherAnimal : TestAnimal
         {
             if (!box.IsDestructible || !box.CanAnimalDestroyBox(this)) return false;
             StopMoving();
-            AudioClip smashClip = ResolveSmashSound();
-            float vol = (smashVolume > 0.001f) ? smashVolume : 1f;
-            PlayAnimalSound(smashClip, vol);
-            box.TriggerDestructionSequence(this, dir);
-            return true;
+            return StartAttack(() =>
+            {
+                AudioClip smashClip = ResolveSmashSound();
+                float vol = (smashVolume > 0.001f) ? smashVolume : 1f;
+                PlayAnimalSound(smashClip, vol);
+                box.TriggerDestructionSequence(this, dir);
+                return true;
+            });
         }
 
         StopMoving();
-        AudioClip clip = ResolvePushSound();
-        float pVol = (pushVolume > 0.001f) ? pushVolume : 1f;
-        PlayAnimalSound(clip, pVol);
-        return box.TryPush(dir, pushDistance, pushSpeed, this);
+        return StartAttack(() =>
+        {
+            AudioClip clip = ResolvePushSound();
+            float pVol = (pushVolume > 0.001f) ? pushVolume : 1f;
+            PlayAnimalSound(clip, pVol);
+            return box.TryPush(dir, pushDistance, pushSpeed, this);
+        });
     }
 
     private AudioClip ResolvePushSound()
@@ -517,6 +584,7 @@ public class PusherAnimal : TestAnimal
     {
         base.Awake();
         bodyCollider = GetComponent<Collider2D>();
+        spriteAnimator = GetComponent<AnimalSpriteAnimator>();
         EnsureSkywardLaserPrefab();
         ResolveHavocSound();
         ResolvePushSound();
@@ -584,6 +652,9 @@ public class PusherAnimal : TestAnimal
     protected override void Update()
     {
         base.Update();
+
+        // ท่าเดินใช้เฉพาะตอนเดินบนเพดาน บนพื้นใช้ท่ายืน/ก้มหัวพุ่ง
+        if (spriteAnimator != null) spriteAnimator.AllowMove = ceilingState == CeilingState.OnCeiling;
 
         // เมื่ออยู่บนเพดาน: ตัวกลับหัว และหันซ้ายขวาตามทิศที่กำลังเดิน
         if (ceilingState == CeilingState.OnCeiling && spriteRenderer != null)
@@ -704,6 +775,7 @@ public class PusherAnimal : TestAnimal
             FaceDirection(dir);
             // เสกเลเซอร์ลงมาจากฟ้า: ค้นหาเป้าหมายอัตโนมัติเฉพาะด้านหน้าที่แพะหันไป (ตามจำนวน skywardTargetCount)
             ExecuteAbility(rb.position + dir);
+            while (attackPending) yield return null;
             if (skywardTargetCount > 1 && skywardMultiStrikeInterval > 0f)
             {
                 yield return new WaitForSeconds(skywardTargetCount * skywardMultiStrikeInterval);
@@ -712,6 +784,7 @@ public class PusherAnimal : TestAnimal
         }
 
         ExecuteAbility(rb.position + dir);
+        while (attackPending) yield return null;
     }
 
     private bool PerformComboAbility(Vector2 aimWorldPoint, Vector2 dir)
@@ -720,10 +793,28 @@ public class PusherAnimal : TestAnimal
         {
             FacingDirection = dir;
             FaceDirection(dir); // เลเซอร์ออกข้างหน้า หันไปตามทิศที่ยิง
-            return FireForwardLaser(dir);
+            StopMoving();
+            return StartAttack(() => FireForwardLaser(dir));
         }
 
         if (comboMode == GoatMode.SkywardLaser)
+        {
+            StopMoving();
+            return StartAttack(() => FireSkywardAbility(aimWorldPoint, dir));
+        }
+
+        FacingDirection = dir;
+        switch (comboMode)
+        {
+            case GoatMode.Havoc: StopMoving(); return StartAttack(SmashEverything);
+            case GoatMode.Ceiling: return ToggleCeiling();
+        }
+        return false;
+    }
+
+    /// <summary>Skyward: หาเป้าหมายด้านหน้าแล้วเสกเลเซอร์ลงจากฟ้า</summary>
+    private bool FireSkywardAbility(Vector2 aimWorldPoint, Vector2 dir)
+    {
         {
             Vector2 fwd = GetFacingVector();
             if (!skywardAimFrontOnly)
@@ -778,14 +869,6 @@ public class PusherAnimal : TestAnimal
                 return FireSkywardLaser(targetPos);
             }
         }
-
-        FacingDirection = dir;
-        switch (comboMode)
-        {
-            case GoatMode.Havoc: return SmashEverything();
-            case GoatMode.Ceiling: return ToggleCeiling();
-        }
-        return false;
     }
 
     #region Forward Laser (ยาเขียว: ยิงเลเซอร์ออกข้างหน้า)

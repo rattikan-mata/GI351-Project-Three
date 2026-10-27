@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6575853718403366330}
   - component: {fileID: 877512942681329233}
   - component: {fileID: 638540066612953218}
+  - component: {fileID: 4122468215834126658}
   m_Layer: 3
   m_Name: Strong cat
   m_TagString: Untagged
@@ -82,9 +83,9 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: -1
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 208dba99dbb618f4da81706688281bab, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 9dc8cd92a31c33646bc625b88c1874cc, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -189,6 +190,11 @@ MonoBehaviour:
   abilityCooldown: 1
   requirePotion: 1
   potionEffectDuration: 0
+  drinkPotionSound: {fileID: 0}
+  drinkPotionVolume: 1
+  animalCrySound: {fileID: 0}
+  animalCryVolume: 1
+  animalAudioSource: {fileID: 0}
   boxLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -197,6 +203,10 @@ MonoBehaviour:
   pushSpeed: 6
   snapToCardinalDirections: 1
   aimAlignment: 0.5
+  pushSound: {fileID: 8300000, guid: 22fcad673effb60419651af57d414081, type: 3}
+  pushVolume: 1
+  smashSound: {fileID: 0}
+  smashVolume: 1
   laserPrefab: {fileID: 0}
   laserFirePoint: {fileID: 0}
   laserHitPrefab: {fileID: 0}
@@ -240,6 +250,11 @@ MonoBehaviour:
   skywardPierceOpenDoors: 1
   skywardBlockedByClosedDoors: 0
   skywardMaxPierceCount: 99
+  havocSound: {fileID: 8300000, guid: 432e60343d74b124892f029450c7cd74, type: 3}
+  havocVolume: 1
+  havocFormSprite: {fileID: 0}
+  gravitySound: {fileID: 8300000, guid: bdd6b193169ceb24b83bb95a8bbc4073, type: 3}
+  gravityVolume: 1
   ceilingLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -251,6 +266,12 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   ceilingAutoWalkDistance: 6
+  attackFrames:
+  - {fileID: 21300000, guid: 5d03b60405896bf45bc46e9499bf6077, type: 3}
+  - {fileID: 21300000, guid: 6f87dc0f31cf64041b9e2854a55e5389, type: 3}
+  attackWindup: 0.25
+  attackRecover: 0.3
+  chargeSpeedMultiplier: 1.8
   pushDirection: 1
   autoSearchRadius: 20
   autoPushCount: 1
@@ -259,7 +280,27 @@ MonoBehaviour:
   smashPotion: 0
   smashFormSprite: {fileID: 0}
   pushFormSprite: {fileID: 0}
-  pushSound: {fileID: 8300000, guid: 22fcad673effb60419651af57d414081, type: 3}
-  havocSound: {fileID: 8300000, guid: 432e60343d74b124892f029450c7cd74, type: 3}
-  gravitySound: {fileID: 8300000, guid: bdd6b193169ceb24b83bb95a8bbc4073, type: 3}
-  gravityVolume: 1
+--- !u!114 &4122468215834126658
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1280557578164829464}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2275fc70788cf64459cf47c66d4f5e55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalSpriteAnimator
+  animal: {fileID: 638540066612953218}
+  idleFrames:
+  - {fileID: 21300000, guid: 9dc8cd92a31c33646bc625b88c1874cc, type: 3}
+  idleFps: 2
+  moveFrames:
+  - {fileID: 21300000, guid: 0a9448e0e5834dc498fecd8e0125924d, type: 3}
+  - {fileID: 21300000, guid: 352239bcf2418e94eb4011c4742427f1, type: 3}
+  moveFps: 6
+  moveSpeedThreshold: 0.15
+  actionFrames: []
+  actionFps: 6
+  allowMove: 1

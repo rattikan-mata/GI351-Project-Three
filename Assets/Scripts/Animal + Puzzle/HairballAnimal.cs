@@ -529,6 +529,7 @@ public class HairballAnimal : TestAnimal
         Vector2 spawnPos = rb.position + spawnOffset;
         GameObject go = Instantiate(prefabToUse, spawnPos, Quaternion.identity);
         PlayAnimalSound(ResolveSfx(vomitSound, null, "CatVomit"));
+        PlayMouthAnimation();
 
         if (!go.TryGetComponent<Hairball>(out var ball))
         {
@@ -609,6 +610,15 @@ public class HairballAnimal : TestAnimal
         }
     }
 
+    /// <summary>อ้าปากตอนอ้วก/เป่าฟอง (ถ้ามี AnimalSpriteAnimator)</summary>
+    private void PlayMouthAnimation()
+    {
+        if (spriteAnimator == null) spriteAnimator = GetComponent<AnimalSpriteAnimator>();
+        if (spriteAnimator != null) spriteAnimator.PlayAction(0.4f);
+    }
+
+    private AnimalSpriteAnimator spriteAnimator;
+
     private void SpawnSingleBubble(GameObject prefabToUse, Vector2 dir, float yOffset, bool playSound)
     {
         // ออกจากปาก (ด้านหน้าตามทิศที่หัน ระดับหัว) ไม่ใช่กลางตัว
@@ -616,6 +626,7 @@ public class HairballAnimal : TestAnimal
 
         GameObject go = Instantiate(prefabToUse, spawnPos, Quaternion.identity);
         if (playSound) PlayAnimalSound(ResolveSfx(bubbleSound, null, "CatBubble"));
+        PlayMouthAnimation();
 
         if (!go.TryGetComponent<Hairball>(out var ball))
         {

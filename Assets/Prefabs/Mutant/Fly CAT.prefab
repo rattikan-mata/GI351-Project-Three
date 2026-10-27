@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 9053232731632930815}
   - component: {fileID: 7907842752618904404}
   - component: {fileID: 6981963038372988400}
+  - component: {fileID: 3838059724288879786}
   m_Layer: 3
   m_Name: Fly CAT
   m_TagString: Untagged
@@ -84,9 +85,9 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: -1
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 59cc8f2169a14d5488e5b046df3bdab9, type: 3}
+  m_Sprite: {fileID: 21300000, guid: e49f675bf13adfe4f94a1fdbfaf751a3, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -281,6 +282,30 @@ MonoBehaviour:
   liftHeight: 1
   liftSmoothSpeed: 8
   shadow: {fileID: 0}
+--- !u!114 &3838059724288879786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1464301703894054260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2275fc70788cf64459cf47c66d4f5e55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimalSpriteAnimator
+  animal: {fileID: 6981963038372988400}
+  idleFrames:
+  - {fileID: 21300000, guid: e49f675bf13adfe4f94a1fdbfaf751a3, type: 3}
+  - {fileID: 21300000, guid: cba18405020c5d14ea461f90ccf1124d, type: 3}
+  idleFps: 4
+  moveFrames:
+  - {fileID: 21300000, guid: e49f675bf13adfe4f94a1fdbfaf751a3, type: 3}
+  - {fileID: 21300000, guid: cba18405020c5d14ea461f90ccf1124d, type: 3}
+  moveFps: 8
+  moveSpeedThreshold: 0.15
+  actionFrames: []
+  actionFps: 6
 --- !u!1 &4782954372207592253
 GameObject:
   m_ObjectHideFlags: 0
