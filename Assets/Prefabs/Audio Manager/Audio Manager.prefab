@@ -132,7 +132,7 @@ MonoBehaviour:
     defaultVolume: 1
     cooldown: 0.3
   - name: CowBounce
-    clip: {fileID: 8300000, guid: c464a076a673b0e458dc3a37706022a8, type: 3}
+    clip: {fileID: 8300000, guid: ae2eb9621481f3b49a70c3f5fda1ff33, type: 3}
     defaultVolume: 0.812
     cooldown: 0.05
   - name: CowRam
