@@ -537,6 +537,25 @@ public abstract class TestAnimal : MonoBehaviour
     #endregion
 
     #region Audio API
+    /// <summary>หาคลิปเสียง: ใช้ที่ใส่ใน Inspector ก่อน ไม่มีก็ดึงจาก AudioManager ตามชื่อคีย์ และสุดท้าย (Editor) โหลดจาก path</summary>
+    protected AudioClip ResolveSfx(AudioClip assigned, string editorAssetPath, params string[] keys)
+    {
+        if (assigned != null) return assigned;
+        if (AudioManager.Instance != null && keys != null)
+        {
+            foreach (var k in keys)
+            {
+                AudioClip c = AudioManager.Instance.GetClip(k);
+                if (c != null) return c;
+            }
+        }
+#if UNITY_EDITOR
+        if (!string.IsNullOrEmpty(editorAssetPath))
+            return UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(editorAssetPath);
+#endif
+        return null;
+    }
+
     /// <summary>เล่นเสียงร้องของสัตว์</summary>
     public void PlayCrySound()
     {
@@ -545,12 +564,12 @@ public abstract class TestAnimal : MonoBehaviour
     }
 
     /// <summary>เล่นเสียงของสัตว์ ผ่าน AudioManager (ถ้ามี) หรือ AudioSource ประจำตัว</summary>
-    public void PlayAnimalSound(AudioClip clip, float volume = 1f, float pitchVariance = 0.05f)
+    public void PlayAnimalSound(AudioClip clip, float volume = 1f, float pitchVariance = 0.05f, bool respectCooldown = false)
     {
         if (clip == null) return;
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlaySFXAt(clip, transform.position, volume, pitchVariance, ignoreCooldown: true);
+            AudioManager.Instance.PlaySFXAt(clip, transform.position, volume, pitchVariance, ignoreCooldown: !respectCooldown);
         }
         else
         {

@@ -196,6 +196,13 @@ MonoBehaviour:
   hairballRange: 5
   hairballLingerSeconds: 6
   stopMovingWhenVomiting: 1
+  vomitSound: {fileID: 0}
+  bubbleSound: {fileID: 8300000, guid: 486b09c62f83cd044806461239d5c03e, type: 3}
+  bubblePopSound: {fileID: 0}
+  skywardSound: {fileID: 8300000, guid: d5b0f2a808fcfdd499b4db408ca028fc, type: 3}
+  skywardVolume: 1
+  skywardBounceSound: {fileID: 8300000, guid: c464a076a673b0e458dc3a37706022a8, type: 3}
+  skywardBounceVolume: 1
   bubblePrefab: {fileID: 6585422362421399681, guid: fb9d392248aee524ba5ca57ba761680b, type: 3}
   bubbleCatSprite: {fileID: 0}
   bubbleSprite: {fileID: 0}

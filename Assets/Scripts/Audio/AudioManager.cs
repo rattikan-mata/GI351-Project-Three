@@ -117,13 +117,15 @@ public class AudioManager : MonoBehaviour
             "GoatLaser",
             "GoatSkywardLaser",
             "GoatHavoc",
+            "GoatGravity",
             "CowFly",
             "CowBounce",
             "CowRam",
             "CowTeleport",
             "CatVomit",
             "CatBubble",
-            "CatBubblePop"
+            "CatBubblePop",
+            "CatSkyward"
         };
 
         var existing = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
@@ -570,6 +572,34 @@ public class AudioManager : MonoBehaviour
             case "havoc":
             case "pusheranimalhavoc":
                 return "GoatHavoc";
+
+            case "goatgravity":
+            case "goatsurge":
+            case "goatceiling":
+            case "pusheranimalsurge":
+            case "pusheranimalgravity":
+            case "gravity":
+                return "GoatGravity";
+
+            case "catbubble":
+            case "bubble":
+                return "CatBubble";
+
+            case "catbubblepop":
+            case "bubblepop":
+                return "CatBubblePop";
+
+            case "catskyward":
+            case "catskywardbubble":
+            case "bubbleskyward":
+            case "catskywardsound":
+                return "CatSkyward";
+
+            case "cowbounce":
+            case "cowskyward":
+            case "cowskywardbounce":
+            case "skywardbounce":
+                return "CowBounce";
 
             default:
                 return null;

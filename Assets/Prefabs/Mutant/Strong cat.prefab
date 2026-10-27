@@ -261,3 +261,5 @@ MonoBehaviour:
   pushFormSprite: {fileID: 0}
   pushSound: {fileID: 8300000, guid: 22fcad673effb60419651af57d414081, type: 3}
   havocSound: {fileID: 8300000, guid: 432e60343d74b124892f029450c7cd74, type: 3}
+  gravitySound: {fileID: 8300000, guid: bdd6b193169ceb24b83bb95a8bbc4073, type: 3}
+  gravityVolume: 1

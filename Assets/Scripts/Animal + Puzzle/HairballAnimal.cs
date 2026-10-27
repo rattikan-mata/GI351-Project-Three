@@ -48,6 +48,20 @@ public class HairballAnimal : TestAnimal
 
     [Tooltip("เสียงตอนฟองสบู่แตก")]
     [SerializeField] private AudioClip bubblePopSound;
+
+    [Tooltip("เสียงตอนเริ่มใช้ Skyward (ครอบฟองสบู่ลอยตัว)")]
+    [SerializeField] private AudioClip skywardSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียง Skyward (0 - 1)")]
+    [SerializeField] private float skywardVolume = 1f;
+
+    [Tooltip("เสียงตอนเด้งตอนอยู่ในฟองสบู่ Skyward (เสียงเหมือน Skyward วัว)")]
+    [SerializeField] private AudioClip skywardBounceSound;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงตอนเด้งในฟองสบู่ (0 - 1)")]
+    [SerializeField] private float skywardBounceVolume = 1f;
     #endregion
 
     #region Bubble Settings (ฟ้า/Light: เป่าฟองสบู่ดันกล่อง)
@@ -278,7 +292,17 @@ public class HairballAnimal : TestAnimal
         mode = initialMode;
         EnsureSkywardHairballPrefab();
         EnsureBubblePrefab();
+        ResolveSkywardSound();
+        ResolveSkywardBounceSound();
     }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (skywardSound == null) ResolveSkywardSound();
+        if (skywardBounceSound == null) ResolveSkywardBounceSound();
+    }
+#endif
 
     private void OnDisable()
     {
@@ -492,7 +516,7 @@ public class HairballAnimal : TestAnimal
 
         Vector2 spawnPos = rb.position + spawnOffset;
         GameObject go = Instantiate(prefabToUse, spawnPos, Quaternion.identity);
-        PlayAnimalSound(vomitSound);
+        PlayAnimalSound(ResolveSfx(vomitSound, null, "CatVomit"));
 
         if (!go.TryGetComponent<Hairball>(out var ball))
         {
@@ -571,7 +595,7 @@ public class HairballAnimal : TestAnimal
         Vector2 spawnPos = rb.position + spawnOffset;
 
         GameObject go = Instantiate(prefabToUse, spawnPos, Quaternion.identity);
-        PlayAnimalSound(bubbleSound);
+        PlayAnimalSound(ResolveSfx(bubbleSound, null, "CatBubble"));
 
         if (!go.TryGetComponent<Hairball>(out var ball))
         {
@@ -698,10 +722,71 @@ public class HairballAnimal : TestAnimal
             {
                 Instantiate(bubblePopEffectPrefab, activeBubbleShield.transform.position, Quaternion.identity);
             }
-            PlayAnimalSound(bubblePopSound);
+            PlayAnimalSound(ResolveSfx(bubblePopSound, null, "CatBubblePop"));
             Destroy(activeBubbleShield);
             activeBubbleShield = null;
             bubbleShieldRenderer = null;
+        }
+    }
+
+    private AudioClip ResolveSkywardSound()
+    {
+        if (skywardSound != null) return skywardSound;
+        AudioClip clip = ResolveSfx(skywardSound, "Assets/Audioes/Animal/Cat/Bubble Skyward.mp3", "CatSkyward", "BubbleSkyward");
+        if (clip != null) { skywardSound = clip; return skywardSound; }
+#if UNITY_EDITOR
+        string[] candidates = new[]
+        {
+            "Assets/Audioes/Animal/Cat/Bubble Skyward.mp3",
+            "Assets/Audioes/Animal/Cat/bubble skyward.mp3",
+            "Assets/Audioes/Animal/Cat/Cat bubble.mp3"
+        };
+        foreach (var p in candidates)
+        {
+            var loaded = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(p);
+            if (loaded != null) { skywardSound = loaded; return skywardSound; }
+        }
+#endif
+        return null;
+    }
+
+    private void PlaySkywardSound()
+    {
+        AudioClip clip = ResolveSkywardSound();
+        if (clip != null)
+        {
+            float vol = (skywardVolume > 0.001f) ? skywardVolume : 1f;
+            PlayAnimalSound(clip, vol);
+        }
+    }
+
+    private AudioClip ResolveSkywardBounceSound()
+    {
+        if (skywardBounceSound != null) return skywardBounceSound;
+        AudioClip clip = ResolveSfx(skywardBounceSound, "Assets/Audioes/Animal/Cow/Cow skyward.mp3", "CowBounce", "CowSkyward");
+        if (clip != null) { skywardBounceSound = clip; return skywardBounceSound; }
+#if UNITY_EDITOR
+        string[] candidates = new[]
+        {
+            "Assets/Audioes/Animal/Cow/Cow skyward.mp3",
+            "Assets/Audioes/Animal/Cow/cow skyward.mp3"
+        };
+        foreach (var p in candidates)
+        {
+            var loaded = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(p);
+            if (loaded != null) { skywardBounceSound = loaded; return skywardBounceSound; }
+        }
+#endif
+        return null;
+    }
+
+    private void PlaySkywardBounceSound()
+    {
+        AudioClip clip = ResolveSkywardBounceSound();
+        if (clip != null)
+        {
+            float vol = (skywardBounceVolume > 0.001f) ? skywardBounceVolume : 1f;
+            PlayAnimalSound(clip, vol, 0.05f, true);
         }
     }
 
@@ -713,6 +798,7 @@ public class HairballAnimal : TestAnimal
         skywardBounceCount = 0;
         UpdateGravityState();
 
+        PlaySkywardSound();
         CreateBubbleShield();
 
         Vector2 launchDir;
@@ -851,6 +937,8 @@ public class HairballAnimal : TestAnimal
 
             FacingDirection = currentBounceDir;
             FaceDirection(currentBounceDir);
+
+            PlaySkywardBounceSound();
 
             rb.position += normal * 0.05f;
 

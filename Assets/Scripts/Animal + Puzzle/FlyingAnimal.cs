@@ -43,6 +43,11 @@ public class FlyingAnimal : TestAnimal
     [Range(0f, 1f)]
     [Tooltip("ระดับความดังของเสียงวาร์ป (0 - 1)")]
     [SerializeField] private float teleportVolume = 1f;
+
+    [Range(0f, 1f)]
+    [Tooltip("ระดับความดังของเสียงบิน (เล่นวนลูปตลอดที่ยังบินอยู่)")]
+    [SerializeField] private float flyLoopVolume = 1f;
+    private AudioSource flyLoopSource;
     #endregion
 
     #region Combo Settings
@@ -536,7 +541,7 @@ public class FlyingAnimal : TestAnimal
             currentBounceDir = Vector2.Reflect(currentBounceDir, normal).normalized;
             FacingDirection = currentBounceDir;
 
-            PlayAnimalSound(bounceSound);
+            PlayAnimalSound(ResolveSfx(bounceSound, "Assets/Audioes/Animal/Cow/Cow skyward.mp3", "CowBounce", "CowSkyward"), 1f, 0.05f, true);
 
             // ดันตัวออกจากกำแพงเล็กน้อยเพื่อไม่ให้ Collider ฝังในกำแพง
             rb.position += normal * 0.05f;
@@ -1211,9 +1216,11 @@ public class FlyingAnimal : TestAnimal
         {
             case PotionType.Skyward:
                 mode = FlyMode.Dizzy;
+                StopFlyLoop();
                 break;
             case PotionType.Havoc:
                 mode = FlyMode.Havoc;
+                StopFlyLoop();
                 break;
             case PotionType.Surge:
                 mode = FlyMode.Ram;
@@ -1261,8 +1268,46 @@ public class FlyingAnimal : TestAnimal
         if (shadow != null) shadow.SetActive(false);
     }
 
+    private bool ShouldPlayFlyLoop =>
+        isFlying &&
+        !IsVanished &&
+        lastDrunkPotion != PotionType.Skyward &&
+        mode != FlyMode.Dizzy &&
+        lastDrunkPotion != PotionType.Havoc &&
+        mode != FlyMode.Havoc;
+
+    private void StartFlyLoop()
+    {
+        if (!ShouldPlayFlyLoop)
+        {
+            StopFlyLoop();
+            return;
+        }
+        AudioClip clip = ResolveSfx(flySound, "Assets/Audioes/Animal/Cow/Cow Blue.mp3", "CowFly");
+        if (clip == null) return;
+        if (flyLoopSource == null)
+        {
+            flyLoopSource = gameObject.AddComponent<AudioSource>();
+            flyLoopSource.playOnAwake = false;
+            flyLoopSource.spatialBlend = 0f;
+        }
+        var am = AudioManager.Instance;
+        float vol = flyLoopVolume;
+        if (am != null) vol = am.IsMuted ? 0f : am.MasterVolume * am.SfxVolume * am.GetClipBaseVolume(clip) * flyLoopVolume;
+        flyLoopSource.clip = clip;
+        flyLoopSource.loop = true;
+        flyLoopSource.volume = vol;
+        if (!flyLoopSource.isPlaying) flyLoopSource.Play();
+    }
+
+    private void StopFlyLoop()
+    {
+        if (flyLoopSource != null && flyLoopSource.isPlaying) flyLoopSource.Stop();
+    }
+
     private void OnDisable()
     {
+        StopFlyLoop();
         if (activeBounceRoutine != null)
         {
             StopCoroutine(activeBounceRoutine);
@@ -1303,6 +1348,10 @@ public class FlyingAnimal : TestAnimal
         base.Update();
 
         if (isFlying && !isSwitchHovering && !isPatrolPushing && !isSurgePatrolling && !isHavocBouncing && !isHavocPostBouncing && Time.time >= flyEndTime) Land();
+
+        // ซิงค์เสียงบินวนลูปให้ตรงกับสถานะการบินทุกเฟรม (ปิดเสียงบินวนลูปในโหมด Skyward และ Havoc ตามที่ผู้เล่นกำหนด)
+        if (ShouldPlayFlyLoop && (flyLoopSource == null || !flyLoopSource.isPlaying)) StartFlyLoop();
+        else if (!ShouldPlayFlyLoop) StopFlyLoop();
 
         // ยกสไปรต์ขึ้น/ลงแบบนุ่มๆ
         if (spriteTransform != null)
@@ -1583,7 +1632,14 @@ public class FlyingAnimal : TestAnimal
         UpdateGravityState();
         bodyCollider.excludeLayers = flyOverLayers; // ไม่ชน Layer เหล่านี้ตอนลอย
         if (shadow != null) shadow.SetActive(true);
-        PlayAnimalSound(flySound);
+        if (ShouldPlayFlyLoop)
+        {
+            StartFlyLoop();
+        }
+        else
+        {
+            StopFlyLoop();
+        }
 
         if (passOpenDoors || flyThroughAnyDoor || (skywardSwitchTouched && skywardPierceDoorsAfterSwitch))
         {
@@ -1600,6 +1656,7 @@ public class FlyingAnimal : TestAnimal
     private void Land()
     {
         isFlying = false;
+        StopFlyLoop();
         isSwitchHovering = false;
         isDoorHovering = false;
         skywardSwitchTouched = false;
@@ -1667,7 +1724,7 @@ public class FlyingAnimal : TestAnimal
 
     private void PlayTeleportSound()
     {
-        AudioClip clip = teleportSound != null ? teleportSound : (AudioManager.Instance != null ? AudioManager.Instance.GetClip("CowTeleport") : null);
+        AudioClip clip = ResolveSfx(teleportSound, "Assets/Audioes/Animal/Cow/Cow skyward.mp3", "CowTeleport", "CowSkyward");
         if (clip != null)
         {
             PlayAnimalSound(clip, teleportVolume);
@@ -2165,7 +2222,6 @@ public class FlyingAnimal : TestAnimal
 
         surgeStage = SurgeStage.SmashingBox;
         IsRamming = true;
-        PlayAnimalSound(ramSound);
         StopMoving();
         rb.linearVelocity = Vector2.zero;
 
@@ -2183,6 +2239,7 @@ public class FlyingAnimal : TestAnimal
 
             // 1. กระแทกกล่อง (Impact Feedback & Shake)
             Debug.Log($"[{animalName}] Surge พุ่งชนกล่อง {box.name} ครั้งที่ {hit}/{targetHits}!");
+            PlayAnimalSound(ResolveSfx(ramSound, "Assets/Audioes/Animal/Cow/Cow Surge.mp3", "CowRam", "CowSurge")); // เล่นเสียงทุกครั้งที่ชน
             box.TriggerHitFeedback();
 
             // ชนครบจำนวนแล้ว -> กล่องแตก!
@@ -2411,6 +2468,8 @@ public class FlyingAnimal : TestAnimal
             FacingDirection = currentBounceDir;
             FaceHorizontal(currentBounceDir.x < 0f);
 
+            PlayAnimalSound(ResolveSfx(bounceSound, "Assets/Audioes/Animal/Cow/Cow skyward.mp3", "CowBounce", "CowSkyward"), 1f, 0.05f, true);
+
             rb.position += normal * 0.06f;
 
             OnBounce();
@@ -2443,6 +2502,7 @@ public class FlyingAnimal : TestAnimal
         havocPostBounceCount = 0;
         currentBounceSpeedBonus = 0f;
         TakeOff();
+        StopFlyLoop();
         flyEndTime = float.MaxValue;
         StopMoving();
 
