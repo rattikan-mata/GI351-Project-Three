@@ -117,8 +117,17 @@ public class HairballAnimal : TestAnimal
     [Tooltip("ฟองสบู่ลอยอยู่นานกี่วินาทีก่อนจะแตกเอง")]
     [SerializeField] private float bubbleLingerSeconds = 3f;
 
-    [Tooltip("การกระจายมุมเล็กน้อยของฟองสบู่ (องศา) เพื่อให้ดูเป็นธรรมชาติ (0 = เส้นตรงเป๊ะ)")]
+    [Tooltip("การกระจายมุมเล็กน้อยของฟองสบู่ (องศา) เพื่อให้ดูเป็นธรรมชาติ (0 = เส้นตรงเป๊ะ) ใช้เฉพาะตอนไม่ได้เป่าเป็นแถวตั้ง")]
     [SerializeField] private float bubbleSpreadAngle = 4f;
+
+    [Tooltip("ติ๊กไว้ = เป่าฟองทั้งชุดออกพร้อมกันเรียงเป็นแถวตั้ง (เช่น 3 เม็ดซ้อนกันแนวตั้ง) ไม่ติ๊ก = ทีละเม็ดตามเวลาหน่วง")]
+    [SerializeField] private bool bubbleColumn = true;
+
+    [Tooltip("ระยะห่างแนวตั้งระหว่างฟองในแถวเดียวกัน (หน่วยโลก)")]
+    [SerializeField] private float bubbleColumnSpacing = 0.3f;
+
+    [Tooltip("ความสูงของปากแมวจากจุดกลางตัว (หน่วยโลก) ฟองจะออกจากระดับนี้")]
+    [SerializeField] private float bubbleMouthHeight = 0.1f;
     #endregion
 
     #region Combo Settings
@@ -570,6 +579,14 @@ public class HairballAnimal : TestAnimal
         {
             for (int b = 0; b < perSet; b++)
             {
+                if (bubbleColumn)
+                {
+                    // ทั้งชุดออกพร้อมกัน เรียงแนวตั้งรอบระดับปาก
+                    float yOffset = (b - (perSet - 1) * 0.5f) * bubbleColumnSpacing;
+                    SpawnSingleBubble(activePrefab, baseDir, yOffset, playSound: b == 0);
+                    continue;
+                }
+
                 Vector2 shotDir = baseDir;
                 if (bubbleSpreadAngle > 0.01f)
                 {
@@ -577,7 +594,7 @@ public class HairballAnimal : TestAnimal
                     shotDir = Quaternion.Euler(0f, 0f, angle) * baseDir;
                 }
 
-                SpawnSingleBubble(activePrefab, shotDir);
+                SpawnSingleBubble(activePrefab, shotDir, 0f, playSound: true);
 
                 if (b < perSet - 1 && delayBetweenBubbles > 0f)
                 {
@@ -592,13 +609,13 @@ public class HairballAnimal : TestAnimal
         }
     }
 
-    private void SpawnSingleBubble(GameObject prefabToUse, Vector2 dir)
+    private void SpawnSingleBubble(GameObject prefabToUse, Vector2 dir, float yOffset, bool playSound)
     {
-        Vector2 spawnOffset = dir * mouthDistance;
-        Vector2 spawnPos = rb.position + spawnOffset;
+        // ออกจากปาก (ด้านหน้าตามทิศที่หัน ระดับหัว) ไม่ใช่กลางตัว
+        Vector2 spawnPos = rb.position + dir * mouthDistance + Vector2.up * (bubbleMouthHeight + yOffset);
 
         GameObject go = Instantiate(prefabToUse, spawnPos, Quaternion.identity);
-        PlayAnimalSound(ResolveSfx(bubbleSound, null, "CatBubble"));
+        if (playSound) PlayAnimalSound(ResolveSfx(bubbleSound, null, "CatBubble"));
 
         if (!go.TryGetComponent<Hairball>(out var ball))
         {

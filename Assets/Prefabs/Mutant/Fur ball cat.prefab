@@ -185,10 +185,15 @@ MonoBehaviour:
   poweredUpSprite: {fileID: 0}
   selectionIndicator: {fileID: 0}
   flipSpriteByDirection: 1
-  spriteFacesRight: 1
+  spriteFacesRight: 0
   abilityCooldown: 1
   requirePotion: 1
   potionEffectDuration: 0
+  drinkPotionSound: {fileID: 0}
+  drinkPotionVolume: 1
+  animalCrySound: {fileID: 0}
+  animalCryVolume: 1
+  animalAudioSource: {fileID: 0}
   initialMode: 0
   hairballPrefab: {fileID: 3648913693340859227, guid: 37364e93fb8f938448cc53381848608e, type: 3}
   mouthDistance: 0.6
@@ -220,9 +225,13 @@ MonoBehaviour:
   bubbleRange: 8
   bubbleLingerSeconds: 3
   bubbleSpreadAngle: 4
+  bubbleColumn: 1
+  bubbleColumnSpacing: 0.3
+  bubbleMouthHeight: 0.1
   skywardBubblePrefab: {fileID: 250844955669100016, guid: 34e611f1b78cd0a4da61546334fe2096, type: 3}
   skywardDestination: {fileID: 0}
   skywardBubbleSpeed: 5.5
+  skywardFloatUntilStageEnds: 1
   skywardBubbleDuration: 8
   skywardMaxBounces: 10
   skywardLaunchAngle: 45
