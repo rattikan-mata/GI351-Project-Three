@@ -48,7 +48,7 @@ MonoBehaviour:
   defaultBgmVolume: 0.75
   defaultSfxVolume: 0.115
   defaultSfxCooldown: 0.05
-  defaultBgmClip: {fileID: 0}
+  defaultBgmClip: {fileID: 8300000, guid: f4eece9d49e42444d8f9863238cbd18b, type: 3}
   autoPlayBgmOnStart: 1
   sfxLibrary:
   - name: BoxBreak

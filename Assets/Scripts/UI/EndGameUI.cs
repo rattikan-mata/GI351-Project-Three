@@ -10,6 +10,12 @@ public class EndGameUI : MonoBehaviour
     [SerializeField] private GameObject endGamePanel;
     [SerializeField] private TextMeshProUGUI txtResult;
 
+    [Header("Result Panel Art (ภาพกรอบที่มีคำว่า VICTORY / DEFEAT อยู่ในภาพ)")]
+    [Tooltip("Image ของกรอบผลลัพธ์ ถ้ากำหนดภาพ Victory/Defeat ด้านล่าง จะสลับภาพตามผลและซ่อนข้อความ Title")]
+    [SerializeField] private Image resultPanelImage;
+    [SerializeField] private Sprite victorySprite;
+    [SerializeField] private Sprite defeatSprite;
+
     [Header("Stars")]
     [SerializeField] private Image[] endStarImages;
     [SerializeField] private Sprite activeStarSprite;
@@ -40,7 +46,7 @@ public class EndGameUI : MonoBehaviour
     {
         Time.timeScale = 1f;
         endGamePanel.SetActive(true);
-        txtResult.text = "VICTORY";
+        ShowResultTitle("VICTORY", victorySprite);
 
         btnNext.SetActive(true);
         btnRestart.SetActive(true);
@@ -61,7 +67,7 @@ public class EndGameUI : MonoBehaviour
     {
         Time.timeScale = 1f;
         endGamePanel.SetActive(true);
-        txtResult.text = "DEFEAT";
+        ShowResultTitle("DEFEAT", defeatSprite);
 
         btnNext.SetActive(false);
         btnRestart.SetActive(true);
@@ -74,6 +80,18 @@ public class EndGameUI : MonoBehaviour
 
         if (starRoutine != null) StopCoroutine(starRoutine);
         starRoutine = StartCoroutine(AnimateStarsSequential(0));
+    }
+
+    // มีภาพกรอบที่เขียนชื่อผลไว้แล้ว = สลับภาพและซ่อนข้อความ ไม่มี = ใช้ข้อความเดิม
+    private void ShowResultTitle(string title, Sprite panelSprite)
+    {
+        bool useArt = resultPanelImage != null && panelSprite != null;
+        if (useArt) resultPanelImage.sprite = panelSprite;
+        if (txtResult != null)
+        {
+            txtResult.text = title;
+            txtResult.gameObject.SetActive(!useArt);
+        }
     }
 
     private IEnumerator AnimateStarsSequential(int targetStarCount)
