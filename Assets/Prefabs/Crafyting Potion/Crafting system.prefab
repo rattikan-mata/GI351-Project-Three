@@ -144,6 +144,13 @@ MonoBehaviour:
   engravedHighlightColor: {r: 1, g: 0.92156863, b: 1, a: 0.3529412}
   engravedBend: 0.07
   engravedCylinderRadius: 2.4
+  revealPotion: 1
+  revealBox: 1.3
+  revealShowName: 0
+  revealOffset: {x: 0, y: -0.45}
+  revealHoldSeconds: 0.9
+  revealFlySeconds: 0.45
+  revealSortingOrder: 120
 --- !u!1 &4951205572529460011
 GameObject:
   m_ObjectHideFlags: 0

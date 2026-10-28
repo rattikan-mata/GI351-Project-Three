@@ -152,8 +152,83 @@ namespace PotionSystem
             {
                 bool isCombo = potion.Kind == PotionKind.Skyward || potion.Kind == PotionKind.Havoc || potion.Kind == PotionKind.Surge;
                 CraftingSfx.Play(isCombo ? CraftingSfx.PotionCraftedCombo : CraftingSfx.PotionCrafted);
+                if (revealPotion) StartCoroutine(RevealRoutine(potion, isCombo));
             }
             brewing = false;
+        }
+
+        [Header("Reveal (โชว์ยาที่ได้)")]
+        [Tooltip("ติ๊กไว้ = ปรุงเสร็จแล้วขวดยาที่ได้เด้งขึ้นเหนือหม้อพร้อมชื่อ แล้วลอยไปที่ชั้นวาง")]
+        [SerializeField] private bool revealPotion = true;
+        [SerializeField, Min(0.1f)] private float revealBox = 1.3f;
+        [Tooltip("ติ๊กไว้ = โชว์ชื่อยาใต้ภาพด้วย (ปกติโชว์แค่ภาพ)")]
+        [SerializeField] private bool revealShowName = false;
+        [SerializeField] private Vector2 revealOffset = new Vector2(0f, 0.3f);
+        [SerializeField, Min(0f)] private float revealHoldSeconds = 0.9f;
+        [SerializeField, Min(0.05f)] private float revealFlySeconds = 0.45f;
+        [SerializeField] private int revealSortingOrder = 120;
+
+        private IEnumerator RevealRoutine(PotionData potion, bool isCombo)
+        {
+            var root = new GameObject("PotionReveal");
+            Vector3 start = transform.TransformPoint(revealOffset);
+            start.z = 0f;
+            root.transform.position = start;
+
+            var iconGo = new GameObject("Icon");
+            iconGo.transform.SetParent(root.transform, false);
+            var sr = iconGo.AddComponent<SpriteRenderer>();
+            sr.sortingOrder = revealSortingOrder;
+            CraftingSprites2D.FitPotion(sr, potion, CraftingSprites2D.ColorFor(potion), revealBox);
+            Vector3 iconScale = iconGo.transform.localScale;
+
+            TextMeshPro label = null;
+            if (revealShowName)
+            {
+            var labelGo = new GameObject("Name");
+            labelGo.transform.SetParent(root.transform, false);
+            labelGo.transform.localPosition = new Vector3(0f, -0.7f, 0f);
+            label = labelGo.AddComponent<TextMeshPro>();
+            if (labelFont != null) label.font = labelFont;
+            label.text = potion.DisplayName;
+            label.fontSize = 2.6f;
+            label.fontStyle = FontStyles.Bold;
+            label.alignment = TextAlignmentOptions.Center;
+            label.color = isCombo ? new Color(1f, 0.92f, 0.45f) : Color.white;
+            label.outlineWidth = 0.25f;
+            label.outlineColor = new Color32(40, 20, 60, 255);
+            label.rectTransform.sizeDelta = new Vector2(5f, 0.8f);
+            label.sortingOrder = revealSortingOrder + 1;
+            }
+
+            // 1) เด้งขึ้น (pop)
+            float t = 0f, popTime = 0.28f;
+            while (t < popTime)
+            {
+                t += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(t / popTime);
+                float s = k < 0.7f ? Mathf.Lerp(0f, 1.25f, k / 0.7f) : Mathf.Lerp(1.25f, 1f, (k - 0.7f) / 0.3f);
+                root.transform.localScale = Vector3.one * s;
+                yield return null;
+            }
+            root.transform.localScale = Vector3.one;
+
+            // 2) ค้างให้เห็นชัดๆ
+            float hold = 0f;
+            while (hold < revealHoldSeconds) { hold += Time.unscaledDeltaTime; yield return null; }
+
+            // 3) จางหายไปตรงนั้น (ลอยขึ้นนิดหน่อย)
+            float t2 = 0f;
+            while (t2 < revealFlySeconds)
+            {
+                t2 += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(t2 / revealFlySeconds);
+                root.transform.position = start + Vector3.up * (0.25f * k);
+                var c = sr.color; c.a = 1f - k; sr.color = c;
+                if (label != null) label.alpha = 1f - k;
+                yield return null;
+            }
+            Destroy(root);
         }
 
         private void RefreshLabel()
