@@ -164,13 +164,13 @@ public class FloorSwitch : MonoBehaviour
     {
         if (!IsValidPresser(other)) return;
 
-        bool wasEmpty = pressers.Count == 0;
+        // นับเป็นการกด 1 ครั้งต่อ "ตัว" ที่เข้ามาใหม่ (ตัวเดียวที่มีหลายคอลลิเดอร์ไม่ถูกนับซ้ำ) แม้จะมีตัวอื่นค้างอยู่ก็ตาม
+        bool newOwner = !HasPresserOfSameOwner(other);
         pressers.Add(other);
 
         if (requiredWeight <= 0f)
         {
-            // ทำงานเฉพาะตอนที่มีสิ่งของเหยียบเข้ามาใหม่เป็นตัวแรก
-            if (wasEmpty)
+            if (newOwner)
             {
                 ToggleSwitch();
             }
@@ -179,6 +179,17 @@ public class FloorSwitch : MonoBehaviour
         }
 
         EvaluateWeight();
+    }
+
+    private bool HasPresserOfSameOwner(Collider2D c)
+    {
+        if (!TryGetOwner(c, out Component owner, out _)) return false;
+        foreach (var p in pressers)
+        {
+            if (p == null) continue;
+            if (TryGetOwner(p, out Component o, out _) && o == owner) return true;
+        }
+        return false;
     }
 
     private void OnTriggerExit2D(Collider2D other)
@@ -251,8 +262,9 @@ public class FloorSwitch : MonoBehaviour
         }
 
         // ชนครั้งเดียวแต่ถูกสั่งซ้ำในจังหวะฟิสิกส์เดียวกัน (เช่น วัวบินสั่ง ForceToggle + สวิตช์เจอ Trigger เอง) ให้นับครั้งเดียว
-        if (lastToggleTime == Time.fixedTime) return;
-        lastToggleTime = Time.fixedTime;
+        // (กันสลับสองรอบจากการแตะครั้งเดียว เช่น สัตว์แตะเอง + โค้ดของสัตว์สั่งกดซ้ำในเฟรมถัดไป)
+        if (lastToggleTime >= 0f && Time.time - lastToggleTime < 0.25f) return;
+        lastToggleTime = Time.time;
 
         // สลับสถานะเปิด/ปิด (On <-> Off) ทุกครั้งที่ถูกชน
         IsActive = !IsActive;
@@ -430,7 +442,7 @@ public class FloorSwitch : MonoBehaviour
         if (triggeredByAnimals)
         {
             var animal = c.GetComponentInParent<TestAnimal>();
-            if (animal != null) return !(ignoreAirborneAnimals && animal.IsAirborne);
+            if (animal != null) return animal.CanPressSwitches && !(ignoreAirborneAnimals && animal.IsAirborne);
         }
         if (triggeredByBoxes && !blockedByBox && c.GetComponentInParent<PushableBox>() != null) return true;
         if (triggeredByHairballs && c.GetComponentInParent<Hairball>() != null) return true;

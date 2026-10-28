@@ -3487,7 +3487,9 @@ MonoBehaviour:
   skywardDestination: {fileID: 532992719}
   midwayResetPoint: {fileID: 2001742555}
   targetDestination: {fileID: 532992719}
-  warpToTargetAfterBounces: 1
+  warpToTargetAfterBounces: 0
+  skywardSeekTarget: 1
+  skywardSeekTurnSpeed: 70
   minBouncesBeforeReset: 2
   maxBouncesBeforeReset: 3
   freeBounceDuration: 10000

@@ -63,7 +63,13 @@ public class FlyingAnimal : TestAnimal
     [SerializeField] private Transform targetDestination;
 
     [Tooltip("ติ๊กไว้ = เด้งครบรอบแรก (สุ่ม 2-3 ครั้ง) แล้ววาร์ปไปจุดเป้าหมายทันที 1 ครั้ง (เช่น เข้าห้องข้างบน) ไม่ต้องวนกลับจุดรีเซ็ท\nไม่ติ๊ก = วนกลับจุดรีเซ็ทแล้วสุ่มเด้งใหม่จนกว่าจะบินไปถึงเอง")]
-    [SerializeField] private bool warpToTargetAfterBounces = true;
+    [SerializeField] private bool warpToTargetAfterBounces = false;
+
+    [Tooltip("ติ๊กไว้ = Skyward บินสุ่มเด้งกำแพงไปมา แต่ค่อยๆ เลี้ยวเข้าหาจุดเป้าหมายตลอดทาง (ไม่วาร์ป) ถึงเป้าหมายแล้วกดสวิตช์และเด้งต่อ")]
+    [SerializeField] private bool skywardSeekTarget = true;
+
+    [Tooltip("ความไวในการเลี้ยวเข้าหาเป้าหมายของ Skyward (องศาต่อวินาที) ยิ่งมากยิ่งพุ่งตรงไปหาเป้า ยิ่งน้อยยิ่งเด้งสุ่มเยอะ")]
+    [SerializeField, Range(0f, 360f)] private float skywardSeekTurnSpeed = 70f;
 
     [Tooltip("จำนวนครั้งเด้งขั้นต่ำก่อนรีเซ็ทกลับจุดกลางทาง")]
     [SerializeField] private int minBouncesBeforeReset = 2;
@@ -412,11 +418,24 @@ public class FlyingAnimal : TestAnimal
         if (isFlying) Land();
     }
 
+    // ตอนเด้งบิน (Skyward / Havoc) กดสวิตช์ผ่าน ToggleSwitchOnce เท่านั้น ไม่ให้สวิตช์นับการแตะตัววัวซ้ำ
+    public override bool CanPressSwitches => !(isBouncing || isHavocBouncing || isHavocPostBouncing);
+
+    // สวิตช์ทุกตัวถูกกดได้ครั้งเดียวต่อการบิน 1 เที่ยว (กันวัวเด้งชนสวิตช์ซ้ำจนสลับกลับ)
+    private readonly System.Collections.Generic.HashSet<FloorSwitch> toggledThisFlight = new System.Collections.Generic.HashSet<FloorSwitch>();
+
+    private void ToggleSwitchOnce(FloorSwitch sw, bool remote)
+    {
+        if (sw == null || !toggledThisFlight.Add(sw)) return;
+        if (remote) sw.RemoteToggle(); else sw.ForceToggle();
+    }
+
     /// <summary>บินและเด้งสะท้อนกำแพง โดยมีจุดรีเซ็ทกลางทาง สุ่มทิศและสุ่มเด้ง 2-3 ครั้ง หากไม่ถึงเป้าหมายจะเด้งกลับมารีเซ็ท เมื่อถึงเป้าหมายจะปล่อยเด้งอิสระ</summary>
     private IEnumerator BounceRoutine(int bounceCount, bool allowTeleportAfter, Vector2? customDestination = null)
     {
         isBouncing = true;
         skywardSwitchTouched = false;
+        toggledThisFlight.Clear();
         TakeOff();
         flyEndTime = float.MaxValue;
         StopMoving();
@@ -610,7 +629,7 @@ public class FlyingAnimal : TestAnimal
             // ถ้าอยู่ในโหมด Skyward ให้สั่งเปิดสวิตช์และปลดล็อกการทะลุประตู
             if (isFlying && (isBouncing || lastDrunkPotion == PotionType.Skyward))
             {
-                if (skywardTriggerSwitchOnTouch) sw.ForceToggle();
+                if (skywardTriggerSwitchOnTouch) ToggleSwitchOnce(sw, false);
                 if (skywardPierceDoorsAfterSwitch) OnSkywardSwitchTriggered();
             }
 
@@ -670,7 +689,7 @@ public class FlyingAnimal : TestAnimal
             // ถ้าอยู่ในโหมด Skyward ให้สั่งเปิดสวิตช์และปลดล็อกการทะลุประตู
             if (isFlying && (isBouncing || lastDrunkPotion == PotionType.Skyward))
             {
-                if (skywardTriggerSwitchOnTouch) sw.ForceToggle();
+                if (skywardTriggerSwitchOnTouch) ToggleSwitchOnce(sw, false);
                 if (skywardPierceDoorsAfterSwitch) OnSkywardSwitchTriggered();
             }
 
@@ -1525,11 +1544,27 @@ public class FlyingAnimal : TestAnimal
                 {
                     float distToTarget = Vector2.Distance(rb.position, destTransform.position);
                     float arrivalThreshold = Mathf.Max(stopDistance, step * 0.9f + 0.2f);
+                    // Skyward เลี้ยวเข้าหาเป้าหมายด้วยรัศมีเลี้ยวกว้าง จึงนับว่าถึงเมื่อเข้าใกล้เป้าในระยะนี้
+                    if (skywardSeekTarget && lastDrunkPotion == PotionType.Skyward) arrivalThreshold = Mathf.Max(arrivalThreshold, 0.65f);
 
                     if (distToTarget <= arrivalThreshold)
                     {
                         ArriveAtTarget(destTransform);
                         return;
+                    }
+                }
+
+                // Skyward: เด้งสุ่มไปมาแต่ค่อยๆ เลี้ยวเข้าหาเป้าหมาย (ไม่วาร์ป)
+                if (skywardSeekTarget && lastDrunkPotion == PotionType.Skyward && destTransform != null)
+                {
+                    Vector2 want = ((Vector2)destTransform.position - rb.position);
+                    if (want.sqrMagnitude > 0.0001f)
+                    {
+                        float angle = Vector2.SignedAngle(currentBounceDir, want.normalized);
+                        // ยิ่งใกล้เป้าหมายยิ่งเลี้ยวไว (เลี้ยวแคบลง) จะได้ไม่บินวนรอบเป้า
+                        float closeBoost = 1f + Mathf.Clamp01((2.5f - want.magnitude) / 2.5f) * 3f;
+                        float maxTurn = skywardSeekTurnSpeed * closeBoost * Time.fixedDeltaTime;
+                        currentBounceDir = (Quaternion.Euler(0f, 0f, Mathf.Clamp(angle, -maxTurn, maxTurn)) * currentBounceDir).normalized;
                     }
                 }
 
@@ -1618,7 +1653,7 @@ public class FlyingAnimal : TestAnimal
                 if (sw == null) sw = nearbyCol.GetComponentInChildren<FloorSwitch>();
             }
         }
-        if (sw != null) sw.RemoteToggle();
+        if (sw != null) ToggleSwitchOnce(sw, true);
 
         if (skywardPierceDoorsAfterSwitch)
         {
@@ -2571,6 +2606,7 @@ public class FlyingAnimal : TestAnimal
         isHavocBouncing = true;
         isHavocPostBouncing = false;
         isBouncing = true;
+        toggledThisFlight.Clear();
         havocBounceCount = 0;
         havocPostBounceCount = 0;
         currentBounceSpeedBonus = 0f;

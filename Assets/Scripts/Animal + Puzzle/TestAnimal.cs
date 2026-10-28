@@ -99,6 +99,9 @@ public abstract class TestAnimal : MonoBehaviour
     /// <summary>ลอยอยู่กลางอากาศไหม (สวิตช์ใช้เช็คว่าตัวเบาเกินกดไม่ติด)</summary>
     public virtual bool IsAirborne => false;
 
+    /// <summary>สัตว์ตัวนี้กดสวิตช์ด้วยการแตะตัวเองได้หรือไม่ (วัวที่กำลังเด้งบินจะกดผ่านโค้ดของมันเอง ครั้งเดียวต่อสวิตช์ ไม่ให้สลับซ้ำตอนเด้งชน)</summary>
+    public virtual bool CanPressSwitches => true;
+
     /// <summary>สัตว์ตัวนี้มีพลังพุ่งชน/ทำลายสิ่งกีดขวาง (เช่น ประตู/กล่อง) หรือไม่</summary>
     public virtual bool CanBreakObstacles => false;
 
