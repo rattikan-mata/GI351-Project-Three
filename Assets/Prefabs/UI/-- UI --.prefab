@@ -2958,6 +2958,9 @@ MonoBehaviour:
   btnNext: {fileID: 3700685441052902427}
   btnRestart: {fileID: 7072366220166390140}
   btnExitToMenu: {fileID: 4059926256224684182}
+  finalStage: 0
+  finalMainMenuPosition: {x: -230, y: -250}
+  finalRestartPosition: {x: 230, y: -248}
   nextStageName: Stage 2
   mainMenuName: Main Menu
 --- !u!1 &5926722957963547023
@@ -4447,6 +4450,8 @@ MonoBehaviour:
   slideDownDuration: 1
   pauseDuration: 0.3
   slideUpDuration: 1
+  closedPosY: -6
+  hiddenPosYOverride: 0
 --- !u!1 &8906821880164196289
 GameObject:
   m_ObjectHideFlags: 0

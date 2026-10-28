@@ -14,15 +14,25 @@ public class CurtainEffect : MonoBehaviour
     [SerializeField] private float pauseDuration = 0.2f;
     [SerializeField] private float slideUpDuration = 0.8f;
 
+    [Header("Position (ตำแหน่งบานพับ หน่วย UI ตามแกน Y ของ Anchored Position)")]
+    [Tooltip("ตำแหน่งตอนปิดสนิท ปิดไม่มิด = ลดค่าลง (เลื่อนบานพับลงมา) / เลยลงมามากไป = เพิ่มค่า\nคลิกขวาที่หัวคอมโพเนนต์ > Preview: ปิด เพื่อดูตำแหน่งในฉากได้เลย")]
+    [SerializeField] private float closedPosY = 0f;
+
+    [Tooltip("ตำแหน่งตอนซ่อน (เปิด) 0 = ใช้ความสูงของบานพับเอง (ค่าเดิม)")]
+    [SerializeField] private float hiddenPosYOverride = 0f;
+
     private float hiddenPosY = 1080f;
-    private float closedPosY = 0f;
 
     private void Awake()
     {
         if (curtainRect == null) curtainRect = GetComponent<RectTransform>();
         if (canvasGroup == null) canvasGroup = GetComponent<CanvasGroup>();
 
-        if (curtainRect != null && curtainRect.rect.height > 0)
+        if (hiddenPosYOverride != 0f)
+        {
+            hiddenPosY = hiddenPosYOverride;
+        }
+        else if (curtainRect != null && curtainRect.rect.height > 0)
         {
             hiddenPosY = curtainRect.rect.height;
         }
@@ -111,5 +121,26 @@ public class CurtainEffect : MonoBehaviour
         }
 
         curtainRect.anchoredPosition = new Vector2(curtainRect.anchoredPosition.x, toY);
+    }
+
+    // ดูตำแหน่งในโหมดแก้ไข: คลิกขวาที่หัวคอมโพเนนต์ แล้วเลือกเมนูนี้ (กด Ctrl+Z เพื่อย้อน)
+    [ContextMenu("Preview: ปิด (Closed)")]
+    private void PreviewClosed() => PreviewAt(closedPosY);
+
+    [ContextMenu("Preview: ซ่อน (Hidden)")]
+    private void PreviewHidden()
+    {
+        var rt = curtainRect != null ? curtainRect : GetComponent<RectTransform>();
+        PreviewAt(hiddenPosYOverride != 0f ? hiddenPosYOverride : rt.rect.height);
+    }
+
+    private void PreviewAt(float y)
+    {
+        var rt = curtainRect != null ? curtainRect : GetComponent<RectTransform>();
+        if (rt == null || Application.isPlaying) return;
+#if UNITY_EDITOR
+        UnityEditor.Undo.RecordObject(rt, "Curtain Preview");
+#endif
+        rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, y);
     }
 }
