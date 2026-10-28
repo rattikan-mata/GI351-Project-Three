@@ -1487,6 +1487,8 @@ public class FlyingAnimal : TestAnimal
             float speed = moveSpeed * SpeedMultiplier;
             float step = speed * Time.fixedDeltaTime;
 
+            SkywardSmashTouching();
+
             Transform destTransform = (lastDrunkPotion == PotionType.Skyward && skywardDestination != null)
                 ? skywardDestination
                 : targetDestination;
@@ -1668,6 +1670,23 @@ public class FlyingAnimal : TestAnimal
         float speed = moveSpeed * SpeedMultiplier;
         if (currentBounceDir.sqrMagnitude < 0.01f) currentBounceDir = FacingDirection;
         rb.linearVelocity = currentBounceDir * speed + ConveyorVelocity;
+    }
+
+    /// <summary>Skyward ตอนบิน: อะไรที่พังได้ (กล่อง/ประตู) แล้วตัววัวแตะหรือเฉียดโดน จะพังทันที ไม่ต้องรอเด้งชนตรงๆ</summary>
+    private void SkywardSmashTouching()
+    {
+        if (!skywardBreakOnBounce || lastDrunkPotion != PotionType.Skyward) return;
+
+        CircleCollider2D circle = bodyCollider as CircleCollider2D;
+        float radius = (circle != null) ? circle.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y) : 0.45f;
+        foreach (var c in Physics2D.OverlapCircleAll(rb.position, radius + 0.12f))
+        {
+            if (c == null || c.gameObject == gameObject) continue;
+            PushableBox box = c.GetComponentInParent<PushableBox>();
+            if (box != null && box.IsDestructible && !box.IsBroken) { box.BreakBox(); continue; }
+            Door door = c.GetComponentInParent<Door>();
+            if (door != null && door.IsBreakable && !door.IsBroken) door.BreakDoor();
+        }
     }
 
     /// <summary>Skyward: เด้งชนประตู/กล่องที่พังได้ -> พัง</summary>

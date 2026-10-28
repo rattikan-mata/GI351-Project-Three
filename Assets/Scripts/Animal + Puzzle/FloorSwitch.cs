@@ -215,7 +215,11 @@ public class FloorSwitch : MonoBehaviour
         {
             bool blockedNow = HasBoxOnTop();
             if (wasBlocked && !blockedNow && !IsActive) ToggleSwitch();
-            wasBlocked = blockedNow;
+            if (blockedNow != wasBlocked)
+            {
+                wasBlocked = blockedNow;
+                UpdateCapPosition(); // กล่องทับอยู่ = ปุ่มบุ๋มค้าง
+            }
         }
 
         if (pressers.Count == 0) return;
@@ -265,8 +269,7 @@ public class FloorSwitch : MonoBehaviour
     {
         if (IsBlocked)
         {
-            // มีกล่องทับอยู่ ต้องพังกล่องก่อนถึงจะกดได้ แต่ปุ่มยังบุ๋มลงไปแล้วเด้งกลับเหมือนสวิตช์ที่กดไม่ติด
-            AnimateBounce();
+            // มีกล่องทับอยู่ ต้องพังกล่องก่อนถึงจะกดได้ (ปุ่มบุ๋มค้างอยู่แล้วเพราะกล่องทับ)
             return;
         }
 
@@ -318,7 +321,7 @@ public class FloorSwitch : MonoBehaviour
         }
         else if (animMode == ButtonAnimMode.StayWhileActive)
         {
-            Vector3 target = IsActive ? downPos : initialCapLocalPos;
+            Vector3 target = (IsActive || (blockedByBox && wasBlocked)) ? downPos : initialCapLocalPos;
             AnimateTo(target);
         }
         else if (animMode == ButtonAnimMode.Bounce)
