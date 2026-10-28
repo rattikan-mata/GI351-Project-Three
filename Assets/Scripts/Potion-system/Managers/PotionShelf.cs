@@ -17,7 +17,9 @@ namespace PotionSystem
         [Header("Level Config: ยาที่ด่านนี้สุ่มได้")]
         [Tooltip("รายการยาที่สุ่มได้ในด่านนี้ (ทั้งยาเริ่มต้นและยาที่น้องปรุง) ใส่ซ้ำได้ ยิ่งซ้ำยิ่งออกบ่อย")]
         [SerializeField] private List<PotionData> levelPotions = new List<PotionData>();
-        [Tooltip("จำนวนขวดที่สุ่มให้ตอนเริ่มด่าน")]
+        [Tooltip("ติ๊กไว้ = เริ่มด่านมาแล้วมียาทุกชนิดในรายการอย่างละ 1 ขวด (ไม่สุ่ม) ไม่ติ๊ก = สุ่ม Starting Potions ขวดแบบเดิม")]
+        [SerializeField] private bool startWithOneOfEach = true;
+        [Tooltip("จำนวนขวดที่สุ่มให้ตอนเริ่มด่าน (ใช้เมื่อไม่ติ๊ก Start With One Of Each)")]
         [SerializeField, Min(0)] private int startingPotions = 3;
         [Tooltip("น้องปรุงยาได้กี่ครั้งต่อด่าน (ปุ่มรีเซ็ตพัซเซิลไม่คืน ได้คืนเมื่อโหลดด่านใหม่)")]
         [FormerlySerializedAs("brewsPerReset")]
@@ -65,10 +67,17 @@ namespace PotionSystem
                 slot.Lock(i < kinds.Count ? kinds[i] : null);
             }
 
-            for (int i = 0; i < startingPotions; i++)
+            if (startWithOneOfEach)
             {
-                var potion = RandomPotion();
-                if (potion != null) Add(potion);
+                foreach (var kind in kinds) Add(kind);
+            }
+            else
+            {
+                for (int i = 0; i < startingPotions; i++)
+                {
+                    var potion = RandomPotion();
+                    if (potion != null) Add(potion);
+                }
             }
 
             BrewsLeft = brewsPerStage;

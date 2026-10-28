@@ -618,7 +618,8 @@ public class PushableBox : MonoBehaviour
             // เช็คว่าพ้นขอบพื้นตกลงไปในหลุมหรือไม่ (ไม่มีพื้นรองรับด้านล่างเกิน 0.35 หน่วย)
             // ถ้าตกลงในหลุม ให้หยุดเลื่อนแนวนอนแล้วปล่อยให้ตกตามแรงโน้มถ่วง
             float groundDist = GetFreeDistance(Vector2.down, 0.4f);
-            if (Mathf.Abs(currentSlideDirection.x) > 0.5f && groundDist >= 0.35f)
+            // กล่องที่อยู่บนสายพาน (ค้างแรงโน้มถ่วงไว้) ถือว่ามีพื้นรองรับ แม้สายพานเป็น Trigger ที่ Cast ไม่เจอ
+            if (Mathf.Abs(currentSlideDirection.x) > 0.5f && groundDist >= 0.35f && gravityHoldCount <= 0)
             {
                 ApplyMove(gravity);
                 break;

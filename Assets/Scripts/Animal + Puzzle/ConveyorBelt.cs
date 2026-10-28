@@ -388,16 +388,30 @@ public class ConveyorBelt : MonoBehaviour
 
     private float GetFreeDistance(Collider2D col, Vector2 direction, float maxDistance)
     {
-        if (obstacleLayer.value == 0) return maxDistance;
-
-        ContactFilter2D filter = new ContactFilter2D();
-        filter.SetLayerMask(obstacleLayer);
-        filter.useTriggers = false;
-
-        int count = col.Cast(direction, filter, castResults, maxDistance);
         float free = maxDistance;
-        for (int i = 0; i < count; i++)
-            free = Mathf.Min(free, castResults[i].distance - skinWidth);
+
+        if (obstacleLayer.value != 0)
+        {
+            ContactFilter2D filter = new ContactFilter2D();
+            filter.SetLayerMask(obstacleLayer);
+            filter.useTriggers = false;
+
+            int count = col.Cast(direction, filter, castResults, maxDistance);
+            for (int i = 0; i < count; i++)
+                free = Mathf.Min(free, castResults[i].distance - skinWidth);
+        }
+
+        // มือสปริงที่ยื่นออกมาขวางทาง = กั้นของบนสายพานไว้ (มืออยู่เลเยอร์อื่น จึงเช็คแยก)
+        ContactFilter2D any = new ContactFilter2D();
+        any.NoFilter();
+        any.useTriggers = false;
+        int n = col.Cast(direction, any, castResults, maxDistance);
+        for (int i = 0; i < n; i++)
+        {
+            var hit = castResults[i].collider;
+            if (hit != null && hit.GetComponentInParent<SpringPusher>() != null)
+                free = Mathf.Min(free, castResults[i].distance - skinWidth);
+        }
         return Mathf.Max(free, 0f);
     }
 

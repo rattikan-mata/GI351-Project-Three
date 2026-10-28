@@ -4962,13 +4962,15 @@ MonoBehaviour:
   barrageLingerSeconds: 3.4
   giantHairballPrefab: {fileID: 0}
   giantCatSprite: {fileID: 0}
-  giantScale: 2.1
+  giantScale: 2.7
   giantSpeed: 10
   giantLingerSeconds: 12
   giantBreaksObstacles: 1
   giantSpawnHeightOffset: 0.38
   giantSpawnForwardOffset: 0.5
   defaultGravityScale: 1
+  specialBounciness: 0.8
+  keepHairballs: 1
   skywardGravityScale: 0
   vomitDirection: 0
 --- !u!114 &1624234349
