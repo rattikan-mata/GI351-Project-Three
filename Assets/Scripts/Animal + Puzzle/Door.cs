@@ -278,7 +278,9 @@ public class Door : MonoBehaviour
 
         // ประตูตามสถานะสวิตช์: สวิตช์เปิด (ปุ่มยุบ) = ประตูเปิด / สวิตช์ปิด (ปุ่มเด้ง) = ประตูปิด
         bool wasOpen = IsOpen;
-        IsOpen = CheckAllSwitchesTriggered();
+        // ประตูที่เริ่มเปิดอยู่ (Starts Open) กลับด้าน: สวิตช์เปิด (ปุ่มยุบ) = ประตูปิด / สวิตช์ปิด = กลับไปเปิดเหมือนตอนเริ่ม
+        bool triggered = CheckAllSwitchesTriggered();
+        IsOpen = startsOpen ? !triggered : triggered;
         if (IsOpen != wasOpen)
         {
             if (IsOpen) PlayOpenSound();
