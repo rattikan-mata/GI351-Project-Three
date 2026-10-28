@@ -27,6 +27,19 @@ public class FloorSwitch : MonoBehaviour
     public bool IgnoreAirborneAnimals { get => ignoreAirborneAnimals; set => ignoreAirborneAnimals = value; }
     #endregion
 
+    #region Blocking
+    [Header("Blocking (กล่องทับสวิตช์)")]
+    [Tooltip("ติ๊กไว้ = ถ้ามีกล่อง (ที่ยังไม่พัง) วางทับสวิตช์นี้อยู่ สวิตช์จะไม่ทำงานเลย ไม่ว่าใครหรืออะไรมากด (รวมถึงสัตว์ที่วาร์ป/บินมาชน) และตัวกล่องเองก็กดไม่ได้\n" +
+             "ต้องทำลายกล่องให้พังก่อน สวิตช์ถึงจะกดได้ ไม่ติ๊ก = ทำงานแบบเดิม (ไม่กระทบสวิตช์ตัวอื่น)")]
+    [SerializeField] private bool blockedByBox = false;
+
+    [Tooltip("ระยะเผื่อรอบสวิตช์ที่ใช้ตรวจว่ากล่องทับอยู่ (หน่วยโลก)")]
+    [SerializeField, Min(0f)] private float blockCheckMargin = 0.05f;
+
+    /// <summary>มีกล่องที่ยังไม่พังทับสวิตช์อยู่และสวิตช์นี้เปิดโหมด Blocked By Box หรือไม่</summary>
+    public bool IsBlocked => blockedByBox && HasBoxOnTop();
+    #endregion
+
     #region Weight
     [Header("Weight (น้ำหนักที่ต้องใช้)")]
     [Tooltip("0 = กดด้วยอะไรก็ได้ (ทำงานทุกครั้งที่มีของเข้ามาแตะ แบบเดิม)\n" +
@@ -88,6 +101,7 @@ public class FloorSwitch : MonoBehaviour
     private readonly HashSet<Collider2D> pressers = new HashSet<Collider2D>();
     private bool weightSatisfied = false;
     private float lastToggleTime = -1f;
+    private bool exitPending;
 
     private Vector3 initialCapLocalPos;
     private bool initialPosSaved = false;
@@ -142,6 +156,7 @@ public class FloorSwitch : MonoBehaviour
             buttonCap.localPosition = initialCapLocalPos;
         }
         pressers.Clear();
+        exitPending = false;
     }
 
     // ทำงานทันทีเมื่อมีวัตถุเดินเข้ามาชน/ทับครั้งแรก (Trigger รอบเดียว)
@@ -170,17 +185,19 @@ public class FloorSwitch : MonoBehaviour
     {
         pressers.Remove(other);
 
-        if (requiredWeight <= 0f)
-        {
-            UpdateCapPosition();
-            return;
-        }
-
-        EvaluateWeight();
+        // อัปเดตปุ่มในเฟรมถัดไปใน Update แทน: ตอนวัตถุถูกปิด (เช่น รีเซ็ตพัซเซิล/หยุดเล่น) ระบบฟิสิกส์ยิง Exit มาในจังหวะที่สตาร์ท Coroutine ไม่ได้
+        exitPending = true;
     }
 
     private void Update()
     {
+        if (exitPending)
+        {
+            exitPending = false;
+            if (requiredWeight > 0f) EvaluateWeight();
+            else UpdateCapPosition();
+        }
+
         if (pressers.Count == 0) return;
 
         // ก้อนขนที่ถูกทำลาย/สัตว์ที่ลอยขึ้น จะไม่ส่ง TriggerExit เสมอไป จึงตรวจเองทุกเฟรม
@@ -226,6 +243,13 @@ public class FloorSwitch : MonoBehaviour
 
     private void ToggleSwitch()
     {
+        if (IsBlocked)
+        {
+            // มีกล่องทับอยู่ ต้องพังกล่องก่อนถึงจะกดได้ แต่ปุ่มยังบุ๋มลงไปแล้วเด้งกลับเหมือนสวิตช์ที่กดไม่ติด
+            AnimateBounce();
+            return;
+        }
+
         // ชนครั้งเดียวแต่ถูกสั่งซ้ำในจังหวะฟิสิกส์เดียวกัน (เช่น วัวบินสั่ง ForceToggle + สวิตช์เจอ Trigger เอง) ให้นับครั้งเดียว
         if (lastToggleTime == Time.fixedTime) return;
         lastToggleTime = Time.fixedTime;
@@ -372,7 +396,11 @@ public class FloorSwitch : MonoBehaviour
         CurrentWeight = total;
 
         bool satisfied = total >= requiredWeight;
-        if (satisfied && !weightSatisfied) ToggleSwitch();
+        if (satisfied && !weightSatisfied)
+        {
+            if (IsBlocked) satisfied = false; // ยังไม่นับว่ากดสำเร็จ รอบหน้าที่ตรวจใหม่จะลองอีกครั้ง
+            else ToggleSwitch();
+        }
         weightSatisfied = satisfied;
 
         UpdateCapPosition();
@@ -404,9 +432,24 @@ public class FloorSwitch : MonoBehaviour
             var animal = c.GetComponentInParent<TestAnimal>();
             if (animal != null) return !(ignoreAirborneAnimals && animal.IsAirborne);
         }
-        if (triggeredByBoxes && c.GetComponentInParent<PushableBox>() != null) return true;
+        if (triggeredByBoxes && !blockedByBox && c.GetComponentInParent<PushableBox>() != null) return true;
         if (triggeredByHairballs && c.GetComponentInParent<Hairball>() != null) return true;
 
+        return false;
+    }
+
+    private bool HasBoxOnTop()
+    {
+        var col = GetComponent<Collider2D>();
+        if (col == null) return false;
+
+        Bounds b = col.bounds;
+        Collider2D[] hits = Physics2D.OverlapBoxAll(b.center, b.size + Vector3.one * (blockCheckMargin * 2f), 0f);
+        foreach (var h in hits)
+        {
+            var box = h.GetComponentInParent<PushableBox>();
+            if (box != null && !box.IsBroken && box.gameObject.activeInHierarchy) return true;
+        }
         return false;
     }
 
