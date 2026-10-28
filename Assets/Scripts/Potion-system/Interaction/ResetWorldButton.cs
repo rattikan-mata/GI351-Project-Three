@@ -16,11 +16,26 @@ namespace PotionSystem
         [SerializeField] private float hoverScale = 1.08f;
         [SerializeField] private float pressScale = 0.92f;
 
+        [Header("Last Chance (เหลือหัวใจดวงสุดท้าย)")]
+        [Tooltip("ภาพปุ่มตอนเหลือหัวใจ 1 ดวง (กดอีกครั้ง = แพ้) ว่างไว้ = ใช้ภาพเดิมตลอด")]
+        [SerializeField] private Sprite lastChanceSprite;
+
         private Vector3 restScale;
+        private SpriteRenderer spriteRenderer;
+        private Sprite normalSprite;
 
         private void Awake()
         {
             restScale = transform.localScale;
+            spriteRenderer = GetComponent<SpriteRenderer>();
+            if (spriteRenderer != null) normalSprite = spriteRenderer.sprite;
+        }
+
+        private void Update()
+        {
+            if (spriteRenderer == null || lastChanceSprite == null) return;
+            Sprite want = HUDStarSystem.CurrentStars <= 1 ? lastChanceSprite : normalSprite;
+            if (spriteRenderer.sprite != want) spriteRenderer.sprite = want;
         }
 
         private void OnDisable()

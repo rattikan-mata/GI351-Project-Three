@@ -155,3 +155,4 @@ MonoBehaviour:
   controller: {fileID: 0}
   hoverScale: 1.08
   pressScale: 0.92
+  lastChanceSprite: {fileID: 21300000, guid: e69fe156aab1be94cbc16578893a8625, type: 3}
