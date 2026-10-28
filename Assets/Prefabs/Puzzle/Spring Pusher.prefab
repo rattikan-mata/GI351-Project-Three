@@ -437,7 +437,7 @@ MonoBehaviour:
   visual: {fileID: 6816229833853316260}
   pawCollider: {fileID: 5148799919032475868}
   hiddenLocalX: -0.407
-  idleExtension: 0.12
+  idleExtension: 0.5
   activeExtension: 1.2
   extendSpeed: 6
   retractSpeed: 2.5
