@@ -330,6 +330,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HangingBox
   box: {fileID: 1017504928}
   rope: {fileID: 919437996}
+  swayDegrees: 2.5
+  swayPeriod: 3.4
+  pivot: {fileID: 0}
 --- !u!1 &89747724
 GameObject:
   m_ObjectHideFlags: 0
@@ -557,6 +560,8 @@ MonoBehaviour:
   triggeredByHairballs: 1
   triggeredByLasers: 1
   ignoreAirborneAnimals: 0
+  blockedByBox: 1
+  blockCheckMargin: 0.05
   requiredWeight: 0
   spriteRenderer: {fileID: 0}
   offSprite: {fileID: 0}
@@ -577,7 +582,7 @@ Transform:
   m_GameObject: {fileID: 168887281}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.913, y: 0.006, z: 0}
+  m_LocalPosition: {x: 0.913, y: -0.02, z: 0}
   m_LocalScale: {x: 0.5485301, y: 0.5485301, z: 0.5485301}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -3192,7 +3197,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8720426379642202039, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.9949813
+      value: 2.03
       objectReference: {fileID: 0}
     - target: {fileID: 8720426379642202039, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
       propertyPath: m_LocalPosition.z
@@ -3527,7 +3532,7 @@ Transform:
   m_GameObject: {fileID: 940747618}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.5978159, y: 0.19844307, z: 0}
+  m_LocalPosition: {x: -1.37, y: 0.23, z: 0}
   m_LocalScale: {x: 0.86742, y: 0.86742, z: 0.86742}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -6776,7 +6781,7 @@ Transform:
   m_GameObject: {fileID: 1927569270}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.59300494, y: 0.296548, z: 0}
+  m_LocalPosition: {x: 0.86, y: 0.95, z: 0}
   m_LocalScale: {x: 0.45, y: 0.45, z: 0.45}
   m_ConstrainProportionsScale: 0
   m_Children: []

@@ -52,6 +52,12 @@ public class ConveyorBelt : MonoBehaviour
     [SerializeField] private Sprite onSprite;
     [SerializeField] private Animator animator;
     [SerializeField] private string onBoolParameter = "On";
+
+    [Tooltip("ภาพอนิเมชันตอนสายพานทำงาน สลับภาพตามลำดับวนไปเรื่อยๆ ตอนหยุดจะค้างที่ภาพแรก (ใส่ 2 ภาพขึ้นไปถึงจะเล่น)")]
+    [SerializeField] private Sprite[] runFrames;
+
+    [Tooltip("จำนวนภาพต่อวินาทีของอนิเมชัน (สายพานทุกตัวสลับภาพพร้อมกัน)")]
+    [SerializeField, Min(0.1f)] private float framesPerSecond = 6f;
     #endregion
 
     #region Audio
@@ -133,6 +139,8 @@ public class ConveyorBelt : MonoBehaviour
 
     private void Update()
     {
+        AnimateFrames();
+
         if (loopSound != null) return; // เสียงชุดเปิดเครื่อง + ลูปจัดการโดย BeltAudioPlayer
 
         if (IsPowered)
@@ -356,11 +364,21 @@ public class ConveyorBelt : MonoBehaviour
         }
     }
 
+    private void AnimateFrames()
+    {
+        if (!IsPowered || spriteRenderer == null || runFrames == null || runFrames.Length < 2) return;
+
+        int index = (int)(Time.time * framesPerSecond) % runFrames.Length;
+        Sprite frame = runFrames[index];
+        if (frame != null && spriteRenderer.sprite != frame) spriteRenderer.sprite = frame;
+    }
+
     private void ApplyVisual()
     {
         if (spriteRenderer != null)
         {
             Sprite s = IsPowered ? onSprite : offSprite;
+            if (!IsPowered && s == null && runFrames != null && runFrames.Length > 0) s = runFrames[0];
             if (s != null) spriteRenderer.sprite = s;
         }
 

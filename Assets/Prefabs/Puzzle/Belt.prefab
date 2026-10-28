@@ -171,6 +171,10 @@ MonoBehaviour:
   onSprite: {fileID: 0}
   animator: {fileID: 0}
   onBoolParameter: On
+  runFrames:
+  - {fileID: 21300000, guid: 116be492a0a451040ab049a1dc629d4b, type: 3}
+  - {fileID: 21300000, guid: 6c4eae09e846ae448976ce4de690e8f6, type: 3}
+  framesPerSecond: 6
   startSound: {fileID: 8300000, guid: 1bc8000ff1925ba4a96b751e10f8cf32, type: 3}
   loopSound: {fileID: 8300000, guid: 0d29903717919884aa58b41d6169fd34, type: 3}
   runningSound: {fileID: 0}
