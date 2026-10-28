@@ -218,6 +218,97 @@ public abstract class TestAnimal : MonoBehaviour
         return true;
     }
 
+    [Header("Wrong Potion (ยาผิดตัว = สลายหายไป)")]
+    [Tooltip("ติ๊กไว้ = โดนยาที่ตัวนี้ไม่รับ จะสลายหายไปจากด่าน (กดรีเซ็ตเพื่อเอากลับมา)")]
+    [SerializeField] private bool dissolveOnWrongPotion = true;
+    [SerializeField, Min(0.1f)] private float dissolveSeconds = 0.6f;
+    [SerializeField] private Color dissolveTint = new Color(0.55f, 0.35f, 0.75f, 1f);
+    [SerializeField, Min(0)] private int dissolvePuffs = 10;
+
+    public bool IsDissolving { get; private set; }
+
+    /// <summary>โดนยาผิดตัว: ตัวสั่น เปลี่ยนสี หดและจางหายพร้อมควันเล็กๆ แล้วปิดตัวเอง</summary>
+    public void DissolveFromWrongPotion()
+    {
+        if (!dissolveOnWrongPotion || IsDissolving || !isActiveAndEnabled) return;
+        IsDissolving = true;
+        StopAllCoroutines();
+        if (rb != null) { rb.linearVelocity = Vector2.zero; rb.simulated = false; }
+        foreach (var c in GetComponentsInChildren<Collider2D>()) c.enabled = false;
+        PlayCrySound();
+        StartCoroutine(DissolveRoutine());
+    }
+
+    private IEnumerator DissolveRoutine()
+    {
+        var renderers = GetComponentsInChildren<SpriteRenderer>();
+        var startColors = new Color[renderers.Length];
+        for (int i = 0; i < renderers.Length; i++) startColors[i] = renderers[i].color;
+
+        Vector3 startScale = transform.localScale;
+        Vector3 startPos = transform.position;
+        Bounds bounds = renderers.Length > 0 ? renderers[0].bounds : new Bounds(startPos, Vector3.one);
+        foreach (var r in renderers) bounds.Encapsulate(r.bounds);
+        int order = renderers.Length > 0 ? renderers[0].sortingOrder + 1 : 10;
+        SpawnDissolvePuffs(bounds, order);
+
+        float t = 0f;
+        while (t < dissolveSeconds)
+        {
+            t += Time.deltaTime;
+            float k = Mathf.Clamp01(t / dissolveSeconds);
+            // สั่นช่วงแรก แล้วหดลงพื้นและจางหาย
+            float shake = (1f - k) * 0.05f * Mathf.Sin(t * 60f);
+            transform.position = startPos + new Vector3(shake, 0f, 0f);
+            transform.localScale = new Vector3(startScale.x * (1f + 0.15f * k), startScale.y * (1f - 0.8f * k), startScale.z);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] == null) continue;
+                Color c = Color.Lerp(startColors[i], dissolveTint, Mathf.Clamp01(k * 2f));
+                c.a = startColors[i].a * (1f - k);
+                renderers[i].color = c;
+            }
+            yield return null;
+        }
+        gameObject.SetActive(false);
+    }
+
+    private static Sprite puffSprite;
+
+    private void SpawnDissolvePuffs(Bounds bounds, int order)
+    {
+        if (dissolvePuffs <= 0) return;
+        if (puffSprite == null)
+        {
+            const int size = 32;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(size * 0.5f, size * 0.5f)) / (size * 0.5f);
+                    tex.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Clamp01((1f - d) * 3f)));
+                }
+            tex.Apply();
+            puffSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        }
+
+        for (int i = 0; i < dissolvePuffs; i++)
+        {
+            var go = new GameObject("DissolvePuff");
+            go.transform.position = new Vector3(
+                Random.Range(bounds.min.x, bounds.max.x),
+                Random.Range(bounds.min.y, bounds.center.y), 0f);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = puffSprite;
+            sr.sortingOrder = order;
+            sr.color = Color.Lerp(dissolveTint, Color.white, Random.Range(0.2f, 0.6f));
+            go.AddComponent<DissolvePuff>().Init(
+                new Vector2(Random.Range(-0.4f, 0.4f), Random.Range(0.6f, 1.4f)),
+                Random.Range(0.15f, 0.3f),
+                dissolveSeconds + Random.Range(0.1f, 0.4f));
+        }
+    }
+
     /// <summary>ดึงคลิปเสียงตอนได้รับยา (จาก Inspector หรือ AudioManager)</summary>
     protected AudioClip ResolveDrinkSound()
     {

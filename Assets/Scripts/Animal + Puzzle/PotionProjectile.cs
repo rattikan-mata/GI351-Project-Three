@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// ยาที่ถูกปล่อยออกมาจาก PotionDropper: ลอยผ่านจุด Path (ถ้ามี) แล้วเข้าไปหาสัตว์
 /// พอถึงตัวสัตว์จะเรียก DrinkPotion() ถ้าเป็นยาที่ถูกตัว สัตว์จะเริ่มแก้ puzzle เอง
-/// ถ้าเป็นยาผิดตัว สัตว์ไม่ทำอะไร ยาหายไป (ยาเสียเปล่า)
+/// ถ้าเป็นยาผิดตัว สัตว์จะสลายหายไปจากด่าน (TestAnimal.DissolveFromWrongPotion)
 /// ไม่ต้องมี Collider/Rigidbody (ขยับด้วย Transform)
 /// </summary>
 public class PotionProjectile : MonoBehaviour
@@ -115,7 +115,8 @@ public class PotionProjectile : MonoBehaviour
         bool accepted = target.DrinkPotion(potionType);
         if (!accepted)
         {
-            Debug.Log($"[Potion] ยา {potionType} ไม่ตรงกับ {target.AnimalName} (ต้องใช้ {target.RequiredPotionType}) ยาเสียเปล่า");
+            Debug.Log($"[Potion] ยา {potionType} ไม่ตรงกับ {target.AnimalName} (ต้องใช้ {target.RequiredPotionType}) สัตว์สลายหายไป");
+            target.DissolveFromWrongPotion();
         }
         Destroy(gameObject);
     }
