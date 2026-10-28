@@ -435,6 +435,7 @@ public class FlyingAnimal : TestAnimal
     {
         isBouncing = true;
         skywardSwitchTouched = false;
+        resetVisited = false;
         toggledThisFlight.Clear();
         TakeOff();
         flyEndTime = float.MaxValue;
@@ -483,6 +484,8 @@ public class FlyingAnimal : TestAnimal
     }
 
     /// <summary>สุ่มทิศทางและสุ่มจำนวนครั้งที่เด้งได้ (2-3 ครั้ง) จากจุดรีเซ็ทกลางทาง</summary>
+    private bool resetVisited; // กลับมาจุดรีเซ็ทครบ 1 ครั้งแล้ว หลังจากนี้เด้งต่อเรื่อยๆ
+
     private void SetupResetPointLaunch()
     {
         if (midwayResetPoint != null)
@@ -491,7 +494,7 @@ public class FlyingAnimal : TestAnimal
         }
 
         attemptBounceCount = 0;
-        allowedBouncesThisAttempt = Random.Range(minBouncesBeforeReset, maxBouncesBeforeReset + 1);
+        allowedBouncesThisAttempt = resetVisited ? int.MaxValue : Random.Range(minBouncesBeforeReset, maxBouncesBeforeReset + 1);
         // ออกตัวรอบใหม่เริ่มความเร็วปกติ (เร่งเฉพาะในรอบนั้น) ไม่ให้สะสมจนกระแทกไปมาเร็วจัดในห้องแคบ
         if (calmAfterTarget) currentBounceSpeedBonus = 0f;
 
@@ -1523,7 +1526,8 @@ public class FlyingAnimal : TestAnimal
                     Vector2 toReset = (Vector2)midwayResetPoint.position - rb.position;
                     if (toReset.magnitude <= Mathf.Max(stopDistance, 0.45f))
                     {
-                        // ถึงจุดรีเซ็ทแล้ว -> สุ่มทิศใหม่และสุ่มจำนวนเด้ง 2-3 ครั้ง แล้วพุ่งตัวอีกรอบ
+                        // ถึงจุดรีเซ็ทแล้ว (กลับมาครั้งเดียว) -> สุ่มทิศใหม่แล้วเด้งต่อไปเรื่อยๆ ไม่กลับมาจุดรีเซ็ทอีก
+                        resetVisited = true;
                         SetupResetPointLaunch();
                         return;
                     }

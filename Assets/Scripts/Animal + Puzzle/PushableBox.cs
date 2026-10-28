@@ -35,6 +35,9 @@ public class PushableBox : MonoBehaviour
     [Tooltip("จำนวนครั้งที่ต้องชนจนกล่องแตก")]
     [SerializeField, Min(1)] private int hitsToBreak = 3;
 
+    [Tooltip("ติ๊กไว้ = สัตว์ที่ทำลายกล่องได้เคลื่อนที่มาชนครั้งเดียวกล่องก็พังเลย (ไม่ใช้ระบบถอยแล้วพุ่งชนซ้ำตาม Hits To Break) ไม่ติ๊ก = แบบเดิม")]
+    [SerializeField] private bool breakOnFirstHit = true;
+
     [Tooltip("ติ๊กไว้ = ดันเลื่อนได้ปกติจนกว่าจะติดกำแพงถึงจะเริ่มชนแตก / ไม่ติ๊ก = เริ่มกระบวนการชนแตกทันทีที่ถูกชน")]
     [SerializeField] private bool breakOnlyWhenBlocked = false;
 
@@ -248,6 +251,14 @@ public class PushableBox : MonoBehaviour
     {
         if (!isDestructible || IsBroken || isProcessingHit || animal == null) return;
         if (!CanAnimalDestroyBox(animal)) return;
+
+        // ชนพังปกติ: สัตว์เคลื่อนที่มาชนครั้งเดียวกล่องก็พัง ไม่ต้องกระเด็นถอยแล้วพุ่งชนซ้ำจนครบ 3 ครั้ง
+        if (breakOnFirstHit)
+        {
+            if (hitEffectPrefab != null) Instantiate(hitEffectPrefab, transform.position, Quaternion.identity);
+            BreakBox();
+            return;
+        }
 
         StartCoroutine(DestructionSequenceRoutine(animal, hitDirection));
     }

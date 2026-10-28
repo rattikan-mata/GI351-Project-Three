@@ -265,7 +265,7 @@ MonoBehaviour:
   barrageLingerSeconds: 3.4
   giantHairballPrefab: {fileID: 0}
   giantCatSprite: {fileID: 0}
-  giantScale: 3
+  giantScale: 2.1
   giantSpeed: 10
   giantLingerSeconds: 12
   giantBreaksObstacles: 1
@@ -303,3 +303,4 @@ MonoBehaviour:
   actionFrames:
   - {fileID: 21300000, guid: 7a5e7598415e83446b48602bb7e2dcbe, type: 3}
   actionFps: 6
+  allowMove: 1
