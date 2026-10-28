@@ -2122,8 +2122,20 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8775481440192107653, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}
+      propertyPath: leftSwitch
+      value: 
+      objectReference: {fileID: 267559135}
+    - target: {fileID: 8775481440192107653, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}
+      propertyPath: rightSwitch
+      value: 
+      objectReference: {fileID: 168887282}
+    - target: {fileID: 8775481440192107653, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}
       propertyPath: moveDirection
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8775481440192107653, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}
+      propertyPath: switches.Array.size
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8775481440192107653, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}
       propertyPath: obstacleLayer.m_Bits
@@ -5596,6 +5608,18 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8219543050305362246, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8775481440192107653, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}
+      propertyPath: leftSwitch
+      value: 
+      objectReference: {fileID: 267559135}
+    - target: {fileID: 8775481440192107653, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}
+      propertyPath: rightSwitch
+      value: 
+      objectReference: {fileID: 168887282}
+    - target: {fileID: 8775481440192107653, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}
+      propertyPath: switches.Array.size
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8775481440192107653, guid: 1e4be7a621f08414f9790760e3d67f72, type: 3}

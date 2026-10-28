@@ -31,6 +31,16 @@ public class BeltAudioPlayer : MonoBehaviour
         if (!player.playing) player.Begin(start, loop, volume);
     }
 
+    /// <summary>เริ่มเสียงเปิดเครื่อง + ลูปใหม่ตั้งแต่ต้น (ใช้ตอนสายพานสลับทิศ)</summary>
+    public static void Restart(ConveyorBelt belt, AudioClip start, AudioClip loop, float volume)
+    {
+        if (belt == null || loop == null) return;
+        var player = GetOrCreate();
+        player.active.Add(belt);
+        if (player.playing) player.StopAll();
+        player.Begin(start, loop, volume);
+    }
+
     /// <summary>สายพานหยุดทำงาน หรือถูกปิด/ลบ</summary>
     public static void Unregister(ConveyorBelt belt)
     {

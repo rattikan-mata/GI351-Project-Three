@@ -21,6 +21,16 @@ public class ConveyorBelt : MonoBehaviour
     [SerializeField] private bool stayOnOnceActivated = false;
     #endregion
 
+    #region Reversible
+    [Header("Reversible (สลับทิศด้วยสวิตช์ 2 ตัว)")]
+    [Tooltip("ใส่ทั้งสองช่องถึงจะเปิดโหมดนี้ (ช่อง Switches ด้านบนจะไม่ถูกใช้)\nสวิตช์ฝั่งซ้ายทำงาน = เลื่อนซ้าย / สวิตช์ฝั่งขวาทำงาน = เลื่อนขวา กดอีกฝั่งแล้วสลับทิศ (ภาพและเสียงเปิดเครื่องเริ่มใหม่) และปิดสวิตช์ฝั่งตรงข้ามให้")]
+    [SerializeField] private FloorSwitch leftSwitch;
+    [SerializeField] private FloorSwitch rightSwitch;
+    private bool Reversible => leftSwitch != null && rightSwitch != null;
+    private AutoDirection currentDirection;
+    private bool resolvingReverse;
+    #endregion
+
     #region Motion
     [Header("Motion (ทิศและความเร็ว)")]
     [Tooltip("ทิศที่ของบนสายพานถูกพาไป")]
@@ -92,6 +102,7 @@ public class ConveyorBelt : MonoBehaviour
     {
         GetComponent<Collider2D>().isTrigger = true;
         if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
+        currentDirection = Reversible ? AutoDirection.Right : moveDirection;
         EnsureAudioSource();
     }
 
@@ -110,6 +121,8 @@ public class ConveyorBelt : MonoBehaviour
 
     private void OnEnable()
     {
+        if (leftSwitch != null) leftSwitch.StateChanged += OnSwitchChanged;
+        if (rightSwitch != null) rightSwitch.StateChanged += OnSwitchChanged;
         foreach (var sw in switches)
         {
             if (sw != null) sw.StateChanged += OnSwitchChanged;
@@ -118,6 +131,8 @@ public class ConveyorBelt : MonoBehaviour
 
     private void OnDisable()
     {
+        if (leftSwitch != null) leftSwitch.StateChanged -= OnSwitchChanged;
+        if (rightSwitch != null) rightSwitch.StateChanged -= OnSwitchChanged;
         foreach (var sw in switches)
         {
             if (sw != null) sw.StateChanged -= OnSwitchChanged;
@@ -186,7 +201,7 @@ public class ConveyorBelt : MonoBehaviour
             return;
         }
 
-        Vector2 dir = ToDirection(moveDirection);
+        Vector2 dir = ToDirection(currentDirection);
         Vector2 animalCarry = dir * speed;
         float step = speed * Time.fixedDeltaTime;
 
@@ -221,10 +236,63 @@ public class ConveyorBelt : MonoBehaviour
     #endregion
 
     #region Logic
-    private void OnSwitchChanged(FloorSwitch changed) => Evaluate();
+    private void OnSwitchChanged(FloorSwitch changed)
+    {
+        if (Reversible) EvaluateReversible(changed);
+        else Evaluate();
+    }
+
+    private void EvaluateReversible(FloorSwitch changed)
+    {
+        if (resolvingReverse) return;
+        resolvingReverse = true;
+
+        // เปิดแล้วไม่มีปิด: กดสวิตช์ของทิศที่เดินอยู่ซ้ำ จะถูกคืนเป็นกดค้างไว้ สายพานเดินต่อ (สลับได้แค่ทิศ)
+        if (changed != null && !changed.IsActive && IsPowered)
+        {
+            FloorSwitch current = currentDirection == AutoDirection.Left ? leftSwitch : rightSwitch;
+            if (changed == current) changed.ForceState(true);
+            resolvingReverse = false;
+            return;
+        }
+
+        // กดฝั่งหนึ่งทำงาน = ปิดอีกฝั่งให้ (สลับกันได้ตลอด)
+        if (changed != null && changed.IsActive)
+        {
+            FloorSwitch other = changed == leftSwitch ? rightSwitch : leftSwitch;
+            if (other != null && other.IsActive) other.ForceState(false);
+        }
+
+        bool left = leftSwitch.IsActive, right = rightSwitch.IsActive;
+        bool run = left || right;
+        AutoDirection dir = right ? AutoDirection.Right : (left ? AutoDirection.Left : currentDirection);
+        bool dirChanged = run && dir != currentDirection;
+        bool wasPowered = IsPowered;
+
+        currentDirection = dir;
+        IsPowered = run;
+        ApplyVisual();
+
+        if (IsPowered && (!wasPowered || dirChanged)) RestartAudio();
+        else if (!IsPowered) { UpdateAudio(); ClearAnimalCarry(); }
+
+        resolvingReverse = false;
+    }
+
+    private void RestartAudio()
+    {
+        if (loopSound != null)
+        {
+            var src = EnsureAudioSource();
+            if (src.isPlaying) src.Stop();
+            BeltAudioPlayer.Restart(this, startSound, loopSound, runningVolume);
+        }
+        else UpdateAudio();
+    }
 
     private void Evaluate()
     {
+        if (Reversible) { EvaluateReversible(null); return; }
         if (IsPowered && stayOnOnceActivated) return;
 
         bool shouldRun = ShouldRun();
@@ -375,6 +443,9 @@ public class ConveyorBelt : MonoBehaviour
 
     private void ApplyVisual()
     {
+        // โหมดสลับทิศ: อนิเมชันกลับด้านตามทิศที่เลื่อน (ซ้าย = กลับด้าน)
+        if (Reversible && spriteRenderer != null) spriteRenderer.flipX = currentDirection == AutoDirection.Left;
+
         if (spriteRenderer != null)
         {
             Sprite s = IsPowered ? onSprite : offSprite;

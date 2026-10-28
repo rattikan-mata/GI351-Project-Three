@@ -241,6 +241,16 @@ public class FloorSwitch : MonoBehaviour
     #endregion
 
     #region Logic
+    /// <summary>ตั้งสถานะสวิตช์ตรงๆ (เช่น สายพานสลับทิศปิดสวิตช์อีกฝั่งให้) ส่งเหตุการณ์ StateChanged ตามปกติ</summary>
+    public void ForceState(bool on)
+    {
+        if (IsActive == on) return;
+        IsActive = on;
+        ApplyVisual();
+        UpdateCapPosition();
+        StateChanged?.Invoke(this);
+    }
+
     /// <summary>กดสวิตช์จากระยะไกล (เช่น เลเซอร์ของแพะ)</summary>
     public void RemoteToggle()
     {
