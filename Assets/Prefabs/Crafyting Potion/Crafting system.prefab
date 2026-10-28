@@ -773,6 +773,30 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8353115160995163468}
     m_Modifications:
+    - target: {fileID: 725480075313151079, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Size.x
+      value: 1.58
+      objectReference: {fileID: 0}
+    - target: {fileID: 725480075313151079, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Size.y
+      value: 1.24
+      objectReference: {fileID: 0}
+    - target: {fileID: 725480075313151079, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Offset.y
+      value: 0.055
+      objectReference: {fileID: 0}
+    - target: {fileID: 2455519889268084525, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Size.x
+      value: 1.58
+      objectReference: {fileID: 0}
+    - target: {fileID: 2455519889268084525, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Size.y
+      value: 1.24
+      objectReference: {fileID: 0}
+    - target: {fileID: 2455519889268084525, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Offset.y
+      value: 0.055
+      objectReference: {fileID: 0}
     - target: {fileID: 3677630500648232422, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
       propertyPath: m_Name
       value: Slot use potion
@@ -816,6 +840,30 @@ PrefabInstance:
     - target: {fileID: 4528831824684034798, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5325519313658928009, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Size.x
+      value: 1.58
+      objectReference: {fileID: 0}
+    - target: {fileID: 5325519313658928009, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Size.y
+      value: 1.24
+      objectReference: {fileID: 0}
+    - target: {fileID: 5325519313658928009, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Offset.y
+      value: 0.055
+      objectReference: {fileID: 0}
+    - target: {fileID: 7905690516235618736, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Size.x
+      value: 1.58
+      objectReference: {fileID: 0}
+    - target: {fileID: 7905690516235618736, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Size.y
+      value: 1.24
+      objectReference: {fileID: 0}
+    - target: {fileID: 7905690516235618736, guid: d80a4c4275f9f7747877ae9ec895dbdf, type: 3}
+      propertyPath: m_Offset.y
+      value: 0.055
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

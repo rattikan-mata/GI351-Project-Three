@@ -40,6 +40,9 @@ namespace PotionSystem
         [Tooltip("กรอบของขวดยาตอนอยู่ในช่องนี้ (หน่วยโลก) ขวดทุกแบบถูกย่อให้พอดีกรอบโดยคงสัดส่วน ใช้ค่าเดียวกับชั้นวางเพื่อให้ขนาดเท่ากัน ไม่กระทบขนาดตอนลาก และไม่กระทบพื้นที่คลิก")]
         [SerializeField, Min(0.1f)] private float storedBox = 1.0f;
 
+        [Tooltip("ขยายขวดยาตอนอยู่ในช่อง (1 = ขนาดตาม Stored Box, 1.1 = ใหญ่ขึ้น 10%) ไม่กระทบพื้นที่คลิก")]
+        [SerializeField, Min(0.1f)] private float storedScale = 1.1f;
+
         [Tooltip("ขยับรูปยาจากกึ่งกลางช่อง (หน่วย local)")]
         [SerializeField] private Vector2 iconOffset = Vector2.zero;
         #endregion
@@ -197,7 +200,7 @@ namespace PotionSystem
             iconRenderer.transform.localPosition = iconOffset;
             if (occupied)
             {
-                CraftingSprites2D.FitPotion(iconRenderer, StoredPotion, CraftingSprites2D.ColorFor(StoredPotion), storedBox);
+                CraftingSprites2D.FitPotion(iconRenderer, StoredPotion, CraftingSprites2D.ColorFor(StoredPotion), storedBox * storedScale);
             }
         }
         #endregion

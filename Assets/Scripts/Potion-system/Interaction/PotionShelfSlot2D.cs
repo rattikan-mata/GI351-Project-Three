@@ -15,6 +15,8 @@ namespace PotionSystem
         [Header("Visual")]
         [Tooltip("กรอบของรูปขวดในช่อง (หน่วยโลก) ขวดทุกแบบถูกย่อให้พอดีกรอบนี้โดยคงสัดส่วน ใช้ค่าเดียวกับช่องเตรียมยิงเพื่อให้ขนาดเท่ากัน")]
         [SerializeField, Min(0.05f)] private float iconBox = 1.0f;
+        [Tooltip("ขยายรูปขวดในช่อง (1 = ขนาดเดิม) ขอบล่างของขวดอยู่ที่เดิม ขวดโตขึ้นไปด้านบน")]
+        [SerializeField, Min(0.1f)] private float iconScale = 1.2f;
         [SerializeField] private int sortingOrder = 10;
         [Tooltip("ตำแหน่งตัวเลขจำนวน เทียบกับกลางช่อง")]
         [SerializeField] private Vector2 countOffset = new Vector2(0.3f, -0.3f);
@@ -101,6 +103,21 @@ namespace PotionSystem
             }
         }
 
+        /// <summary>ขยายรูปขวดตาม Icon Scale โดยให้ขอบล่างของขวดอยู่ที่เดิม (ขวดโตขึ้นขึ้นด้านบน ไม่จมลงพื้น)</summary>
+        private void ApplyIconScale()
+        {
+            var t = iconRenderer.transform;
+            t.localPosition = Vector3.zero;
+            var sprite = iconRenderer.sprite;
+            if (sprite == null || Mathf.Approximately(iconScale, 1f)) return;
+
+            float baseScale = t.localScale.x;
+            float baseBottom = CraftingSprites2D.VisibleBottom(sprite) * baseScale;
+            float newScale = baseScale * iconScale;
+            t.localScale = Vector3.one * newScale;
+            t.localPosition = new Vector3(0f, baseBottom - CraftingSprites2D.VisibleBottom(sprite) * newScale, 0f);
+        }
+
         private void Refresh()
         {
             if (iconRenderer == null || countLabel == null) return;
@@ -112,6 +129,7 @@ namespace PotionSystem
             if (!show) return;
 
             CraftingSprites2D.FitPotion(iconRenderer, Potion, CraftingSprites2D.ColorFor(Potion), iconBox);
+            ApplyIconScale();
             countLabel.text = "x" + Count;
 
             // ยาหมด: หม่นและจางเหมือนปุ่มที่กดไม่ได้

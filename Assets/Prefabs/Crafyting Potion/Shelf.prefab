@@ -93,6 +93,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionShelfSlot2D
   shelf: {fileID: 5192563888902583280}
   iconBox: 1
+  iconScale: 1.2
   sortingOrder: 10
   countOffset: {x: 0.3, y: -0.3}
   countFontSize: 3
@@ -193,6 +194,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionShelfSlot2D
   shelf: {fileID: 5192563888902583280}
   iconBox: 1
+  iconScale: 1.08
   sortingOrder: 10
   countOffset: {x: 0.3, y: -0.3}
   countFontSize: 3
@@ -293,6 +295,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionShelfSlot2D
   shelf: {fileID: 5192563888902583280}
   iconBox: 1
+  iconScale: 1.08
   sortingOrder: 10
   countOffset: {x: 0.3, y: -0.3}
   countFontSize: 3
@@ -393,6 +396,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionShelfSlot2D
   shelf: {fileID: 5192563888902583280}
   iconBox: 1
+  iconScale: 1.08
   sortingOrder: 10
   countOffset: {x: 0.3, y: -0.3}
   countFontSize: 3
@@ -654,6 +658,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionShelfSlot2D
   shelf: {fileID: 5192563888902583280}
   iconBox: 1
+  iconScale: 1.08
   sortingOrder: 10
   countOffset: {x: 0.3, y: -0.3}
   countFontSize: 3
@@ -754,6 +759,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PotionSystem.PotionShelfSlot2D
   shelf: {fileID: 5192563888902583280}
   iconBox: 1
+  iconScale: 1.08
   sortingOrder: 10
   countOffset: {x: 0.3, y: -0.3}
   countFontSize: 3

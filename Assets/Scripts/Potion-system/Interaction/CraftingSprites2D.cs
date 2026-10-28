@@ -47,11 +47,24 @@ namespace PotionSystem
                     }
                 }
                 if (maxX >= minX && maxY >= minY)
+                {
                     result = new Vector2((maxX - minX + 1) / sprite.pixelsPerUnit, (maxY - minY + 1) / sprite.pixelsPerUnit);
+                    visibleBottoms[sprite] = (minY - sprite.pivot.y) / sprite.pixelsPerUnit;
+                }
             }
 
             visibleSizes[sprite] = result;
             return result;
+        }
+
+        private static readonly System.Collections.Generic.Dictionary<Sprite, float> visibleBottoms =
+            new System.Collections.Generic.Dictionary<Sprite, float>();
+
+        /// <summary>ตำแหน่งขอบล่างของส่วนที่มองเห็นจริง เทียบกับจุดหมุนของสไปรต์ (หน่วยโลก ที่สเกล 1) ใช้จัดให้ขวดยืนบนพื้นเมื่อปรับสเกล</summary>
+        public static float VisibleBottom(Sprite sprite)
+        {
+            VisibleSize(sprite); // คำนวณและเก็บค่าไว้ก่อน
+            return visibleBottoms.TryGetValue(sprite, out var b) ? b : sprite.bounds.min.y;
         }
 
         public static Vector3 MouseWorldPosition()
