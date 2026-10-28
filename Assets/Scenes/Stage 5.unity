@@ -3331,6 +3331,14 @@ PrefabInstance:
       propertyPath: 'switches.Array.data[0]'
       value: 
       objectReference: {fileID: 207205236}
+    - target: {fileID: 6228281681913452626, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6228281681913452626, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 7114030222196000817, guid: 62bbc635c94e9134e95ed64682713980, type: 3}
       propertyPath: m_Name
       value: Wood Platform
