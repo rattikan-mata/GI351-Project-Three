@@ -206,7 +206,11 @@ public class SpringPusher : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             Collider2D col = hits[i].collider;
-            if (col == null || col.isTrigger || col.transform.IsChildOf(transform)) continue;
+            if (col == null || col.transform.IsChildOf(transform)) continue;
+
+            // กล่องบางใบ (เช่น หีบ) ใช้ Collider แบบ Trigger ก็ต้องผลักได้ จึงเช็คกล่องก่อนข้าม Trigger
+            var box = col.GetComponentInParent<PushableBox>();
+            if (box == null && col.isTrigger) continue;
 
             // พื้นผิวที่ไม่ได้ขวางทางเลื่อน (เช่น พื้นที่มือเฉียดอยู่) ไม่นับ
             if (hits[i].normal.sqrMagnitude > 0.001f && Vector2.Dot(dir, hits[i].normal) > -0.15f) continue;
@@ -214,7 +218,6 @@ public class SpringPusher : MonoBehaviour
             // สัตว์ / ก้อนขน: ปล่อยให้ฟิสิกส์ดันตามตัวมือ
             if (col.GetComponentInParent<TestAnimal>() != null || col.GetComponentInParent<Hairball>() != null) continue;
 
-            var box = col.GetComponentInParent<PushableBox>();
             if (box != null && pushBoxes && !box.IsBroken)
             {
                 if (box.GetFreeDistance(dir, 0.15f) >= 0.05f)
