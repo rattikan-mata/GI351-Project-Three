@@ -45,8 +45,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
   defaultMasterVolume: 1
-  defaultBgmVolume: 0.75
-  defaultSfxVolume: 0.115
+  defaultBgmVolume: 0.14
+  defaultSfxVolume: 0.17
   defaultSfxCooldown: 0.05
   defaultBgmClip: {fileID: 8300000, guid: f4eece9d49e42444d8f9863238cbd18b, type: 3}
   autoPlayBgmOnStart: 1
