@@ -6023,6 +6023,10 @@ PrefabInstance:
       value: 140.8454
       objectReference: {fileID: 0}
     - target: {fileID: 8817236938600595140, guid: a10489b3be3e5b3439502bf77a69062c, type: 3}
+      propertyPath: finalStage
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8817236938600595140, guid: a10489b3be3e5b3439502bf77a69062c, type: 3}
       propertyPath: nextStageName
       value: Main Menu
       objectReference: {fileID: 0}

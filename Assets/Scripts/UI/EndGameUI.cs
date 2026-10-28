@@ -30,6 +30,12 @@ public class EndGameUI : MonoBehaviour
     [SerializeField] private GameObject btnRestart;
     [SerializeField] private GameObject btnExitToMenu;
 
+    [Header("Final Stage (ด่านสุดท้าย)")]
+    [Tooltip("ติ๊กไว้ = หน้าชนะจะเหลือปุ่ม Main Menu ปุ่มเดียวตรงกลาง (ไม่มี Restart / Next เพราะเกมจบแล้ว)")]
+    [SerializeField] private bool finalStage = false;
+    [Tooltip("ตำแหน่งปุ่ม Main Menu ตอนอยู่ตรงกลาง (หน่วย UI เทียบกับกึ่งกลางกรอบ)")]
+    [SerializeField] private Vector2 finalMainMenuPosition = new Vector2(0f, -250f);
+
     [Header("Scene")]
     [SerializeField] private string nextStageName = "Stage2";
     [SerializeField] private string mainMenuName = "MainMenu";
@@ -48,9 +54,10 @@ public class EndGameUI : MonoBehaviour
         endGamePanel.SetActive(true);
         ShowResultTitle("VICTORY", victorySprite);
 
-        btnNext.SetActive(true);
-        btnRestart.SetActive(true);
+        btnNext.SetActive(!finalStage);
+        btnRestart.SetActive(!finalStage);
         btnExitToMenu.SetActive(true);
+        if (finalStage && btnExitToMenu.transform is RectTransform menuRect) menuRect.anchoredPosition = finalMainMenuPosition;
 
         if (AudioUI.Instance != null)
         {
