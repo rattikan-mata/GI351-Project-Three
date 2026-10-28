@@ -274,15 +274,17 @@ public class Door : MonoBehaviour
                 return;
             }
 
-            bool wasOpen = IsOpen;
-            IsOpen = !IsOpen;
-            if (IsOpen != wasOpen)
-            {
-                if (IsOpen) PlayOpenSound();
-                else PlayCloseSound();
-            }
-            ApplyState();
         }
+
+        // ประตูตามสถานะสวิตช์: สวิตช์เปิด (ปุ่มยุบ) = ประตูเปิด / สวิตช์ปิด (ปุ่มเด้ง) = ประตูปิด
+        bool wasOpen = IsOpen;
+        IsOpen = CheckAllSwitchesTriggered();
+        if (IsOpen != wasOpen)
+        {
+            if (IsOpen) PlayOpenSound();
+            else PlayCloseSound();
+        }
+        ApplyState();
     }
 
     private void CheckCollisionBreak(GameObject hitObj)
