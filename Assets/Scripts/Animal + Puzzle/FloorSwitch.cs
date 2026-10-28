@@ -102,6 +102,7 @@ public class FloorSwitch : MonoBehaviour
     private bool weightSatisfied = false;
     private float lastToggleTime = -1f;
     private bool exitPending;
+    private bool wasBlocked;
 
     private Vector3 initialCapLocalPos;
     private bool initialPosSaved = false;
@@ -207,6 +208,14 @@ public class FloorSwitch : MonoBehaviour
             exitPending = false;
             if (requiredWeight > 0f) EvaluateWeight();
             else UpdateCapPosition();
+        }
+
+        // กล่องที่ทับสวิตช์อยู่พัง = สวิตช์ทำงานทันที (เฉพาะสวิตช์ที่เปิด Blocked By Box)
+        if (blockedByBox)
+        {
+            bool blockedNow = HasBoxOnTop();
+            if (wasBlocked && !blockedNow && !IsActive) ToggleSwitch();
+            wasBlocked = blockedNow;
         }
 
         if (pressers.Count == 0) return;
