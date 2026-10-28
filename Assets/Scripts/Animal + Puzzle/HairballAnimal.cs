@@ -241,6 +241,14 @@ public class HairballAnimal : TestAnimal
     [Tooltip("แรงโน้มถ่วงของก้อนขนปกติ/กระสุน/ก้อนยักษ์ (1 = ปกติ)")]
     [SerializeField] private float defaultGravityScale = 1f;
 
+    [Header("Bounce (Havoc / Surge)")]
+    [Tooltip("ความเด้งของก้อนขนยา Havoc (ยิงรัว) และ Surge (ยักษ์) ตอนชนพื้นและกำแพง ยิ่งมากยิ่งเด้งกลับแรง (ก้อนปกติใช้ค่าในพรีแฟ็บ 0.35)")]
+    [SerializeField, Range(0f, 1f)] private float specialBounciness = 0.8f;
+
+    [Header("Lifetime")]
+    [Tooltip("ติ๊กไว้ = ก้อนขนไม่หายเองหลังหยุดนิ่ง ค้างอยู่จนรีเซ็ตพัซเซิล (ไม่ติ๊ก = หายตามเวลา Linger Seconds เดิม)")]
+    [SerializeField] private bool keepHairballs = true;
+
     [Tooltip("แรงโน้มถ่วงของก้อนขน Skyward (0 = ลอยขึ้นข้างบนตามความสามารถ)")]
     [SerializeField] private float skywardGravityScale = 0f;
     #endregion
@@ -468,12 +476,12 @@ public class HairballAnimal : TestAnimal
                     float t = (count == 1) ? 0.5f : (float)i / (count - 1);
                     float angle = Mathf.Lerp(-barrageSpreadAngle * 0.5f, barrageSpreadAngle * 0.5f, t);
                     Vector2 d = Quaternion.Euler(0f, 0f, angle) * dir;
-                    SpawnHairball(activePrefab, null, d, hairballSpeed, barrageRange, barrageLingerSeconds, 1f, barrageMass, havocBreaksObstacles, defaultGravityScale);
+                    SpawnHairball(activePrefab, null, d, hairballSpeed, barrageRange, barrageLingerSeconds, 1f, barrageMass, havocBreaksObstacles, defaultGravityScale, specialBounciness);
                 }
                 break;
 
             case VomitMode.Giant:
-                SpawnHairball(activePrefab, null, dir, giantSpeed, hairballRange, giantLingerSeconds, giantScale, giantMass, giantBreaksObstacles, defaultGravityScale);
+                SpawnHairball(activePrefab, null, dir, giantSpeed, hairballRange, giantLingerSeconds, giantScale, giantMass, giantBreaksObstacles, defaultGravityScale, specialBounciness);
                 break;
 
             default:
@@ -500,7 +508,7 @@ public class HairballAnimal : TestAnimal
         return hairballPrefab != null ? hairballPrefab.gameObject : null;
     }
 
-    private void SpawnHairball(GameObject prefabToUse, Sprite customSprite, Vector2 dir, float speed, float range, float linger, float scale, float ballMass, bool canBreak = false, float gravScale = 1f)
+    private void SpawnHairball(GameObject prefabToUse, Sprite customSprite, Vector2 dir, float speed, float range, float linger, float scale, float ballMass, bool canBreak = false, float gravScale = 1f, float bounce = -1f)
     {
         if (prefabToUse == null) return;
 
@@ -545,7 +553,8 @@ public class HairballAnimal : TestAnimal
         if (!Mathf.Approximately(scale, 1f)) go.transform.localScale *= scale;
         ball.Mass = ballMass;
         ball.CanBreakObstacles = canBreak;
-        ball.Init(dir, speed, range, linger, gravScale);
+        if (bounce >= 0f) ball.Bounciness = bounce;
+        ball.Init(dir, speed, range, keepHairballs ? 0f : linger, gravScale);
     }
 
     private Vector2 GetFacingDirectionForBubble()

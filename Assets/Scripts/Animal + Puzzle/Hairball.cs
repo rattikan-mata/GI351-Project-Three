@@ -65,6 +65,8 @@ public class Hairball : MonoBehaviour
     [Tooltip("ตัวคูณแรงโน้มถ่วง (1 = ปกติ)")]
     [SerializeField] private float gravityScale = 1f;
     public float GravityScale { get => gravityScale; set => gravityScale = value; }
+    /// <summary>ความเด้งตอนชนพื้น/กำแพง (0 = ไม่เด้ง, 1 = เด้งไม่เสียแรง)</summary>
+    public float Bounciness { get => bounciness; set => bounciness = Mathf.Clamp01(value); }
 
     [Tooltip("ความเร็วตกสูงสุด")]
     [SerializeField] private float maxFallSpeed = 15f;
@@ -518,7 +520,7 @@ public class Hairball : MonoBehaviour
         if (!isMoving)
         {
             lingerTimer += dt;
-            if (lingerTimer >= lingerSeconds)
+            if (lingerSeconds > 0f && lingerTimer >= lingerSeconds) // lingerSeconds <= 0 = ไม่หายเอง
             {
                 Pop();
                 return;
