@@ -4962,7 +4962,7 @@ MonoBehaviour:
   barrageLingerSeconds: 3.4
   giantHairballPrefab: {fileID: 0}
   giantCatSprite: {fileID: 0}
-  giantScale: 3
+  giantScale: 2.1
   giantSpeed: 10
   giantLingerSeconds: 12
   giantBreaksObstacles: 1
@@ -5458,6 +5458,7 @@ MonoBehaviour:
   minPushDistance: 0.05
   isDestructible: 1
   hitsToBreak: 3
+  breakOnFirstHit: 1
   breakOnlyWhenBlocked: 0
   recoilDistance: 1.3
   recoilSpeed: 6

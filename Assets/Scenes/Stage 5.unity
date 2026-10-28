@@ -6361,6 +6361,7 @@ MonoBehaviour:
   minPushDistance: 0.05
   isDestructible: 1
   hitsToBreak: 3
+  breakOnFirstHit: 1
   breakOnlyWhenBlocked: 0
   recoilDistance: 1.3
   recoilSpeed: 6
@@ -6844,6 +6845,7 @@ MonoBehaviour:
   minPushDistance: 0.05
   isDestructible: 1
   hitsToBreak: 3
+  breakOnFirstHit: 1
   breakOnlyWhenBlocked: 0
   recoilDistance: 1.3
   recoilSpeed: 6
